@@ -1,0 +1,29 @@
+syntax: glob
+*.pyc
+*.so
+*.o
+*.swh
+*.swi
+*.swj
+*.swk
+*.swl
+*.swm
+*.swn
+*.swo
+*.swp
+*.html
+*.c
+#*.log
+#*.prof
+#*.pickle
+#*.npy
+
+#syntax: regexp
+#^build/
+#^env/
+#^data/
+#^logs/
+#^misc/
+#^output/
+#/\.nfs[0-9a-f]+$
+#.+~
