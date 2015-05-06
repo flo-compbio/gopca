@@ -25,7 +25,7 @@ import cPickle as pickle
 import numpy as np
 
 from tools import misc
-from mhg import xlmHG_cython as mHG
+from xlmhg import xlmHG_cython as mHG
 
 class mHGTermResult(object):
 	"""
