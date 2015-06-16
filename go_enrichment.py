@@ -24,8 +24,9 @@ import cPickle as pickle
 
 import numpy as np
 
-from tools import misc
-from xlmhg import xlmHG_cython as mHG
+import gopca
+from gopca.tools import misc
+from gopca.xlmhg import xlmHG_cython as mHG
 
 class mHGTermResult(object):
 	"""

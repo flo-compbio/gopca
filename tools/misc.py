@@ -14,8 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import csv
 import bisect
+
+def flatten(l):
+        return [item for sublist in l for item in sublist] # incomprehensible list comprehension
 
 def bisect_index(a, x):
 	'Locate the leftmost value exactly equal to x'
@@ -85,3 +89,5 @@ def read_goterms(fn):
 
 def read_terms(fn):
 	return read_all_columns(fn)
+
+
