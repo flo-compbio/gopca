@@ -32,7 +32,6 @@ def read_args_from_cmdline():
 	parser.add_argument('-e','--expression-file',required=True)
 	parser.add_argument('-o','--output-file',required=True)
 
-	parser.add_argument('--most-variable-genes',type=int,default=0)
 	parser.add_argument('-s','--seed',type=int,default=-1)
 
 	parser.add_argument('-d','--principal-components',type=int,default=20)
@@ -110,7 +109,6 @@ def main(args):
 	expr = args.expression_file
 	output_file = args.output_file
 
-	most_variable_genes = args.most_variable_genes
 	t = args.permutations
 	d = args.principal_components
 	perc = args.permutation_percent
@@ -127,28 +125,11 @@ def main(args):
 	# read expression
 	genes,samples,E = common.read_expression(expr)
 
-	# select genes with expression
-	sel = np.nonzero(np.amax(E,axis=1)>0)[0]
-	print "%d genes with nonzero expression." %(sel.size); sys.stdout.flush()
-	E = E[sel,:]
-	genes = [genes[i] for i in sel]
+	# check if there are genes without expression
+	sel = np.nonzero(np.amax(E,axis=1)==0)[0]
+	if sel.size > 0:
+		print "Warning: %d genes with all zero expression values." %(sel.size); sys.stdout.flush()
 
-	# filter genes based on variance
-	total_var = np.sum(np.var(E,axis=1,ddof=1))
-	p = E.shape[0]
-	if most_variable_genes > 0:
-		full_var = total_var
-		var = np.var(E,axis=1,ddof=1)
-		a = np.argsort(var)[::-1]
-		sel = np.zeros(p,dtype=np.bool_)
-		sel[a[:most_variable_genes]] = True
-		sel = np.nonzero(sel)[0]
-		E = E[sel,:]
-		genes = [genes[i] for i in sel]
-		total_var = np.sum(np.var(E,axis=1))
-		print "Selected %d most variable genes (removing %.1f%% of the total variance)." \
-				%(most_variable_genes,100-100*(total_var/full_var)); sys.stdout.flush()
-	
 	# truncate for kicks
 	#genes = genes[:500]
 	#E = E[:500,:]
