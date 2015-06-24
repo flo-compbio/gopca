@@ -66,32 +66,24 @@ def read_args_from_cmdline():
 	### Optional arguments
 	###
 
-	# additional input files
-	parser.add_argument('--exclude-gene-file',default=None)
-
 	# main parameters
-	parser.add_argument('-t','--most-variable-genes',type=int,default=0) # filter for most variable genes (0=off)
-	parser.add_argument('-p','--go-p-value-threshold',type=float,default=1e-6)
+	parser.add_argument('-p','--go-pvalue-threshold',type=float,default=1e-6)
 	parser.add_argument('-f','--go-fold-enrichment-threshold',type=float,default=1.5)
-
 	parser.add_argument('-s','--seed',type=int,default=-1)
 
 	# options for testing associations between genes and PCs
 	parser.add_argument('-z','--gene-pc-zscore-file',default=None)
-	parser.add_argument('--principal-components',type=int,default=0) # pre-determined (0=off)
+	parser.add_argument('--num-pc',type=int,default=0) # pre-determined (0=off)
 
+	parser.add_argument('--num-pc-default',type=int,default=15) # only if z-score file is provided
 	parser.add_argument('--pc-fdr',type=float,default=0.01) # only if z-score file is provided
 	parser.add_argument('--pc-min-genes',type=int,default=100) # only if z-score file is provided (0=off)
 	parser.add_argument('--pc-max',type=int,default=0) # hard limit (0=off)
-	parser.add_argument('--pc-min-variance',type=float,default=0,help='in percent') # ignore PCs capturing less than this fraction of variance (0 = off)
+	parser.add_argument('--pc-min-variance',type=float,default=1.0,help='in percent') # ignore PCs capturing less than this fraction of variance (0 = off)
 
 	parser.add_argument('--mHG-X',type=int,default=5)
 	parser.add_argument('--mHG-L',type=int,default=1000)
-
-	#parser.add_argument('--disable-pc-test',action='store_true')
-	#parser.add_argument('--pc-test-permutations',type=int,default=20)
-	#parser.add_argument('--pc-test-permutation-percent',type=float,default=2.5)
-	#parser.add_argument('--pc-test-jobs',type=int,default=1)
+	parser.add_argument('--enrichment-fdr',type=float,default=0.05)
 
 	# output verbosity
 	#parser.add_argument('-v','--verbose',action='store_true')
@@ -107,51 +99,65 @@ def print_enrichment(l,GO):
 		goterm_genes = GO.get_goterm_genes(term.id)
 		print enr.get_pretty_format(GO)
 
-def pc_go_enrichment(M,pc,w,genes,X,L,p_value_threshold,fold_enrichment_threshold):
+def get_pc_go_enrichment(M,pc,w,genes,X,L,pvalue_threshold,fold_enrichment_threshold,quiet=False):
 	a = np.argsort(w)
-
-	L_asc = min(np.sum(w<0),L)
-	print "Testing GO enrichment using ascending ordering of significant loadings (X=%d,L=%d)..." %(X,L_asc); sys.stdout.flush()
-	enrichments_asc = go_enrichment_analysis(M,a,genes,X,L_asc,p_value_threshold,fold_enrichment_threshold)
-
-	L_desc = min(np.sum(w>0),L)
-	print "Testing GO enrichment using descending ordering of significant loadings (X=%d,L=%d)..." %(X,L_desc); sys.stdout.flush()
-	enrichments_desc = go_enrichment_analysis(M,a[::-1],genes,X,L_desc,p_value_threshold,fold_enrichment_threshold)
-
-	enrichments = []
-	enrichments.extend(mHGTermResultWithPC.from_mHGTermResult(-pc,enr) for enr in enrichments_asc)
-	enrichments.extend(mHGTermResultWithPC.from_mHGTermResult(pc,enr) for enr in enrichments_desc)
-
-	return enrichments
-
-def go_enrichment_analysis(M,ranking,genes,X,L,p_value_threshold,fold_enrichment_threshold):
-	ranked_genes = [genes[i] for i in ranking]
-	enrichment = M.test_enrichment(ranked_genes,X,L,quiet=True)
-
-	enrichment = M.apply_thresholds(enrichment,p_value_threshold,fold_enrichment_threshold,quiet=False)
-	enrichment = filter_enriched_go_terms(enrichment,M,ranking,genes,X,L,p_value_threshold,fold_enrichment_threshold,quiet=False)
+	ranked_genes = [genes[i] for i in a]
+	# test enrichment
+	enrichment = get_go_enrichment(M,ranked_genes,X,L,pvalue_threshold,fold_enrichment_threshold,quiet=quiet)
+	# add PC information to enrichment results
+	enrichment = [mHGTermResultWithPC.from_mHGTermResult(pc,enr) for enr in enrichment]
 	return enrichment
 
-def filter_enriched_go_terms(enrichment,M,ranking,genes,X,L,p_value_threshold,fold_enrichment_threshold,quiet=True):
+def get_go_enrichment(M,ranked_genes,X,L,pvalue_threshold,fold_enrichment_threshold,filtering=True,quiet=False):
+	# tests for enrichment, applies thresholds, performs filtering to reduce redundancy
+	enrichment = M.test_enrichment(ranked_genes,pvalue_threshold,X,L,quiet=quiet)
+	enrichment = M.apply_thresholds(enrichment,pvalue_threshold,fold_enrichment_threshold,quiet=quiet)
+	if filtering:
+		enrichment = filter_enriched_go_terms(enrichment,M,ranked_genes,X,L,pvalue_threshold,fold_enrichment_threshold,quiet=quiet)
+	return enrichment
 
-	todo = enrichment[:]
-	genes_used = set()
-	kept = []
+def filter_enriched_go_terms(enrichment,M,ranked_genes,X,L,pvalue_threshold,fold_enrichment_threshold,quiet=False):
 
+	if len(enrichment) <= 1:
+		return []
+
+	# sort enrichments by fold change
+	todo = sorted(enrichment,key=lambda enr: -enr.fold_enrichment)
+	most_enriched = todo[0]
+	genes_used = set(most_enriched.genes)
+	kept = [most_enriched]
+	todo = todo[1:]
+	ranked_genes = ranked_genes[:] # make a copy here!
+
+	# filter enrichments
+	K_max = max([enr.K for enr in todo])
+	p = len(ranked_genes)
+	mat = np.zeros((K_max+1,p+1),dtype=np.longdouble)
 	while todo:
-		most_enriched = sorted(todo, key = lambda enr: -enr.fold_enrichment)[0]
-		term_index = M.get_term_index(most_enriched.term[0])
-		ranked_genes = [genes[i] for i in ranking if genes[i] not in genes_used]
+		most_enriched = todo[0]
+		term_id = most_enriched.term[0]
+		ranked_genes = [g for g in ranked_genes if g not in genes_used]
 
-		# test if still significant
-		enr = M.test_enrichment(ranked_genes,X,L,selected_terms=[term_index],quiet=True)[0]
-		if enr.p_value <= p_value_threshold and enr.fold_enrichment >= fold_enrichment_threshold:
+		# test if enrichment is still significant after removing all previously used genes
+		enr = M.test_enrichment(ranked_genes,pvalue_threshold,X,L,selected_terms=[term_id],mat=mat,quiet=True)[0]
+		if enr.p_value <= pvalue_threshold and enr.fold_enrichment >= fold_enrichment_threshold:
+			# if so, keep it!
 			kept.append(most_enriched)
-			genes_used.update(most_enriched.genes) # remove genes
+			# next, exclude selected genes from further analysis: 1) adjust L 2) update set of excluded genes
+			# 1) figure out how many genes above L were selected, and adjust L accordingly
+			exclude_genes = genes_used - set(most_enriched.genes) # newly excluded genes
+			new_L = L
+			for i in range(L):
+				if ranked_genes[i] in exclude_genes:
+					new_L -= 1
+			L = new_L
+			genes_used.update(most_enriched.genes) # add selected genes to set of used genes
 
-		todo.remove(most_enriched)
+		todo = todo[1:]
+
 	if not quiet:
 		print 'Filtering: kept %d / %d enrichments.' %(len(kept),len(enrichment)); sys.stdout.flush()
+
 	return kept
 
 def remove_redundant_terms(new_enrichment,previous_enrichment,GO):
@@ -175,23 +181,24 @@ def main(args):
 
 	# input files
 	expression_file = args.expression_file
-	exclude_gene_file = args.exclude_gene_file
 	zscore_file = args.gene_pc_zscore_file
 	annotation_files = [args.annotation_gene_file,args.annotation_term_file,args.annotation_matrix_file]
 
 	# parameters
-	most_variable_genes = args.most_variable_genes
-	go_p_value_threshold = args.go_p_value_threshold
+	go_pvalue_threshold = args.go_pvalue_threshold
 	go_fold_enrichment_threshold = args.go_fold_enrichment_threshold
 	pc_fdr = args.pc_fdr
 	pc_min_genes = args.pc_min_genes
 	pc_min_var = args.pc_min_variance/100.0
+	pc_max = args.pc_max
+	enrichment_fdr = args.enrichment_fdr
 	mHG_X = args.mHG_X
 	mHG_L = args.mHG_L
-
-	principal_components = args.principal_components
-
+	num_pc = args.num_pc
 	seed = args.seed
+
+	# parameter checks?
+
 	# select/generate seed for random number generator
 	max_int = np.iinfo(np.int32).max
 	if seed < 0:
@@ -206,62 +213,7 @@ def main(args):
 
 	# read expression data
 	genes,samples,E = common.read_expression(expression_file)
-
 	print "Expression matrix dimensions:",E.shape
-	modified = False
-
-	if exclude_gene_file is not None:
-		# remove excluded genes
-		p = E.shape[0]
-		sel = np.ones(p,dtype=np.bool_)
-		exclude_genes = misc.read_single(exclude_gene_file)
-		excluded = 0
-		ignored = 0
-		for g in exclude_genes:
-			try:
-				idx = misc.bisect_index(genes,g)
-				sel[idx] = False
-				excluded += 1
-			except ValueError:
-				ignored += 1
-		if ignored > 0:
-			print "Warning: Ignored %d unknown genes in excluded gene file." %(ignored); sys.stdout.flush()
-
-		if excluded > 0:
-			sel = np.nonzero(np.invert(excluded))[0]
-			genes = [genes[i] for i in sel]
-			E = E[sel,:]
-			print 'Excluded %d genes!' %(excluded); sys.stdout.flush()
-			modified = True
-
-	# remove genes without gene expression
-	sel = np.nonzero(np.amax(E,axis=1)>0)[0]
-	not_expressed = len(genes) - sel.size
-	if not_expressed > 0:
-		genes = [genes[i] for i in sel]
-		E = E[sel,:]
-		print "Removed %d genes without expression." %(not_expressed); sys.stdout.flush()
-		modified = True
-	
-	# filter genes based on variance
-	total_var = np.sum(np.var(E,axis=1,ddof=1))
-	p = E.shape[0]
-	if most_variable_genes > 0:
-		full_var = total_var
-		var = np.var(E,axis=1,ddof=1)
-		a = np.argsort(var)[::-1]
-		sel = np.zeros(p,dtype=np.bool_)
-		sel[a[:most_variable_genes]] = True
-		sel = np.nonzero(sel)[0]
-		E = E[sel,:]
-		genes = [genes[i] for i in sel]
-		total_var = np.sum(np.var(E,axis=1))
-		print "Selected %d most variable genes (removing %.1f%% of the total variance)." \
-				%(most_variable_genes,100-100*(total_var/full_var)); sys.stdout.flush()
-		modified = True
-
-	if modified:
-		print "Final expression matrix has %d genes." %(len(genes))
 
 	# read GO data
 	print "Loading GO annotations...", ; sys.stdout.flush()
@@ -282,70 +234,94 @@ def main(args):
 
 	# load pc/gene z-scores
 	S = None
+	Z = None
+	k = None
+	crit_p = None
 	if zscore_file is not None:
 		_,_,Z = common.read_gene_data(zscore_file)
-		print E.shape[0],Z.shape[0]
+		#print E.shape[0],Z.shape[0]
 		assert Z.shape[0] == E.shape[0] # make sure number of genes is correct
 
 		# convert Z-scores to P-values (= one-sided tail)
 		S = stats.norm.sf(Z,loc=0.0,scale=1.0)
-		Z = None
-		k = np.int64([fdr.fdr_bh(pval,pc_fdr)[0] for pval in S.T])
-		print "TEST:",k
+		# calculate FDR thresholds
+		fdr_results = [fdr.fdr_bh(pval,pc_fdr) for pval in S.T]
+		k = np.int64([f[0] for f in fdr_results])
+		print "Significant genes per PC:"
+		print k
+		sys.stdout.flush()
 
-	# calculate principal components
-	num_pcs = 50
-	if principal_components > 0:
-		num_pcs = principal_components
-	elif S is not None:
-		num_pcs = S.shape[1]
-	P = RandomizedPCA(n_components = num_pcs)
+	# determine number of PCs to compute
+	if num_pc == 0:
+		if S is not None:
+			if pc_min_genes > 0:
+				sel = np.nonzero(k < pc_min_genes)[0]
+				if sel.size > 0:
+					num_pc = sel[0]
+				else:
+					num_pc = S.shape[1]
+			else:
+				num_pc = S.shape[1]
+		else:
+			num_pc = num_pc_default
+		if pc_max > 0:
+			num_pc = min(num_pc,pc_max)
+
+	print "Will compute the first %d principal components." %(num_pc)
+	sys.stdout.flush()
+
+	# calculate PCA and determine number of PCs to test
+	P = RandomizedPCA(n_components = num_pc)
 	P.fit(E.T)
 	frac = P.explained_variance_ratio_
-	C = P.components_.T
+	print "Fraction variance explained per PC:"
+	print frac
+	print np.cumsum(frac)
+	sys.stdout.flush()
+
+	# apply variance criterion
+	if pc_min_var > 0:
+		sel = np.nonzero(frac < pc_min_var)[0]
+		if sel.size > 0:
+			num_pc = min(num_pc,sel[0])
+
+	print "Will test the first d=%d principal components!" %(num_pc)
+	sys.stdout.flush()
 
 	# run GO-PCA!
+	C = P.components_.T
 	final_enrichment = []
 	p = len(genes)
 	res_var = None
 	all_genes = set(genes)
 	total_var = 0.0
 	d = C.shape[1]
-	pc = 0
-	while pc < d:
+	for pc in range(num_pc):
 
-		#test_gene_pc_assoc(E,perc=)
-		#break
-		#current_var = (1.0-total_var)*frac[d]
-		if frac[pc] < pc_min_var:
-			print "Stopping! (PC does not explain enough % of total variance.)"; sys.stdout.flush()
-			break
-
-		c = C[:,pc]
-		if S is not None:
-			#pval = S[:,pc]
-			k,crit_p = fdr.fdr_bh(S[:,pc],pc_fdr)
-			if k < pc_min_genes: # test if sufficient genes are significantly associated with this PC
-				print "Stopping! (PC has not enough genes significantly associated with it.)"; sys.stdout.flush()
-				break
-
-			# set non-significant loadings to zero
-			not_significant = np.nonzero(S[:,pc] > crit_p)[0]
-			#print "TEST:",crit_p,not_significant.size; sys.stdout.flush()
-			c[not_significant] = 0.0
-
+		sig_pos = mHG_L
+		sig_neg = mHG_L
+		if S is not None and enrichment_fdr > 0:
+			# we have Z-scores, and user wants us to use them to help set L for each PC
+			_,crit_p = fdr.fdr_bh(S[:,pc],enrichment_fdr)
+			sel = np.zeros(p,dtype=np.bool_)
+			sel[np.nonzero(S[:,pc] <= crit_p)[0]] = True
+			sig_pos = min(sig_pos,np.sum(np.all(np.c_[sel,Z[:,pc]>0],axis=1)))
+			sig_neg = min(sig_neg,np.sum(np.all(np.c_[sel,Z[:,pc]<0],axis=1)))
+			
 		s = ''
 		if S is not None:
-			s = 'has %d significant genes and ' %(k)
+			s = 'has %d significant genes (at FDR=%.2f) and ' %(k[pc],pc_fdr)
+		print
+		print '-------------------------------------------------------------------------'
 		print "PC %d %sexplains %.1f%% of the total variance." %(pc+1,s,100*frac[pc])
 		total_var += frac[pc]
 		print "The new cumulative fraction of total variance explained is %.1f%%." %(100*total_var)
 		sys.stdout.flush()
 
-		#pc += 1
-
 		print "Testing for GO enrichment...", ; sys.stdout.flush()
-		enrichment = pc_go_enrichment(M,pc+1,c,genes,mHG_X,mHG_L,go_p_value_threshold,go_fold_enrichment_threshold)
+		enrichment_dsc = get_pc_go_enrichment(M,pc+1,-C[:,pc],genes,mHG_X,mHG_L,go_pvalue_threshold,go_fold_enrichment_threshold)
+		enrichment_asc = get_pc_go_enrichment(M,-pc-1,C[:,pc],genes,mHG_X,mHG_L,go_pvalue_threshold,go_fold_enrichment_threshold)
+		enrichment = enrichment_dsc + enrichment_asc
 
 		print "# enriched terms:",len(enrichment); sys.stdout.flush()
 		before = len(enrichment)
@@ -357,13 +333,6 @@ def main(args):
 		print_enrichment(enrichment,GO)
 		final_enrichment.extend(enrichment)
 		print "# total enriched terms:", len(final_enrichment); sys.stdout.flush()
-
-		# manually remove PC
-		#Y = P.transform(E.T)
-		#y = np.atleast_2d(Y[:,0]).T
-		#c = np.atleast_2d(C[0,:])
-		#E_remove = y.dot(c).T
-		#E = E - E_remove
 
 		pc += 1
 

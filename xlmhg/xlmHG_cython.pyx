@@ -43,11 +43,11 @@ cdef long double get_hypergeometric_pvalue(\
 		long double p, int k, int N, int K, int n):
 	# calculates hypergeometric p-value when P(k | N,K,n) is already known
 	cdef long double pval = p
-	cdef int i
-	for i in range(k,min(K,n)):
-		p *= (<long double>((n-i)*(K-i)) /\
-				<long double>((i+1)*(N-K-n+i+1)))
+	while k < min(K,n):
+		p *= (<long double>((n-k)*(K-k)) /\
+				<long double>((k+1)*(N-K-n+k+1)))
 		pval += p
+		k += 1
 	return pval
 
 
@@ -71,12 +71,12 @@ cdef int get_mHG(unsigned char[::1] v, int N, int K, int L, int X,
 		if v[n] == 0:
 			# calculate P(k | N,K,n+1) from P(k | N,K,n)
 			p *= (<long double>((n+1)*(N-K-n+k)) /\
-					<long double>((N-n)*(n-k+1)));
+					<long double>((N-n)*(n-k+1)))
 		else:
 			# hit one => calculate hypergeometric p-value
 			# calculate P(k+1 | N,K,n+1) from P(k | N,K,n)
 			p *= (<long double>((n+1)*(K-k)) /\
-					<long double>((N-n)*(k+1)));
+					<long double>((N-n)*(k+1)))
 			k += 1
 			if k >= X: # calculate p-value only if enough elements have been seen
 				pval = get_hypergeometric_pvalue(p,k,N,K,n+1)
@@ -178,7 +178,7 @@ cdef long double get_mHG_pvalue(int N, int K, int L, int X,\
 	return 1.0 - (matrix[K,W-1] + matrix[K-1,W])
 
 
-def mHG_test(unsigned char[::1] v, int N, int K, int L, int X, mat=None, use_upper_bound=False, verbose=False, tolerance=1e-16):
+def mHG_test(unsigned char[::1] v, int N, int K, int L, int X, mat=None, use_upper_bound=False, verbose=False, tolerance=1e-16, pvalue_threshold=1.0):
 	# Front-end for the XL-mHG test.
 
 	# sanity checks
@@ -213,7 +213,7 @@ def mHG_test(unsigned char[::1] v, int N, int K, int L, int X, mat=None, use_upp
 	if is_equal(mHG,1.0,tol): # check if there is anything going on at all
 		return threshold,1.0,1.0
 
-	if use_upper_bound:
+	if mHG > pvalue_threshold or use_upper_bound:
 		# don't calculate XL-mHG p-value, use upper bound instead
 		mHG_pvalue_double = <double>min(1.0,mHG*(<long double>K))
 

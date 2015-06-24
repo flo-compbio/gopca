@@ -36,7 +36,7 @@ def fdr_bh(p_values,q):
 def fdr_bh_general(p_values,q):
 	# implements Benjamini Hochberg procedure that guarantees
 	# FDR control under arbitrary test dependencies
-	n = a.size
+	n = p_values.size
 
 	q_adj = 0
 	for i in range(n):

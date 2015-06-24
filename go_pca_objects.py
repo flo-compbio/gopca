@@ -49,7 +49,7 @@ class mHGTermResultWithPC(mHGTermResult):
 		goterm_genes = GO.get_goterm_genes(term.id)
 		details = ''
 		if nitty_gritty:
-			details = ' [p=%.1e,e=%.2fx,c=%d,%d/%d@%d]' %(self.p_value,self.fold_enrichment,self.pc,len(self.genes),self.K,self.n)
+			details = ' [pval=%.1e,fe=%.2fx,pc=%d,%d/%d@%d]' %(self.p_value,self.fold_enrichment,self.pc,len(self.genes),self.K,self.n)
 		return '%s%s' %(term.get_pretty_format(omit_acc=omit_acc,max_name_length=max_name_length),details)
 
 	@staticmethod
