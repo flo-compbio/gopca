@@ -200,6 +200,7 @@ def main():
 	plt.xticks(np.arange(0,max_pc*2,2)+0.5,np.arange(max_pc)+1,size='small')
 	plt.xlabel(r'Principal Components',labelpad=10,size='small')
 	plt.xlim(-0.5,max_pc*2-0.5)
+	plt.gca().tick_params(top='off')
 
 	plt.yticks(np.arange(q),labels,size='x-small')
 	plt.ylabel(r'Signatures',size='small')
