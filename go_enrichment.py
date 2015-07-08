@@ -88,9 +88,9 @@ class GOEnrichment(object):
 		self.terms = misc.read_all(annotation_term_file) # we assume terms are sorted alphabetically by term ID
 		self.term_ids = [t[0] for t in self.terms]
 		self.A = np.load(gzip.open(annotation_matrix_file))
-		N,M = self.A.shape
-		assert len(self.genes) == N
-		assert len(self.terms) == M
+		p,m = self.A.shape
+		assert len(self.genes) == p
+		assert len(self.terms) == m
 
 	def test_enrichment(self,ranked_genes,pvalue_threshold,X,L,selected_terms=[],mat=None,quiet=False):
 

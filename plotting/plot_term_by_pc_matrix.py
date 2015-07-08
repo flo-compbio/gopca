@@ -8,10 +8,10 @@ import cPickle as pickle
 from collections import OrderedDict,Counter
 
 import numpy as np
-
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
-from sklearn.decomposition import RandomizedPCA
+from scipy import stats 
+from sklearn.decomposition import PCA
 
 import matplotlib as mpl
 #from matplotlib.backends.backend_pdf import PdfPages
@@ -29,6 +29,7 @@ if __name__ == '__main__' and __package__ is None:
 	import gopca
 
 from gopca import common
+from gopca import fdr
 from gopca.tools import misc
 from gopca.go_pca_objects import mHGTermResultWithPC
 from gopca.xlmhg.xlmHG_cython import mHG_test
@@ -39,15 +40,20 @@ def read_args_from_cmdline():
 	parser.add_argument('-e','--expression-file',required=True)
 	parser.add_argument('-s','--signature-file',required=True)
 	parser.add_argument('-g','--go-pickle-file',required=True)
+	parser.add_argument('-z','--pc-gene-zscore-file',required=False)
 
-	parser.add_argument('-X','--mHG-X',type=int,required=True)
-	parser.add_argument('-L','--mHG-L',type=int,required=True)
-	parser.add_argument('-p','--pvalue-threshold',type=float,default=1e-6)
+	# GO-PCA parameters
+	parser.add_argument('-X','--go-mHG-X',type=int,required=True)
+	parser.add_argument('-L','--go-mHG-L',type=int,required=True)
+	parser.add_argument('-p','--go-pvalue-threshold',type=float,default=1e-6)
+	parser.add_argument('-q','--go-enrichment-fdr',type=float,default=0.05) # ignored if no z-score file is provided (-z)
 
+	# visualization options
 	parser.add_argument('--pvalue-show-below',type=float,default=1e-4)
 	parser.add_argument('--pvalue-best',type=float,default=1e-10)
 	parser.add_argument('--pvalue-worst',type=float,default=1.0)
 	parser.add_argument('--pvalue-ticks',type=float,nargs='+',default=[4,6,8,10])
+	parser.add_argument('-r','--reverse-order',required=False,action='store_true')
 
 	#parser.add_argument('-o','--output-file',required=True)
 
@@ -69,15 +75,18 @@ def main():
 	expression_file = args.expression_file
 	signature_file = args.signature_file
 	go_pickle_file = args.go_pickle_file
+	pc_gene_zscore_file = args.pc_gene_zscore_file
 
-	X = args.mHG_X
-	L = args.mHG_L
-	pval_thresh = args.pvalue_threshold
+	go_mHG_X = args.go_mHG_X
+	go_mHG_L = args.go_mHG_L
+	go_pvalue_threshold = args.go_pvalue_threshold
+	go_enrichment_fdr = args.go_enrichment_fdr
 
 	pval_show_below = args.pvalue_show_below
 	pval_best = args.pvalue_best
 	pval_worst = args.pvalue_worst
 	pval_ticks = args.pvalue_ticks
+	reverse_order = args.reverse_order
 
 	dim1, dim2 = args.figure_dimensions
 	font_size = args.figure_font_size
@@ -101,6 +110,17 @@ def main():
 	GO = pickle.load(open(go_pickle_file))
 	print "read %d terms, %d annotations." %(len(GO.terms),len(GO.annotations)); sys.stdout.flush()
 
+	# load pc/gene z-scores
+	Z = None
+	P = None
+	if pc_gene_zscore_file is not None:
+		print 'Reading z-score matrix...', ; sys.stdout.flush()
+		_,_,Z = common.read_gene_data(pc_gene_zscore_file)
+		assert Z.shape[0] == E.shape[0] # make sure number of genes is correct
+		# convert Z-scores to P-values (= one-sided tail)
+		P = stats.norm.sf(Z,loc=0.0,scale=1.0)
+		print 'done!'; sys.stdout.flush()
+
 	# constructing signatures
 	print "Constructing signatures...", ;sys.stdout.flush()
 	q = len(signatures)
@@ -114,58 +134,85 @@ def main():
 		S[i,:] = sig
 	print 'done!'; sys.stdout.flush()
 
-	# clustering of rows
+	# perform hierarchical clustering on signatures (rows)
 	print "Clustering of signatures...", ;sys.stdout.flush()
 	distxy = squareform(pdist(S, metric='correlation'))
+	print 'done!'; sys.stdout.flush()
+
+	# reorder signatures according to clustering
 	R = dendrogram(linkage(distxy, method='average'),no_plot=True)
 	order = np.int64([int(l) for l in R['ivl']])
+	if reverse_order:
+		order = order[::-1]
 	S = S[order,:]
-	labels = [labels[idx] for idx in order]
-	print 'done!'; sys.stdout.flush()
+	labels = [labels[i] for i in order]
+	signatures = [signatures[i] for i in order]
 
 	# perform PCA
 	print "Performing PCA...", ;sys.stdout.flush()
-	max_pc = max(abs(sig.pc) for sig in signatures)
-	M = RandomizedPCA(n_components=max_pc)
-	M.fit(E.T)
-	C = M.components_
-	#print C.shape
+	test_pc = max(abs(sig.pc) for sig in signatures)
+	M_pca = PCA(n_components=test_pc)
+	M_pca.fit(E.T)
 	print 'done!'; sys.stdout.flush()
+	frac = M_pca.explained_variance_ratio_
+	cum_frac = np.cumsum(frac)
+	print "Cumulative fraction variance explained per PC:"
+	print cum_frac
+	sys.stdout.flush()
 
 	# test association
+	W = M_pca.components_.T
 	all_genes = set(genes)
-	A = np.zeros((q,2*max_pc),dtype=np.float64)
+	q = len(signatures)
+	A = np.zeros((q,2*test_pc),dtype=np.float64)
 	p = E.shape[0]
 	matrix = np.zeros((p+1,p+1),dtype=np.longdouble)
 	all_genes = set(genes)
-	for k,j in enumerate(order):
-		sig = signatures[j]
-		term_genes = GO.get_goterm_genes(sig.term[0]) & all_genes
-		K = len(term_genes)
+	for pc in range(test_pc):
+		L_pos = go_mHG_L
+		L_neg = go_mHG_L
+		pc_loadings = W[:,pc].copy()
+		s = ''
+		if P is not None and go_enrichment_fdr > 0:
+			# we have Z-scores, and user wants us to use them to help set L for each PC
+			k,crit_p = fdr.fdr_bh(P[:,pc],go_enrichment_fdr)
+			s = 'has %d significantly associated genes (at FDR=%.2f) and ' %(k,go_enrichment_fdr)
+			# set all loadings for non-significantly associated genes to zero
+			pc_loadings[P[:,pc] > crit_p] = 0
+			# adjust L parameters, if necessary
+ 			L_pos = min(L_pos,np.sum(pc_loadings>0))
+			L_neg = min(L_neg,np.sum(pc_loadings<0))
+			sel = np.zeros(p,dtype=np.bool_)
+
+		a_pos = np.argsort(-pc_loadings)
+		a_neg = np.argsort(pc_loadings)
+		for i,sig in enumerate(signatures):
+			term_genes = GO.get_goterm_genes(sig.term[0]) & all_genes
+			K = len(term_genes)
 		
-		v = np.zeros(p,dtype=np.uint8)
-		for g in term_genes:
-			idx = misc.bisect_index(genes,g)
-			v[idx] = 1
+			v = np.zeros(p,dtype=np.uint8)
+			for g in term_genes:
+				idx = misc.bisect_index(genes,g)
+				v[idx] = 1
 
-		for pc in range(max_pc):
+			v_sorted = np.ascontiguousarray(v[a_pos])
+			threshold,_,pval = mHG_test(v_sorted,p,K,L_pos,go_mHG_X,mat=matrix)
+			A[i,pc*2] = -np.log10(pval)
+			#if pc == 10 and sig.term[0] == 'GO:0006613':
+			#	print -np.log10(pval)
+			#	print len(term_genes),np.nonzero(v_sorted)
 
-			a = np.argsort(C[pc,:])
-			v_sorted = np.ascontiguousarray(v[a])
-			threshold,_,pval = mHG_test(v_sorted,p,K,L,X,mat=matrix,pvalue_threshold=pval_thresh)
-			A[k,pc*2] = -np.log10(pval)
-
-			a = a[::-1]
-			v_sorted = np.ascontiguousarray(v[a])
-			threshold,_,pval = mHG_test(v_sorted,p,K,L,X,mat=matrix,pvalue_threshold=pval_thresh)
-			A[k,pc*2+1] = -np.log10(pval)
-
-	#rc('font',family='serif',size=32)
-	#rc('figure',figsize=(18,20))
+			v_sorted = np.ascontiguousarray(v[a_neg])
+			threshold,_,pval = mHG_test(v_sorted,p,K,L_neg,go_mHG_X,mat=matrix)
+			A[i,pc*2+1] = -np.log10(pval)
+			#if pc == 10 and sig.term[0] == 'GO:0006613':
+			#	print -np.log10(pval)
+			#	print len(term_genes),np.nonzero(v_sorted)
 
 	# prepare for plotting
 	rc('font',family='serif',size=font_size)
 	rc('figure',figsize=(dim1,dim2))
+	plt.cla()
 
 	preamble = mpl.rcParams['text.latex.preamble']
 	add = r'\usepackage{bm}'
@@ -176,8 +223,14 @@ def main():
 	# plot this first, otherwise colormap gets messed up
 	q = len(signatures)
 	for i in range(q):
-		j = np.nonzero(np.absolute(A[i,:])>=-np.log10(pval_thresh))[0][0]
-		plt.scatter([j],[i],marker='o',facecolor='none',color='black',lw=2.0,zorder=100)
+		sel = np.nonzero(np.absolute(A[i,:])>=-np.log10(go_pvalue_threshold))[0]
+		if sel.size == 0:
+			print i,signatures[i]
+			print -np.log10(pval_thresh)
+			print A[i,:]
+		j = sel[0]
+		plt.scatter([j],[i],marker='o',facecolor='black',color='black',zorder=100)
+		#print [j,i]
 
 	# plot heatmap
 	A[np.absolute(A)<-np.log10(pval_show_below)] = np.nan # hide insignificant associations
@@ -186,8 +239,9 @@ def main():
 	plt.imshow(A,interpolation='none',vmin=vmin,vmax=vmax,cmap='Oranges',zorder=20)
 
 	# plot separation lines
-	for pc in range(max_pc-1):
+	for pc in range(test_pc-1):
 		plt.plot([pc*2+1.5,pc*2+1.5],[-0.5,q-0.5],color='gray',linewidth=1.0,zorder=50)
+	plt.plot([-0.5,test_pc*2+1.5],[-0.5,-0.5],color='black',linewidth=2.0,zorder=50) # fix some z-order issues
 
 	# configure axes
 	plt.gca().yaxis.set_ticks_position('left')
@@ -197,14 +251,15 @@ def main():
 	plt.gca().spines['bottom'].set_visible(False)
  
 	#plt.gca().xaxis.tick_top()
-	plt.xticks(np.arange(0,max_pc*2,2)+0.5,np.arange(max_pc)+1,size='small')
+	plt.xticks(np.arange(0,test_pc*2,2)+0.5,np.arange(test_pc)+1,size='small')
 	plt.xlabel(r'Principal Components',labelpad=10,size='small')
-	plt.xlim(-0.5,max_pc*2-0.5)
+	plt.xlim(-0.5,test_pc*2-0.5)
 	plt.gca().tick_params(top='off')
 
 	plt.yticks(np.arange(q),labels,size='x-small')
-	plt.ylabel(r'Signatures',size='small')
+	plt.ylabel(r'GO Terms',size='small')
 	plt.ylim(q-0.5,-0.5)
+	#plt.ylim(-0.5,q-0.5)
 	plt.grid(which='both',axis='y',zorder=-20) # z-order is ignored here
 
 	# plot colorbar

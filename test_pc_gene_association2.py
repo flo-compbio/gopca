@@ -35,74 +35,69 @@ def read_args_from_cmdline():
 	parser.add_argument('-s','--seed',type=int,default=-1)
 
 	parser.add_argument('-d','--principal-components',type=int,default=20)
-	parser.add_argument('-t','--permutations',type=int,default=15)
-	parser.add_argument('-p','--permutation-percent',type=float,default=1.0)
+	parser.add_argument('-t','--permutations',type=int,default=10000)
+	parser.add_argument('-b','--permutation-genes',type=int,default=100)
 	parser.add_argument('-j','--jobs',type=int,default=1)
 
 	return parser.parse_args()
 
-def permutation_PCA(perm_indices,seeds,E,d,perc):
+def permutation_testing(job_indices,seeds,E,d,b):
 	""" Perform PCA for a certain number of permutations. """
 
 	p,n = E.shape
-	t = len(perm_indices)
-	C = np.zeros([p,d,t],dtype=np.float64)
+	t = len(job_indices)
+	F = np.zeros([t*b,d],dtype=np.float32)
 
 	# turn on reporting if this is the first job
 	report = False
 	if perm_indices[0] == 0:
 		report = True
 
-	# define gene index ranges for individual permutations
-	start = 0
-	p = E.shape[0]
-	step_size = int(ceil(p*(perc/100.0)))
-	subset_ranges = []
-	while start < p:
-		stop = min(start + step_size,p)
-		subset_ranges.append((start,stop))
-		start += step_size
+	# we produce a matrix of T test statistics
+	T = np.empty((b*t,d),dtype=np.float32)
 
 	# do the permutations
-	subsets = len(subset_ranges)
 	total_runs = t*subsets # for calculating progress
 	r = 0
 	p,n = E.shape
-	for j,idx in enumerate(perm_indices):
+	for j,idx in enumerate(job_indices):
+
+		if report:
+			print '\rAnalyzing permuted data: %.1f%% completed...' %(100*(j/float(t))),; sys.stdout.flush()
+
+		np.random.seed(seeds[idx])
+
+		perm_genes = np.random.choice(p,size=b,replace=False) # sample b genes
+		E_perm = E.copy()
+		for i in perm_genes:
+			np.random.shuffle(E_perm[i,:]) # permute row (gene) of expression matrix
 
 		M = RandomizedPCA(n_components=d,random_state=seeds[idx])
-		np.random.seed(seeds[idx])
-		perm_genes = np.random.permutation(p) # randomly group genes in each permutation cycle
+		M.fit(E_perm.T)
+		W = M.components_.T
 
-		for k in range(subsets):
-
-			if report:
-				print '\rAnalyzing permuted data: %.1f%% completed...' %(100*(r/float(total_runs))),; sys.stdout.flush()
-
-			# figure out which genes to permute
-			start,stop = subset_ranges[k]
-			E_perm = E.copy()
-			sel_genes = perm_genes[start:stop]
-
-			# randomly permute sample labels for subset of genes
-			perm_samples = np.random.permutation(n)
-			for i in sel_genes:
-				E_perm[i,:] = E_perm[i,perm_samples]
-
-			# calculate PCA
-			M.fit(E_perm.T)
-
-			# Important: take the absolute loadings!
-			C[sel_genes,:,j] = np.absolute(M.components_[:,sel_genes].T)
-			r += 1
-
+		# regression with E that is already centered
+		S = E_perm.T.dot(W).T # use this
+		x_mean = np.mean(S,axis=1)
+		Xc = S - np.tile(x_mean,(n,1)).T
+		for pc in range(d):
+			s_xx = np.sum(np.power(Xc[pc,:],2.0))
+			for i,idx in enumerate(perm_genes):
+				s_xy = np.sum(Xc[pc,:]*E_perm[idx,:])
+				beta = s_xy / s_xx
+				alpha = 0 - beta*x_mean[pc]
+				s_sq = np.sum(np.power(E_perm[idx,:]-alpha-beta*S[pc,:],2.0))/float(n-2) # residual variance
+				T[j*b+i,pc] = pow(pow(beta,2.0)/(s_sq/s_xx),0.5)
 
 	if report: print 'done!'; sys.stdout.flush()
-	return C
+	return T
 	
-def store_result(C_sub,job_id,perm_indices,C):
-	for j,idx in enumerate(perm_indices):
-		C[:,:,idx] = C_sub[:,:,j]
+def store_result(T_sub,b,job_indices,T):
+	start = job_indices
+	for j,idx in enumerate(job_indices):
+		start = idx*b
+		stop = start + b
+		T[start:stop,:] = T_sub[(j*b):(j*b+b),:]
 
 def main(args):
 
@@ -110,10 +105,13 @@ def main(args):
 	output_file = args.output_file
 
 	t = args.permutations
+	b = args.permutation_genes
 	d = args.principal_components
-	perc = args.permutation_percent
 	seed = args.seed
 	jobs = args.jobs
+
+	# checks
+	assert (t % b) == 0
 
 	# select/generate seed for random number generator
 	max_int = np.iinfo(np.int32).max
@@ -124,6 +122,10 @@ def main(args):
 
 	# read expression
 	genes,samples,E = common.read_expression(expr)
+
+	# center expression matrix
+	n = E.shape[1]
+	E = E - np.tile(np.mean(E,axis=1),(n,1)).T
 
 	# check if there are genes without expression
 	sel = np.nonzero(np.amax(E,axis=1)==0)[0]
@@ -136,28 +138,28 @@ def main(args):
 
 	# split up subsamples into distinct jobs
 	start = 0
-	step_size = int(ceil(t/float(jobs)))
+	total_jobs = t/b
+	step_size = int(ceil(total_jobs/float(jobs)))
 	job_indices = []
-	while start < t:
-		job_indices.append(range(start,min(start+step_size,t),1))
+	while start < total_jobs:
+		job_indices.append(range(start,min(start+step_size,total_jobs),1))
 		start += step_size
-	assert len(job_indices) == jobs
-	assert sum(len(job_indices[i]) for i in range(jobs)) == t
+	#assert len(job_indices) == jobs
+	assert sum(len(job_indices[i]) for i in range(jobs)) == total_jobs
+	workers = len(job_indices)
 
 	# generate seeds for jobs
 	seeds = []
 	max_int = np.iinfo(np.int32).max
-	for i in range(t):
+	for i in range(total_jobs):
 		seeds.append(np.random.randint(0,max_int))
 
-	p = E.shape[0]
-	C_perm = np.zeros((p,t),dtype=np.float64)
 	pool = Pool(jobs)
 
 	# perform PCA on unpermuted data
 	M = RandomizedPCA(n_components=d)
 	M.fit(E.T)
-	C = M.components_.T
+	#W = M.components_.T
 	explained = M.explained_variance_ratio_
 	print "Explained variance per PC:"
 	print explained
@@ -167,11 +169,10 @@ def main(args):
 	# run jobs in parallel
 	print "Queuing all jobs...", ; sys.stdout.flush()
 	p = E.shape[0]
-	C_perm = np.zeros((p,d,t),dtype=np.float64) # stores output
+	T_perm = np.zeros((t,d),dtype=np.float32) # for storing output
 	pool = Pool(jobs)
 	for i in range(jobs):
-		perm_ind = job_indices[i]
-		func = ft.partial(store_result,job_id=i,perm_indices=perm_ind,C=C_perm)
+		func = ft.partial(store_result,b,job_indices=job_indices[i],T=T_perm)
 		result = pool.apply_async(permutation_PCA,args=(perm_ind,seeds,E,d,perc),callback=func)
 	print "done!"; sys.stdout.flush()
 
@@ -182,15 +183,9 @@ def main(args):
 	t1 = time.time()
 	print "All jobs completed (runtime=%.1fs)!" %(t1-t0); sys.stdout.flush()
 
-	# calculate Z-scores
-	mean = np.mean(C_perm,axis=-1)
-	std = np.std(C_perm,axis=-1,ddof=1)
-	Z = (np.absolute(C)-mean)/std
-	print np.sum(Z>3.0,axis=0)
-
 	# write output
-	labels = ['PC_%d' %(i+1) for i in range(d)]
-	common.write_gene_data(output_file,genes,labels,Z)
+	#labels = ['PC_%d' %(i+1) for i in range(d)]
+	#common.write_gene_data(output_file,genes,labels,Z)
 
 	return 0
 
