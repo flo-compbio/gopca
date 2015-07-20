@@ -71,6 +71,7 @@ def read_args_from_cmdline():
 	parser.add_argument('-f','--go-fold-enrichment-threshold',type=float,default=1.5)
 	parser.add_argument('-X','--go-mHG-X',type=int,default=5)
 	parser.add_argument('-L','--go-mHG-L',type=int,default=1000)
+	parser.add_argument('--enrichment-fdr',type=float,default=0.05) # ignored if no z-score file is provided (see below), 0=off
 
 	### options for selecting the number of PCs to test
 
@@ -78,11 +79,22 @@ def read_args_from_cmdline():
 	# --num-pc directly specifies the number of PCs to test
 	# --pc-max forces testing to stop after the first X PCs (for use in combination with other methods)
 	parser.add_argument('--pc-num',type=int,default=0) # (0=off)
-	parser.add_argument('--pc-max',type=int,default=15)
+	parser.add_argument('--pc-max',type=int,default=25) # (0=off)
 
-	# data-driven method:
+	# data-driven method 1:
 	# stop testing PCs when the cumulative variance explained surpasses X %
 	parser.add_argument('--pc-cum-var',type=float,default=80.0) # in percent (0=off)
+
+	# data-driven method 2:
+	# - provide a previously computed matrix of z-scores for associations between PCs and genes
+	# - specify an FDR threshold
+	# - stop testing when the number of genes significantly associated with the current PC
+	#   (at the specified FDR threshold) is lower than X
+	# - testing also stops when the last column of the z-score matrix is reached
+	# - these options are ignored when no z-score file is provided
+	parser.add_argument('-z','--pc-gene-zscore-file',default=None) # file with z-scores for associations between PCs and genes
+	parser.add_argument('--pc-fdr',type=float,default=0.01)
+	parser.add_argument('--pc-min-genes',type=int,default=200) # 0=off
 
 	# output verbosity
 	#parser.add_argument('-v','--verbose',action='store_true')
@@ -181,16 +193,20 @@ def main(args):
 	# input files
 	expression_file = args.expression_file
 	annotation_files = [args.annotation_gene_file,args.annotation_term_file,args.annotation_matrix_file]
+	pc_gene_zscore_file = args.pc_gene_zscore_file
 
 	# parameters
 	go_pvalue_threshold = args.go_pvalue_threshold
 	go_fold_enrichment_threshold = args.go_fold_enrichment_threshold
 	go_mHG_X = args.go_mHG_X
 	go_mHG_L = args.go_mHG_L
+	go_enrichment_fdr = args.enrichment_fdr
 
 	pc_num = args.pc_num
 	pc_max = args.pc_max
 	pc_cum_var = args.pc_cum_var/100.0
+	pc_fdr = args.pc_fdr
+	pc_min_genes = args.pc_min_genes
 
 	# parameter checks?
 
@@ -213,42 +229,72 @@ def main(args):
 	m = len(M_enrich.terms)
 	print "read data for %d GO terms!" %(m); sys.stdout.flush()
 
+	# load pc/gene z-scores
+	Z = None
+	P = None
+	if pc_gene_zscore_file is not None:
+		print 'Reading z-score matrix...', ; sys.stdout.flush()
+		_,_,Z = common.read_gene_data(pc_gene_zscore_file)
+		#print E.shape[0],Z.shape[0]
+		assert Z.shape[0] == E.shape[0] # make sure number of genes is correct
+		# convert Z-scores to P-values (= one-sided tail)
+		P = stats.norm.sf(Z,loc=0.0,scale=1.0)
+		print 'done!'; sys.stdout.flush()
+
 	# determine number of PCs to compute
 	compute_pc = pc_num
 	if pc_num == 0:
 		if pc_max > 0:
 			compute_pc = pc_max
 		else:
-			compute_pc = 15 # if nothing is specified, look at first 15 PCs
-
+			compute_pc = 50
 	# there are at most n principal components (n = # samples)
 	compute_pc = min(compute_pc,len(samples))
 	# there are at most p-1 principal components (p = # genes)
 	compute_pc = min(compute_pc,len(genes)-1)
 
 	# perform PCA
-	print 'Performing PCA...', ; sys.stdout.flush()
+	print 'Calculating the first %d principal components...' %(compute_pc),
 	sys.stdout.flush()
 	M_pca = PCA(n_components = compute_pc)
 	M_pca.fit(E.T)
 	print 'done!'
 	frac = M_pca.explained_variance_ratio_
 	cum_frac = np.cumsum(frac)
-	print "Cumulative fraction of variance explained for first %d PCs:" %(compute_pc)
+	print "Cumulative fraction of variance explained:"
 	print cum_frac
 	sys.stdout.flush()
 
 	# determine the number of PCs to test
 	test_pc = compute_pc
 	if pc_num == 0:
+
 		# apply variance criterion
+		cum_var_pc = compute_pc
 		if pc_cum_var > 0:
 			sel = np.nonzero(cum_frac > pc_cum_var)[0]
 			if sel.size > 0:
-				test_pc = sel[0] + 1
+				cum_var_pc = sel[0] + 1
+			print 'Based on the cumulative variance criterion, the first %d PCs should be tested.' %(cum_var_pc)
+
+		# apply significant genes criterion
+		sig_genes_pc = compute_pc
+		if P is not None and pc_min_genes > 0:
+			sig_genes = np.zeros(compute_pc,dtype=np.int64)
+			for pc in range(compute_pc):
+				k,_ = fdr.fdr_bh(P[:,pc],pc_fdr)
+				sig_genes[pc] = k
+			print '# of significant genes for each PC (at FDR=%.2f):' %(pc_fdr)
+			print sig_genes
+			sel = np.nonzero(sig_genes < pc_min_genes)[0]
+			if sel.size > 0:
+				sig_genes_pc = sel[0]
+			print 'Based on the significant genes criterion, the first %d PCs should be tested.' %(sig_genes_pc)
+
+		test_pc = min(cum_var_pc,sig_genes_pc)
 
 	assert test_pc <= compute_pc
-	print "GO-PCA will test the first %d principal components!" %(test_pc)
+	print "GO-PCA will test the first d=%d principal components!" %(test_pc)
 	sys.stdout.flush()
 
 	# run GO-PCA!
@@ -261,16 +307,31 @@ def main(args):
 	total_var = 0.0
 	for pc in range(test_pc):
 
+		L_pos = go_mHG_L
+		L_neg = go_mHG_L
+		pc_loadings = W[:,pc].copy()
+		s = ''
+		if P is not None and go_enrichment_fdr > 0:
+			# we have Z-scores, and user wants us to use them to help set L for each PC
+			k,crit_p = fdr.fdr_bh(P[:,pc],go_enrichment_fdr)
+			s = 'has %d significantly associated genes (at FDR=%.2f) and ' %(k,go_enrichment_fdr)
+			# set all loadings for non-significantly associated genes to zero
+			pc_loadings[P[:,pc] > crit_p] = 0
+			# adjust L parameters, if necessary
+ 			L_pos = min(L_pos,np.sum(pc_loadings>0))
+			L_neg = min(L_neg,np.sum(pc_loadings<0))
+			sel = np.zeros(p,dtype=np.bool_)
+			
 		print
 		print '-------------------------------------------------------------------------'
-		print "PC %d explains %.1f%% of the total variance." %(pc+1,100*frac[pc])
+		print "PC %d %sexplains %.1f%% of the total variance." %(pc+1,s,100*frac[pc])
 		total_var += frac[pc]
 		print "The new cumulative fraction of total variance explained is %.1f%%." %(100*total_var)
 		sys.stdout.flush()
 
 		print "Testing for GO enrichment...", ; sys.stdout.flush()
-		enrichment_dsc = get_pc_go_enrichment(M_enrich,pc+1,-W[:,pc],genes,go_mHG_X,go_mHG_L,go_pvalue_threshold,go_fold_enrichment_threshold)
-		enrichment_asc = get_pc_go_enrichment(M_enrich,-pc-1,W[:,pc],genes,go_mHG_X,go_mHG_L,go_pvalue_threshold,go_fold_enrichment_threshold)
+		enrichment_dsc = get_pc_go_enrichment(M_enrich,pc+1,-pc_loadings,genes,go_mHG_X,L_pos,go_pvalue_threshold,go_fold_enrichment_threshold)
+		enrichment_asc = get_pc_go_enrichment(M_enrich,-pc-1,pc_loadings,genes,go_mHG_X,L_neg,go_pvalue_threshold,go_fold_enrichment_threshold)
 		enrichment = enrichment_dsc + enrichment_asc
 
 		print "# enriched terms:",len(enrichment); sys.stdout.flush()

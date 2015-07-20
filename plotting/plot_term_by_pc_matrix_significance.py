@@ -40,6 +40,7 @@ def read_args_from_cmdline():
 	parser.add_argument('-e','--expression-file',required=True)
 	parser.add_argument('-s','--signature-file',required=True)
 	parser.add_argument('-g','--go-pickle-file',required=True)
+	parser.add_argument('-z','--pc-gene-zscore-file',required=False)
 
 	# GO-PCA parameters
 	parser.add_argument('-X','--go-mHG-X',type=int,required=True)
@@ -63,10 +64,6 @@ def read_args_from_cmdline():
 	parser.add_argument('-d','--figure-dimensions',type=int,nargs=2,default=[18,20])
 	parser.add_argument('-f','--figure-font-size',type=int,default=32)
 	parser.add_argument('--disable-tex',action='store_true')
-	#parser.add_argument('-m','--colormap',default='Oranges')
-	parser.add_argument('-m','--colormap',default='BuPu')
-	parser.add_argument('--dotcolor',default='yellow')
-	parser.add_argument('--dotsize',type=float,default=50)
 
 	return parser.parse_args()
 
@@ -78,6 +75,7 @@ def main():
 	expression_file = args.expression_file
 	signature_file = args.signature_file
 	go_pickle_file = args.go_pickle_file
+	pc_gene_zscore_file = args.pc_gene_zscore_file
 
 	go_mHG_X = args.go_mHG_X
 	go_mHG_L = args.go_mHG_L
@@ -92,9 +90,6 @@ def main():
 
 	dim1, dim2 = args.figure_dimensions
 	font_size = args.figure_font_size
-	cmap = args.colormap
-	dotcolor = args.dotcolor
-	dotsize = args.dotsize
 
 	max_name_length = args.GO_term_max_name_length
 	omit_acc = True
@@ -114,6 +109,17 @@ def main():
 	print "Reading GO data...", ; sys.stdout.flush()
 	GO = pickle.load(open(go_pickle_file))
 	print "read %d terms, %d annotations." %(len(GO.terms),len(GO.annotations)); sys.stdout.flush()
+
+	# load pc/gene z-scores
+	Z = None
+	P = None
+	if pc_gene_zscore_file is not None:
+		print 'Reading z-score matrix...', ; sys.stdout.flush()
+		_,_,Z = common.read_gene_data(pc_gene_zscore_file)
+		assert Z.shape[0] == E.shape[0] # make sure number of genes is correct
+		# convert Z-scores to P-values (= one-sided tail)
+		P = stats.norm.sf(Z,loc=0.0,scale=1.0)
+		print 'done!'; sys.stdout.flush()
 
 	# constructing signatures
 	print "Constructing signatures...", ;sys.stdout.flush()
@@ -163,8 +169,23 @@ def main():
 	matrix = np.zeros((p+1,p+1),dtype=np.longdouble)
 	all_genes = set(genes)
 	for pc in range(test_pc):
-		a_pos = np.argsort(-W[:,pc])
-		a_neg = np.argsort(W[:,pc])
+		L_pos = go_mHG_L
+		L_neg = go_mHG_L
+		pc_loadings = W[:,pc].copy()
+		s = ''
+		if P is not None and go_enrichment_fdr > 0:
+			# we have Z-scores, and user wants us to use them to help set L for each PC
+			k,crit_p = fdr.fdr_bh(P[:,pc],go_enrichment_fdr)
+			s = 'has %d significantly associated genes (at FDR=%.2f) and ' %(k,go_enrichment_fdr)
+			# set all loadings for non-significantly associated genes to zero
+			pc_loadings[P[:,pc] > crit_p] = 0
+			# adjust L parameters, if necessary
+ 			L_pos = min(L_pos,np.sum(pc_loadings>0))
+			L_neg = min(L_neg,np.sum(pc_loadings<0))
+			sel = np.zeros(p,dtype=np.bool_)
+
+		a_pos = np.argsort(-pc_loadings)
+		a_neg = np.argsort(pc_loadings)
 		for i,sig in enumerate(signatures):
 			term_genes = GO.get_goterm_genes(sig.term[0]) & all_genes
 			K = len(term_genes)
@@ -175,14 +196,14 @@ def main():
 				v[idx] = 1
 
 			v_sorted = np.ascontiguousarray(v[a_pos])
-			threshold,_,pval = mHG_test(v_sorted,p,K,go_mHG_L,go_mHG_X,mat=matrix)
+			threshold,_,pval = mHG_test(v_sorted,p,K,L_pos,go_mHG_X,mat=matrix)
 			A[i,pc*2] = -np.log10(pval)
 			#if pc == 10 and sig.term[0] == 'GO:0006613':
 			#	print -np.log10(pval)
 			#	print len(term_genes),np.nonzero(v_sorted)
 
 			v_sorted = np.ascontiguousarray(v[a_neg])
-			threshold,_,pval = mHG_test(v_sorted,p,K,go_mHG_L,go_mHG_X,mat=matrix)
+			threshold,_,pval = mHG_test(v_sorted,p,K,L_neg,go_mHG_X,mat=matrix)
 			A[i,pc*2+1] = -np.log10(pval)
 			#if pc == 10 and sig.term[0] == 'GO:0006613':
 			#	print -np.log10(pval)
@@ -202,17 +223,20 @@ def main():
 	# plot this first, otherwise colormap gets messed up
 	q = len(signatures)
 	for i in range(q):
-		#sel = np.nonzero(np.absolute(A[i,:])>=-np.log10(go_pvalue_threshold))[0]
-		j = (abs(signatures[i].pc)-1)*2
-		if signatures[i].pc < 0: j+=1
-		#plt.scatter([j],[i],marker='o',facecolor=dotcolor,color='none',zorder=100,s=dotsize)
-		plt.scatter([j],[i],color=dotcolor,zorder=100,s=dotsize,marker='x')
+		sel = np.nonzero(np.absolute(A[i,:])>=-np.log10(go_pvalue_threshold))[0]
+		if sel.size == 0:
+			print i,signatures[i]
+			print -np.log10(pval_thresh)
+			print A[i,:]
+		j = sel[0]
+		plt.scatter([j],[i],marker='o',facecolor='black',color='black',zorder=100)
+		#print [j,i]
 
 	# plot heatmap
 	A[np.absolute(A)<-np.log10(pval_show_below)] = np.nan # hide insignificant associations
 	vmin = -np.log10(pval_worst)
 	vmax = -np.log10(pval_best)
-	plt.imshow(A,interpolation='none',vmin=vmin,vmax=vmax,cmap=cmap,zorder=20)
+	plt.imshow(A,interpolation='none',vmin=vmin,vmax=vmax,cmap='Oranges',zorder=20)
 
 	# plot separation lines
 	for pc in range(test_pc-1):
