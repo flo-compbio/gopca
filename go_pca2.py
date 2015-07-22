@@ -69,16 +69,16 @@ def read_args_from_cmdline():
 	# main parameters
 	parser.add_argument('-p','--go-pvalue-threshold',type=float,default=1e-6)
 	parser.add_argument('-f','--go-fold-enrichment-threshold',type=float,default=1.5)
-	parser.add_argument('-X','--go-mHG-X',type=int,default=5)
-	parser.add_argument('-L','--go-mHG-L',type=int,default=1000)
+	parser.add_argument('-X','--go-mHG-X',type=int,default=5) # 0=off
+	parser.add_argument('-L','--go-mHG-L',type=int,default=1000) #0=off
 
 	### options for selecting the number of PCs to test
 
 	# direct method:
 	# --num-pc directly specifies the number of PCs to test
 	# --pc-max forces testing to stop after the first X PCs (for use in combination with other methods)
-	parser.add_argument('--pc-num',type=int,default=0) # (0=off)
-	parser.add_argument('--pc-max',type=int,default=15)
+	parser.add_argument('--pc-num',type=int,default=0) # 0=off
+	parser.add_argument('--pc-max',type=int,default=15) # 0=off
 
 	# data-driven method:
 	# stop testing PCs when the cumulative variance explained surpasses X %
@@ -128,6 +128,17 @@ def filter_enriched_go_terms(enrichment,M,ranked_genes,X,L,pvalue_threshold,fold
 	todo = todo[1:]
 	ranked_genes = ranked_genes[:] # make a copy here!
 
+	# exclude genes from most enriched term
+	new_ranked_genes = []
+	new_L = L
+	for i,g in enumerate(ranked_genes):
+		if g not in genes_used:
+			new_ranked_genes.append(g)
+		elif i < L: # gene was already used, adjust L if necessary
+			new_L -= 1
+	ranked_genes = new_ranked_genes
+	L = new_L
+
 	# filter enrichments
 	K_max = max([enr.K for enr in todo])
 	p = len(ranked_genes)
@@ -135,23 +146,25 @@ def filter_enriched_go_terms(enrichment,M,ranked_genes,X,L,pvalue_threshold,fold
 	while todo:
 		most_enriched = todo[0]
 		term_id = most_enriched.term[0]
-		ranked_genes = [g for g in ranked_genes if g not in genes_used]
 
 		# test if enrichment is still significant after removing all previously used genes
-		enr = M.test_enrichment(ranked_genes,pvalue_threshold,X,L,selected_terms=[term_id],mat=mat,quiet=True)[0]
+		enr = M.test_enrichment(new_ranked_genes,pvalue_threshold,X,new_L,selected_terms=[term_id],mat=mat,quiet=True)[0]
 		if enr.p_value <= pvalue_threshold and enr.fold_enrichment >= fold_enrichment_threshold:
 			# if so, keep it!
 			kept.append(most_enriched)
 			# next, exclude selected genes from further analysis: 1) adjust L 2) update set of excluded genes
-			# 1) figure out how many genes above L were selected, and adjust L accordingly
-			exclude_genes = genes_used - set(most_enriched.genes) # newly excluded genes
-			new_L = L
-			for i in range(L):
-				if ranked_genes[i] in exclude_genes:
-					new_L -= 1
-			L = new_L
 			genes_used.update(most_enriched.genes) # add selected genes to set of used genes
+			new_ranked_genes = []
+			new_L = L
+			for i,g in enumerate(ranked_genes):
+				if g not in genes_used:
+					new_ranked_genes.append(g)
+				elif i < L: # gene was already used, adjust L if necessary
+					new_L -= 1
+			ranked_genes = new_ranked_genes
+			L = new_L
 
+		# next!
 		todo = todo[1:]
 
 	if not quiet:
@@ -200,6 +213,9 @@ def main(args):
 	# read expression data
 	genes,samples,E = common.read_expression(expression_file)
 	print "Expression matrix dimensions:", E.shape; sys.stdout.flush()
+
+	if go_mHG_L == 0:
+		go_mHG_L = len(genes)
 
 	# read GO data
 	print "Loading GO annotations...", ; sys.stdout.flush()
