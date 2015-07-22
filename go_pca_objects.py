@@ -18,20 +18,47 @@ import cPickle as pickle
 
 from go_enrichment import mHGTermResult
 
-class mHGTermResultWithPC(mHGTermResult):
+class GOPCAResult(object):
+	def __init__(self,W,mHG_X,mHG_L,signatures):
+		self.W = W
+		self.mHG_X = mHG_X
+		self.mHG_L = mHG_L
+		self.signatures = signatures
+
+	def __repr__(self):
+		sig_hash = hash((hash(sig) for sig in self.signatures))
+		p,d = self.W.shape
+		return "<GO-PCA result (mHG_X=%d, mHG_L=%d); loading matrix dimensions: (%d,%d); hash of signature list: %d>" %(mHG_X,mHG_L,p,d,sig_hash)
+
+	def __str__(self):
+		q = len(self.signatures)
+		p,d = self.W.shape
+		return "<GO-PCA result; mHG parameters: X=%d, L=%d; # genes (p) = %d, # principal components (d) = %d; %d signatures>" \
+				%(mHG_X,mHG_L,p,d,q)
+
+	def __eq__(self,other):
+		if type(self) != type(other):
+			return False
+		elif repr(self) == repr(other):
+			return True
+		else:
+			return False
+
+class GOPCASignature(mHGTermResult):
 	"""
-	Stores mHG result for one particular term.
+	Stores GO-PCA signature.
 	"""
 	def __init__(self,term,p_value,N,n,K,genes,pc):
 		mHGTermResult.__init__(self,term,p_value,N,n,K,genes)
 		self.pc = pc
 
 	def __repr__(self):
-		return "<mHGTermEnrichment of term '%s', PC %d, %d genes (hash:%d)>" %(self.term[0],self.pc,len(self.genes),hash(self.genes))
+		return "<GOPCASignature: %s / PC %d (p=%.1e; fe=%.1x; X=%d; L=%d; %d/%d@%d/%d), gene set %d>" \
+				%(self.term.id,self.pc,self.p_value,self.fold_enrichment,self.X,self.L,self.k,self.K,self.n,self.N,hash(self.genes))
 
 	def __str__(self):
-		return "<mHG_Enrichment of term '%s' in PC %d:  p-value = %.1e, fold enrichment = %.2fx, %d genes>" \
-				%(str(self.term),self.pc,self.p_value,self.fold_enrichment, len(self.genes))
+		return "<GOPCASignature: %s [%d:%d/%d@%d/%d] (p-value = %.1e, fold enr. = %.1fx)>" \
+				%(str(self.term),self.pc,self.k,self.K,self.n,self.N,self.p_value,self.fold_enrichment)
 
 	def __hash__(self):
 		return hash(repr(self))
@@ -54,7 +81,7 @@ class mHGTermResultWithPC(mHGTermResult):
 
 	@staticmethod
 	def from_mHGTermResult(pc,result):
-		return mHGTermResultWithPC(result.term,result.p_value,result.N,result.n,result.K,result.genes,pc)
+		return GOPCASignature(result.term,result.p_value,result.N,result.n,result.K,result.genes,pc)
 
 class GeneSet(object):
 	def __init__(self,genes):

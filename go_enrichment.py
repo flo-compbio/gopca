@@ -32,26 +32,28 @@ class mHGTermResult(object):
 	"""
 	Stores mHG result for one particular term.
 	"""
-	def __init__(self,term,p_value,N,n,K,genes):
+	def __init__(self,term,p_value,N,n,K,genes,X=0,L=0):
 		self.term = term
 		self.p_value = p_value
 		self.N = N
 		self.n = n
 		self.K = K
-		genes = frozenset(genes)
-		self.k = len(genes)
-		self.genes = genes
+		self.genes = frozenset(genes)
+		self.k = len(self.genes)
+		self.X = X
+		self.L = L
 		if n == 0 or K == 0:
 			self.fold_enrichment = float('nan')
 		else:
 			self.fold_enrichment = self.k/(n*(K/float(N)))
 
 	def __repr__(self):
-		return "<mHGTermEnrichment of term '%s', %d genes (hash:)>" %(self.term.id,self.k,hash(self.genes))
+		return "<mHGTermResult: %s (p=%.1e; fe=%.1x; X=%d; L=%d; %d/%d@%d/%d), gene set %d>" \
+				%(self.term.id,self.p_value,self.fold_enrichment,self.X,self.L,self.k,self.K,self.n,self.N,hash(self.genes))
 
 	def __str__(self):
-		return "<mHG_Enrichment of term '%s': p-value = %.1e, fold enrichment = %.2fx, %d/%d genes @ %d>" \
-				%(str(self.term),self.p_value,self.fold_enrichment, self.k, self.K, self.n)
+		return "<mHGTermResult of GO term '%s': p-value = %.1e, fold enrichment = %.2fx, %d/%d genes @ %d (N=%d)>" \
+				%(str(self.term),self.p_value,self.fold_enrichment, self.k, self.K, self.n, self.N)
 
 	def __hash__(self):
 		return hash(repr(self))
@@ -64,14 +66,17 @@ class mHGTermResult(object):
 		else:
 			return False
 
-	def get_pretty_format(self,GO=None,omit_acc=False,nitty_gritty=True,max_name_length=0):
+	def get_pretty_format(self,GO=None,omit_acc=False,omit_param=True,nitty_gritty=True,max_name_length=0):
 		term_str = '/'.join(self.term)
 		if GO is not None:
 			term = GO.terms[self.term[0]]
 			term_str = term.get_pretty_format(omit_acc=omit_acc,max_name_length=max_name_length)
 		details = ''
 		if nitty_gritty:
-			details = ' [p=%.1e,e=%.2fx,%d/%d@%d]' %(self.p_value,self.fold_enrichment,len(self.genes),self.K,self.n)
+			param_str = ''
+			if not omit_param:
+				param_str = ' (X=%d,L=%d)' %(self.X,self.L)
+			details = ' [p=%.1e,e=%.2fx,%d/%d@%d%s]' %(self.p_value,self.fold_enrichment,len(self.genes),self.K,self.n,param_str)
 		return '%s%s' %(term_str,details)
 
 
@@ -99,12 +104,13 @@ class GOEnrichment(object):
 		genes = self.genes
 		terms = self.terms
 		term_ids = self.term_ids
-		A = self.A.copy()
+		original_dimensions = self.A.shape
+		A = self.A
 
 		# test only some terms?
 		if selected_terms:
 			term_indices = np.int64([misc.bisect_index(term_ids,t) for t in selected_terms])
-			A = A[:,term_indices]
+			A = A[:,term_indices] # not a view!
 
 		# sort rows in annotation matrix (and exclude genes not in the ranking)
 		order = []
@@ -112,7 +118,7 @@ class GOEnrichment(object):
 			idx = misc.bisect_index(genes,g)
 			order.append(idx)
 		order = np.int64(order)
-		A = A[order,:]
+		A = A[order,:] # not a view either!
 
 		# determine largest K
 		K = np.sum(A,axis=0,dtype=np.int64)
@@ -132,7 +138,6 @@ class GOEnrichment(object):
 		n = np.zeros(m,dtype=np.int64)
 		k = np.zeros(m,dtype=np.int64)
 		tests = 0
-		#v = np.empty(p,dtype=np.uint8)
 		for j in range(m):
 			#if j >= 1000: break
 			if (j % 100) == 0:
@@ -153,6 +158,7 @@ class GOEnrichment(object):
 			enrichments.append(enr)
 
 		if not quiet: print "done!"; sys.stdout.flush()
+		assert self.A.shape == original_dimensions
 		return enrichments
 
 	def apply_thresholds(self,enrichments,pvalue_threshold,fold_enrichment_threshold=None,quiet=False):
