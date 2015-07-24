@@ -107,6 +107,11 @@ class GOEnrichment(object):
 		original_dimensions = self.A.shape
 		A = self.A
 
+		mHG_X = X
+		mHG_L = L
+		if L == 0:
+			mHG_L = len(ranked_genes)
+
 		# test only some terms?
 		if selected_terms:
 			term_indices = np.int64([misc.bisect_index(term_ids,t) for t in selected_terms])
@@ -131,7 +136,7 @@ class GOEnrichment(object):
 
 		if not quiet:
 			print "Testing for enrichment of %d terms..." %(m)
-			print "(N = %d, X = %d, L = %d; K_max = %d)" %(len(ranked_genes),X,L,K_max)
+			print "(N = %d, X = %d, L = %d; K_max = %d)" %(len(ranked_genes),mHG_X,mHG_L,K_max)
 			sys.stdout.flush()
 	
 		pval = np.ones(m,dtype=np.float64)
@@ -148,8 +153,8 @@ class GOEnrichment(object):
 			# mHG
 			threshold = 0
 			sel_genes = []
-			if K[j] >= X:
-				threshold,_,pval[j] = mHG.mHG_test(v,p,K[j],L,X,mat,pvalue_threshold=pvalue_threshold)
+			if K[j] >= mHG_X:
+				threshold,_,pval[j] = mHG.mHG_test(v,p,K[j],mHG_L,mHG_X,mat,pvalue_threshold=pvalue_threshold)
 				n[j] = threshold
 				sel = np.nonzero(A[:threshold,j])[0]
 				sel_genes = [ranked_genes[i] for i in sel]
