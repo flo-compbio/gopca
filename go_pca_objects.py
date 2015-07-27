@@ -19,7 +19,8 @@ import cPickle as pickle
 from go_enrichment import mHGTermResult
 
 class GOPCAResult(object):
-	def __init__(self,W,mHG_X,mHG_L,signatures):
+	def __init__(self,genes,W,mHG_X,mHG_L,signatures):
+		self.genes = genes
 		self.W = W
 		self.mHG_X = mHG_X
 		self.mHG_L = mHG_L
@@ -48,17 +49,18 @@ class GOPCASignature(mHGTermResult):
 	"""
 	Stores GO-PCA signature.
 	"""
-	def __init__(self,term,p_value,N,n,K,genes,pc):
+	def __init__(self,term,p_value,N,n,K,genes,pc,es=None):
 		mHGTermResult.__init__(self,term,p_value,N,n,K,genes)
 		self.pc = pc
+		self.enrichment_score = es
 
 	def __repr__(self):
-		return "<GOPCASignature: %s / PC %d (p=%.1e; fe=%.1x; X=%d; L=%d; %d/%d@%d/%d), gene set %d>" \
-				%(self.term.id,self.pc,self.p_value,self.fold_enrichment,self.X,self.L,self.k,self.K,self.n,self.N,hash(self.genes))
+		return "<GOPCASignature: %s / PC %d (p=%.1e; fe=%.1x; es=%.1fx; X=%d; L=%d; %d/%d@%d/%d), gene set %d>" \
+				%(self.term.id,self.pc,self.p_value,self.fold_enrichment,self.enrichment_score,self.X,self.L,self.k,self.K,self.n,self.N,hash(self.genes))
 
 	def __str__(self):
-		return "<GOPCASignature: %s [%d:%d/%d@%d/%d] (p-value = %.1e, fold enr. = %.1fx)>" \
-				%(str(self.term),self.pc,self.k,self.K,self.n,self.N,self.p_value,self.fold_enrichment)
+		return "<GOPCASignature: %s [%d:%d/%d@%d/%d] (p-value = %.1e, fold enr. = %.1fx, enr. score = %.1fx)>" \
+				%(str(self.term),self.pc,self.k,self.K,self.n,self.N,self.p_value,self.fold_enrichment,self.enrichment_socre)
 
 	def __hash__(self):
 		return hash(repr(self))
@@ -76,12 +78,15 @@ class GOPCASignature(mHGTermResult):
 		goterm_genes = GO.get_goterm_genes(term.id)
 		details = ''
 		if nitty_gritty:
-			details = ' [pval=%.1e,fe=%.2fx,pc=%d,%d/%d@%d]' %(self.p_value,self.fold_enrichment,self.pc,len(self.genes),self.K,self.n)
+			details = ' [pval=%.1e,fe=%.1fx,E=%.1fx,pc=%d,%d/%d@%d]' \
+					%(self.p_value,self.fold_enrichment,self.enrichment_score,self.pc,len(self.genes),self.K,self.n)
+			#details = ' [pval=%.1e,fe=%.1fx,pc=%d,%d/%d@%d]' \
+			#		%(self.p_value,self.fold_enrichment,self.pc,len(self.genes),self.K,self.n)
 		return '%s%s' %(term.get_pretty_format(omit_acc=omit_acc,max_name_length=max_name_length),details)
 
 	@staticmethod
-	def from_mHGTermResult(pc,result):
-		return GOPCASignature(result.term,result.p_value,result.N,result.n,result.K,result.genes,pc)
+	def from_mHGTermResult(result,pc,es=None):
+		return GOPCASignature(result.term,result.p_value,result.N,result.n,result.K,result.genes,pc,es)
 
 class GeneSet(object):
 	def __init__(self,genes):

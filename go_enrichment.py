@@ -27,6 +27,7 @@ import numpy as np
 import gopca
 from gopca.tools import misc
 from gopca.xlmhg import xlmHG_cython as mHG
+from gopca import enrichment_score
 
 class mHGTermResult(object):
 	"""
@@ -97,20 +98,13 @@ class GOEnrichment(object):
 		assert len(self.genes) == p
 		assert len(self.terms) == m
 
-	def test_enrichment(self,ranked_genes,pvalue_threshold,X,L,selected_terms=[],mat=None,quiet=False):
-
-		enrichments = []
+	def test_enrichment(self,ranked_genes,pvalue_threshold,X,L,fold_enrichment_threshold=None,selected_terms=[],mat=None,quiet=False):
 
 		genes = self.genes
 		terms = self.terms
 		term_ids = self.term_ids
 		original_dimensions = self.A.shape
 		A = self.A
-
-		mHG_X = X
-		mHG_L = L
-		if L == 0:
-			mHG_L = len(ranked_genes)
 
 		# test only some terms?
 		if selected_terms:
@@ -129,42 +123,58 @@ class GOEnrichment(object):
 		K = np.sum(A,axis=0,dtype=np.int64)
 		K_max = np.amax(K)
 
-	
+		# prepare matrix for XL-mHG p-value calculation
 		p,m = A.shape
 		if mat is None:
 			mat = np.empty((K_max+1,p+1),dtype=np.longdouble)
 
+		# find enriched GO terms
 		if not quiet:
 			print "Testing for enrichment of %d terms..." %(m)
-			print "(N = %d, X = %d, L = %d; K_max = %d)" %(len(ranked_genes),mHG_X,mHG_L,K_max)
+			print "(N = %d, X = %d, L = %d; K_max = %d)" %(len(ranked_genes),X,L,K_max)
 			sys.stdout.flush()
-	
-		pval = np.ones(m,dtype=np.float64)
-		n = np.zeros(m,dtype=np.int64)
-		k = np.zeros(m,dtype=np.int64)
-		tests = 0
+
+		enriched_terms = []
+		tested = 0
 		for j in range(m):
 			#if j >= 1000: break
-			if (j % 100) == 0:
-				if not quiet: print "\r%d..." %(j), ; sys.stdout.flush()
+			if (not quiet) and (j % 100) == 0:
+				print "\r%d..." %(j), ; sys.stdout.flush()
 
 			v = np.ascontiguousarray(A[:,j]) # copy
 
-			# mHG
-			threshold = 0
-			sel_genes = []
-			if K[j] >= mHG_X:
-				threshold,_,pval[j] = mHG.mHG_test(v,p,K[j],mHG_L,mHG_X,mat,pvalue_threshold=pvalue_threshold)
-				n[j] = threshold
-				sel = np.nonzero(A[:threshold,j])[0]
-				sel_genes = [ranked_genes[i] for i in sel]
-				k[j] = len(sel_genes)
-			enr = mHGTermResult(terms[j],pval[j],p,threshold,K[j],sel_genes)
-			enrichments.append(enr)
+			# determine significance of enrichment using XL-mHG test
+			# (only if there are at least X genes annotated with this term)
+			if K[j] >= X:
+				tested += 1
+				threshold,_,pval = mHG.mHG_test(v,p,K[j],L,X,mat,pvalue_threshold=pvalue_threshold)
 
-		if not quiet: print "done!"; sys.stdout.flush()
+				# check if GO term is significantly enriched
+				if pval <= pvalue_threshold:
+					sel = np.nonzero(A[:threshold,j])[0]
+					sel_genes = [ranked_genes[i] for i in sel]
+					k = sel.size
+
+					enr = mHGTermResult(terms[j],pval,p,threshold,K[j],sel_genes)
+					# test if associated fold enrichment exceeds fold enrichment threshold (if one was specified)
+					if fold_enrichment_threshold is None or enr.fold_enrichment >= fold_enrichment_threshold:
+						enriched_terms.append(enr)
+
+		if not quiet:
+			print 'done!'; sys.stdout.flush()
+			if X > 0:
+				ignored = m - tested
+				print '%d/%d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.' %(ignored,m,100*(ignored/float(m)),X)
+			q = len(enriched_terms)
+			fold_term = ''
+			if fold_enrichment_threshold is not None:
+				fold_term = ' and fold enrichment >= %.1fx ' %(fold_enrichment_threshold)
+			print '%d / %d tested GO terms (%.1f%%) were found to be enriched (p-value <= %.1e%s).' \
+					%(q,tested,100*(q/float(tested)),pvalue_threshold,fold_term)
+			sys.stdout.flush()
+
 		assert self.A.shape == original_dimensions
-		return enrichments
+		return enriched_terms
 
 	def apply_thresholds(self,enrichments,pvalue_threshold,fold_enrichment_threshold=None,quiet=False):
 		filtered = []
@@ -179,60 +189,34 @@ class GOEnrichment(object):
 
 		if not quiet:
 			kept = len(filtered)
-			fold_term = ''
-			if fold_enrichment_threshold is not None:
-				fold_term = 'and fold enrichment >= %.1f ' %(fold_enrichment_threshold)
-			print '%d / %d terms with p-value <= %.1e %s(%.1f%%)' %(kept,m,pvalue_threshold,fold_term,100*(kept/float(m)))
 		return filtered
 
-	def prune_enrichment(self,GO):
-
-		assert self.enrichment_filtered is not None
-		self.enrichment_pruned = {}
+	def get_enrichment_scores(self,enrichments,ranked_genes,X,L,p_max):
 
 		genes = self.genes
-		significant_terms = sorted(self.enrichment_filtered.keys())
-		m = len(significant_terms)
+		term_ids = self.term_ids
+		A = self.A
 
-		filtered = np.zeros(m,dtype=np.bool_)
-		for j,term_id in enumerate(significant_terms):
-			enr = self.enrichment_filtered[term_id]
-			fe = enr.fold_enrichment
-			term = GO.terms[term_id]
+		# select annotations matrix columns corresponding to enriched GO terms
+		enriched_terms = [enr.term[0] for enr in enrichments]
+		term_indices = np.int64([misc.bisect_index(term_ids,t) for t in enriched_terms])
+		A = A[:,term_indices] # not a view!
 
-			# filter rules: remove if
-			# 	1) any descendent term (is also significant and) has greater or equal fold enrichment
-			#	2) any ancestor term (is also significant and) has greater fold enrichment
-			idx = None
-			remove = False
-			# go over ancestors
-			for t in term.ancestors:
-				try:
-					if self.enrichment_filtered[t].fold_enrichment > fe:
-						remove = True
-						break
-				except KeyError:
-					pass
-			if remove:
-				filtered[j] = True
-				break
-		
-			# go over descendants
-			for t in term.descendants:
-				try:
-					if self.enrichment_filtered[t].fold_enrichment >= fe:
-						remove = True
-						break
-				except KeyError:
-					pass
-			if remove:
-				filtered[j] = True
+		# sort rows in annotation matrix (and exclude genes not in the ranking)
+		indices = []
+		for g in ranked_genes:
+			idx = misc.bisect_index(genes,g)
+			indices.append(idx)
+		indices = np.int64(indices)
+		A = A[indices,:] # not a view either!
 
-		keep = np.nonzero(np.invert(filtered))[0]
-		filtered_terms = [significant_terms[j] for j in keep]
-		for t in filtered_terms:
-			self.enrichment_pruned[t] = self.enrichment_filtered[t]
-		print '%d / %d terms after pruning (%.1f%%)' %(keep.size,m,100*(keep.size/float(m))); sys.stdout.flush()
+		q = len(enrichments)
+		es = np.zeros(q,dtype=np.float64)
+		p = len(ranked_genes)
+		K = np.sum(A,axis=0,dtype=np.int64)
+		for i in range(q):
+			es[i] = enrichment_score.get_enrichment_score(A[:,i],p,K[i],X,L,p_max)
+		return es
 
 	def pretty_print_enrichment(self):
 		raise NotImplemented
