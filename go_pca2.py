@@ -72,6 +72,7 @@ def read_args_from_cmdline():
 	parser.add_argument('-X','--go-mHG-X',type=int,default=5) # 0=off
 	parser.add_argument('-L','--go-mHG-L',type=int,default=1000) # 0=off
 	parser.add_argument('--es-max-pvalue',type=float,default=1e-4)
+	parser.add_argument('--disable-enrichment-score',action='store_true')
 
 	# allow filtering to be disabled
 	parser.add_argument('--disable-local-filter',action='store_true')
@@ -98,15 +99,20 @@ def read_args_from_cmdline():
 
 	return parser.parse_args()
 
-def print_signatures(signatures,GO):
-	a = sorted(range(len(signatures)),key=lambda i: -signatures[i].fold_enrichment)
+def print_signatures(signatures,GO,disable_enrichment_score=False):
+	a = None
+	if not disable_enrichment_score:
+		a = sorted(range(len(signatures)),key=lambda i: -signatures[i].enrichment_score)
+	else:
+		a = sorted(range(len(signatures)),key=lambda i: -signatures[i].fold_enrichment)
+
 	for i in a:
 		sig = signatures[i]
 		term = GO.terms[sig.term[0]]
 		goterm_genes = GO.get_goterm_genes(term.id)
 		print sig.get_pretty_format(GO)
 
-def get_pc_signatures(M,W,pc,genes,X,L,pvalue_threshold,fold_enrichment_threshold,es_pval,filtering=True,quiet=False):
+def get_pc_signatures(M,W,pc,genes,X,L,pvalue_threshold,es_pval,filtering=True,fold_enrichment_threshold=None,disable_enrichment_score=False,quiet=False):
 	"""
 	Generate GO-PCA signatures for a specific PC and a specific ranking of loadings (ascending or descending).
 	The absolute value of the 'pc' parameter determines the principal component. Genes are then ranked by their loadings for this PC.
@@ -123,17 +129,7 @@ def get_pc_signatures(M,W,pc,genes,X,L,pvalue_threshold,fold_enrichment_threshol
 	ranked_genes = [genes[i] for i in a]
 
 	# find enriched GO terms using the XL-mHG test
-	enriched_terms = M.test_enrichment(ranked_genes,pvalue_threshold,X,L,fold_enrichment_threshold,quiet=quiet)
-
-	# filter enriched GO terms (if filtering is enabled)
-	if filtering:
-		if not quiet:
-			print 'Local filtering of enriched GO terms...', ; sys.stdout.flush()
-		before = len(enriched_terms)
-		enriched_terms = filter_enriched_terms(enriched_terms,M,ranked_genes,X,L,pvalue_threshold,fold_enrichment_threshold,quiet=quiet)
-		if not quiet:
-			print 'done!'
-			print 'Local filter: kept %d / %d enriched GO terms.' %(len(enriched_terms),before); sys.stdout.flush()
+	enriched_terms = M.test_enrichment(ranked_genes,pvalue_threshold,X,L,quiet=quiet)
 
 	# calculate enrichment scores
 	if not quiet:
@@ -145,22 +141,67 @@ def get_pc_signatures(M,W,pc,genes,X,L,pvalue_threshold,fold_enrichment_threshol
 	# generate GO-PCA signatures (= enriched GO terms with PC information and an enrichment scores)
 	q = len(enriched_terms)
 	signatures = [GOPCASignature.from_mHGTermResult(enriched_terms[i],pc,es[i]) for i in range(q)]
+
+	# filter by fold enrichment (if fold enrichment threshold is provided)
+	if signatures and fold_enrichment_threshold is not None:
+		es = None
+		if not disable_enrichment_score:
+			es = np.float64([sig.enrichment_score for sig in signatures])
+		else:
+			# if use of enrichment is disabled, use fold enrichment at XL-mHG threshold instead
+			es = np.float64([sig.fold_enrichment for sig in signatures])
+
+		q = len(enriched_terms)
+		sel = np.zeros(q,np.bool_)
+		for i in range(q):
+			if es[i] >= fold_enrichment_threshold:
+				sel[i] = True
+		sel = np.nonzero(sel)[0]
+		signatures = [signatures[i] for i in sel]
+		if not quiet:
+			maximal = ' maximal'
+			if disable_enrichment_score:
+				maximal = ''
+			print 'Kept %d / %d signatures (%.1f%%) with%s fold enrichment >= %.1fx.' %(sel.size,q,100*(sel.size/float(q)),maximal,fold_enrichment_threshold)
+			sys.stdout.flush()
+
+	# filter enriched GO terms (if filtering is enabled)
+	if signatures and filtering:
+		if not quiet:
+			print 'Local filtering of signatures...', ; sys.stdout.flush()
+		before = len(enriched_terms)
+		signatures = filter_signatures(signatures,M,ranked_genes,X,L,\
+				pvalue_threshold,es_pval,fold_enrichment_threshold,\
+				disable_enrichment_score,quiet=quiet)
+		if not quiet:
+			print 'done!'
+			print 'Local filter: kept %d / %d signatures.' %(len(signatures),before); sys.stdout.flush()
+
 	return signatures
 
-def filter_enriched_terms(enriched_terms,M,ranked_genes,X,L,pvalue_threshold,fold_enrichment_threshold,quiet=False):
+def filter_signatures(signatures,M,ranked_genes,X,L,pvalue_threshold,es_pval,fold_enrichment_threshold,disable_enrichment_score,quiet=False):
 
-	if len(enriched_terms) <= 1:
-		return enriched_terms
+	if len(signatures) <= 1:
+		return signatures
 
-	# sort terms by fold enrichment
-	todo = sorted(enriched_terms,key=lambda enr: -enr.fold_enrichment)
-	most_enriched_term = todo[0]
-	genes_used = set(most_enriched_term.genes)
-	kept_terms = [most_enriched_term]
+	# sort signatures by enrichment
+	es = None
+	q = len(signatures)
+	if not disable_enrichment_score:
+		es = np.float64([sig.enrichment_score for sig in signatures])
+	else:
+		es = np.float64([sig.fold_enrichment for sig in signatures])
+	a = sorted(range(q), key=lambda i: -es[i])
+	todo = [signatures[i] for i in a]
+	print len(todo)
+	#todo = sorted(enriched_terms,key=lambda enr: -enr.fold_enrichment)
+	most_enriched_signature = todo[0]
+	genes_used = set(most_enriched_signature.genes)
+	kept_signatures = [most_enriched_signature]
 	todo = todo[1:]
 	ranked_genes = ranked_genes[:] # make a copy here!
 
-	# exclude genes from most enriched term
+	# exclude genes from most enriched signature
 	new_ranked_genes = []
 	new_L = L
 	for i,g in enumerate(ranked_genes):
@@ -177,32 +218,49 @@ def filter_enriched_terms(enriched_terms,M,ranked_genes,X,L,pvalue_threshold,fol
 	mat = np.zeros((K_max+1,p+1),dtype=np.longdouble)
 	while todo:
 		#print '.', ; sys.stdout.flush()
-		most_enriched_term = todo[0]
-		term_id = most_enriched_term.term[0]
+		most_enriched_signature = todo[0]
+		term_id = most_enriched_signature.term[0]
+		#print 'Term ID:',term_id
 
-		# test if enrichment is still significant after removing all previously used genes
-		enr = M.test_enrichment(ranked_genes,pvalue_threshold,X,new_L,fold_enrichment_threshold,selected_terms=[term_id],mat=mat,quiet=True)
-		if enr:
-			# if so, keep it!
-			enr = enr[0]
-			assert enr.p_value <= pvalue_threshold and enr.fold_enrichment >= fold_enrichment_threshold
-			kept_terms.append(most_enriched_term)
-			# next, exclude selected genes from further analysis: 1) adjust L 2) update set of excluded genes
-			genes_used.update(most_enriched_term.genes) # add selected genes to set of used genes
-			new_ranked_genes = []
-			new_L = L
-			for i,g in enumerate(ranked_genes):
-				if g not in genes_used:
-					new_ranked_genes.append(g)
-				elif i < L: # gene was already used, adjust L if necessary
-					new_L -= 1
-			ranked_genes = new_ranked_genes
-			L = new_L
+		# test if GO term is still enriched after removing all previously used genes
+		enr = M.test_enrichment(ranked_genes,pvalue_threshold,X,L,selected_term_ids=[term_id],mat=mat,quiet=True)
+		assert len(enr) in [0,1]
+		if enr: # enr will be an empty list if GO term does not meet the p-value threshold
+
+			# test fold enrichment threshold (if specified)
+			still_enriched = False
+			if fold_enrichment_threshold is None:
+				still_enriched = True
+			elif not disable_enrichment_score:
+				es = M.get_enrichment_scores(enr,ranked_genes,X,L,es_pval)
+				#print es,len(ranked_genes),X,L,es_pval,
+				es = es[0]
+				if es >= fold_enrichment_threshold:
+					still_enriched = True
+			else:
+				if enr[0].fold_enrichment >= fold_enrichment_threshold:
+					still_enriched = True
+
+			if still_enriched:
+				# if GO term is still considered enriched, keep it!
+				#enr = enr[0]
+				kept_signatures.append(most_enriched_signature)
+				# next, exclude selected genes from further analysis: 1) adjust L 2) update set of excluded genes
+				genes_used.update(most_enriched_signature.genes) # add selected genes to set of used genes
+				new_ranked_genes = []
+				new_L = L
+				for i,g in enumerate(ranked_genes):
+					if g not in genes_used:
+						new_ranked_genes.append(g)
+					elif i < L: # gene was already used, adjust L if necessary
+						new_L -= 1
+				ranked_genes = new_ranked_genes
+				L = new_L
 
 		# next!
 		todo = todo[1:]
 
-	return kept_terms
+	return kept_signatures
 
 def remove_redundant_signatures(new_signatures,previous_signatures,GO):
 	if len(previous_signatures) == 0:
@@ -245,6 +303,7 @@ def main(args=None):
 
 	disable_local_filter = args.disable_local_filter
 	disable_global_filter = args.disable_global_filter
+	disable_enrichment_score = args.disable_enrichment_score
 
 	# parameter checks?
 
@@ -270,7 +329,7 @@ def main(args=None):
 
 	mHG_X = go_mHG_X
 	mHG_L = go_mHG_L
-	if mHG_L == 0: # setting mHG_L to 0 will "turn off" the effect of the parameter (=set it to N)
+	if mHG_L == 0: # setting mHG_L to 0 will "turn off" the effect of the parameter (= set it to N)
 		mHG_L = len(genes)
 
 	# read GO data
@@ -345,8 +404,10 @@ def main(args=None):
 		filtering = True
 		if disable_local_filter:
 			filtering = False
-		signatures_dsc = get_pc_signatures(M_enrich,W,pc+1,genes,mHG_X,mHG_L,go_pvalue_threshold,go_fold_enrichment_threshold,es_max_pval,filtering)
-		signatures_asc = get_pc_signatures(M_enrich,W,-pc-1,genes,mHG_X,mHG_L,go_pvalue_threshold,go_fold_enrichment_threshold,es_max_pval,filtering)
+		signatures_dsc = get_pc_signatures(M_enrich,W,pc+1,genes,mHG_X,mHG_L,go_pvalue_threshold,es_max_pval,\
+				filtering,go_fold_enrichment_threshold,disable_enrichment_score)
+		signatures_asc = get_pc_signatures(M_enrich,W,-pc-1,genes,mHG_X,mHG_L,go_pvalue_threshold,es_max_pval,\
+				filtering,go_fold_enrichment_threshold,disable_enrichment_score)
 		signatures = signatures_dsc + signatures_asc
 
 		print "# signatures:",len(signatures); sys.stdout.flush()
@@ -357,7 +418,7 @@ def main(args=None):
 			removed = before - len(signatures)
 			print "Global filter: kept %d non-redundant signatures (%d removed)." %(len(signatures),removed)
 	
-		print_signatures(signatures,GO)
+		print_signatures(signatures,GO,disable_enrichment_score)
 		final_signatures.extend(signatures)
 		print "Total no. of signatures so far:", len(final_signatures); sys.stdout.flush()
 
@@ -366,7 +427,7 @@ def main(args=None):
 	print
 	print '='*70
 	print 'GO-PCA generated %d signatures:' %(len(final_signatures))
-	print_signatures(final_signatures,GO)
+	print_signatures(final_signatures,GO,disable_enrichment_score)
 	sys.stdout.flush()
 
 	result = GOPCAResult(genes=genes,W=W,mHG_X=go_mHG_X,mHG_L=go_mHG_L,signatures=final_signatures)

@@ -98,7 +98,7 @@ class GOEnrichment(object):
 		assert len(self.genes) == p
 		assert len(self.terms) == m
 
-	def test_enrichment(self,ranked_genes,pvalue_threshold,X,L,fold_enrichment_threshold=None,selected_terms=[],mat=None,quiet=False):
+	def test_enrichment(self,ranked_genes,pvalue_threshold,X,L,selected_term_ids=[],mat=None,quiet=False):
 
 		genes = self.genes
 		terms = self.terms
@@ -107,8 +107,9 @@ class GOEnrichment(object):
 		A = self.A
 
 		# test only some terms?
-		if selected_terms:
-			term_indices = np.int64([misc.bisect_index(term_ids,t) for t in selected_terms])
+		if selected_term_ids:
+			term_indices = np.int64([misc.bisect_index(term_ids,t) for t in selected_term_ids])
+			terms = [self.terms[i] for i in term_indices]
 			A = A[:,term_indices] # not a view!
 
 		# sort rows in annotation matrix (and exclude genes not in the ranking)
@@ -156,9 +157,7 @@ class GOEnrichment(object):
 					k = sel.size
 
 					enr = mHGTermResult(terms[j],pval,p,threshold,K[j],sel_genes)
-					# test if associated fold enrichment exceeds fold enrichment threshold (if one was specified)
-					if fold_enrichment_threshold is None or enr.fold_enrichment >= fold_enrichment_threshold:
-						enriched_terms.append(enr)
+					enriched_terms.append(enr)
 
 		if not quiet:
 			print 'done!'; sys.stdout.flush()
@@ -166,40 +165,28 @@ class GOEnrichment(object):
 				ignored = m - tested
 				print '%d/%d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.' %(ignored,m,100*(ignored/float(m)),X)
 			q = len(enriched_terms)
-			fold_term = ''
-			if fold_enrichment_threshold is not None:
-				fold_term = ' and fold enrichment >= %.1fx ' %(fold_enrichment_threshold)
-			print '%d / %d tested GO terms (%.1f%%) were found to be enriched (p-value <= %.1e%s).' \
-					%(q,tested,100*(q/float(tested)),pvalue_threshold,fold_term)
+			#fold_term = ''
+			#if fold_enrichment_threshold is not None:
+			#	fold_term = ' and fold enrichment >= %.1fx ' %(fold_enrichment_threshold)
+			#print '%d / %d tested GO terms (%.1f%%) were found to be enriched (p-value <= %.1e%s).' \
+			#		%(q,tested,100*(q/float(tested)),pvalue_threshold,fold_term)
+			print '%d / %d tested GO terms (%.1f%%) were found to be significantly enriched (p-value <= %.1e).' \
+					%(q,tested,100*(q/float(tested)),pvalue_threshold)
 			sys.stdout.flush()
 
 		assert self.A.shape == original_dimensions
 		return enriched_terms
 
-	def apply_thresholds(self,enrichments,pvalue_threshold,fold_enrichment_threshold=None,quiet=False):
-		filtered = []
-
-		terms = self.terms
-		m = len(enrichments)
-		for j,enr in enumerate(enrichments):
-			if enr.p_value <= pvalue_threshold:
-				if fold_enrichment_threshold is not None and enr.fold_enrichment < fold_enrichment_threshold:
-					continue
-				filtered.append(enr)
-
-		if not quiet:
-			kept = len(filtered)
-		return filtered
-
-	def get_enrichment_scores(self,enrichments,ranked_genes,X,L,p_max):
+	def get_enrichment_scores(self,enriched_terms,ranked_genes,X,L,p_max):
 
 		genes = self.genes
 		term_ids = self.term_ids
+		original_dimensions = self.A.shape
 		A = self.A
 
 		# select annotations matrix columns corresponding to enriched GO terms
-		enriched_terms = [enr.term[0] for enr in enrichments]
-		term_indices = np.int64([misc.bisect_index(term_ids,t) for t in enriched_terms])
+		enriched_term_ids = [enr.term[0] for enr in enriched_terms]
+		term_indices = np.int64([misc.bisect_index(term_ids,t) for t in enriched_term_ids])
 		A = A[:,term_indices] # not a view!
 
 		# sort rows in annotation matrix (and exclude genes not in the ranking)
@@ -210,12 +197,15 @@ class GOEnrichment(object):
 		indices = np.int64(indices)
 		A = A[indices,:] # not a view either!
 
-		q = len(enrichments)
+		q = len(enriched_terms)
 		es = np.zeros(q,dtype=np.float64)
 		p = len(ranked_genes)
 		K = np.sum(A,axis=0,dtype=np.int64)
 		for i in range(q):
+			#print enriched_term_ids[0],K[i],
 			es[i] = enrichment_score.get_enrichment_score(A[:,i],p,K[i],X,L,p_max)
+
+		assert self.A.shape == original_dimensions
 		return es
 
 	def pretty_print_enrichment(self):
