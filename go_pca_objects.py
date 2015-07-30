@@ -16,26 +16,29 @@
 
 import cPickle as pickle
 
-from go_enrichment import mHGTermResult
+#from go_enrichment import mHGTermResult
 
 class GOPCAResult(object):
-	def __init__(self,genes,W,mHG_X,mHG_L,signatures):
+	def __init__(self,genes,W,mHG_X_frac,mHG_X_min,mHG_L,signatures):
+		assert len(genes) == W.shape[0]
 		self.genes = genes
 		self.W = W
-		self.mHG_X = mHG_X
+		self.mHG_X_frac = mHG_X_frac
+		self.mHG_X_min = mHG_X_min
 		self.mHG_L = mHG_L
 		self.signatures = signatures
 
 	def __repr__(self):
 		sig_hash = hash((hash(sig) for sig in self.signatures))
 		p,d = self.W.shape
-		return "<GO-PCA result (mHG_X=%d, mHG_L=%d); loading matrix dimensions: (%d,%d); hash of signature list: %d>" %(mHG_X,mHG_L,p,d,sig_hash)
+		return "<GO-PCA result (mHG_X_frac=%.2f, mHG_X_min=%d, mHG_L=%d); loading matrix dimensions: (%d,%d); hash of signature list: %d>" \
+				%(self.mHG_X_frac,self.mHG_X_min,self.mHG_L,p,d,sig_hash)
 
 	def __str__(self):
 		q = len(self.signatures)
 		p,d = self.W.shape
-		return "<GO-PCA result; mHG parameters: X=%d, L=%d; # genes (p) = %d, # principal components (d) = %d; %d signatures>" \
-				%(mHG_X,mHG_L,p,d,q)
+		return "<GO-PCA result (%d signatures); mHG parameters: X_frac=%.2f, X_min=%d, L=%d; # genes (p) = %d, # principal components (d) = %d>" \
+				%(q,self.mHG_X_frac,self.mHG_X_min,self.mHG_L,p,d)
 
 	def __eq__(self,other):
 		if type(self) != type(other):
@@ -45,22 +48,25 @@ class GOPCAResult(object):
 		else:
 			return False
 
-class GOPCASignature(mHGTermResult):
-	"""
-	Stores GO-PCA signature.
-	"""
-	def __init__(self,term,p_value,N,n,K,genes,pc,es=None):
-		mHGTermResult.__init__(self,term,p_value,N,n,K,genes)
-		self.pc = pc
-		self.enrichment_score = es
+class GOPCASignature(object):
+
+	def __init__(self,genes,pc,mfe,enrichment,label=None):
+		self.genes = set(genes) # genes in the signature
+		self.pc = pc # principal component (sign indicates whether ordering was ascending or descending)
+		self.mfe = mfe # maximum fold enrichment
+		self.enrichment = enrichment # GO enrichment this signature is based on
+		if label is None:
+			enr = enrichment
+			label = '%s: %s (%d:%d/%d)' %(enr.term[2],enr.term[3],pc,enr.k,enr.K)
+		self.label = label # signature label
 
 	def __repr__(self):
-		return "<GOPCASignature: %s / PC %d (p=%.1e; fe=%.1x; es=%.1fx; X=%d; L=%d; %d/%d@%d/%d), gene set %d>" \
-				%(self.term.id,self.pc,self.p_value,self.fold_enrichment,self.enrichment_score,self.X,self.L,self.k,self.K,self.n,self.N,hash(self.genes))
+		return '<GOPCASignature: label="%s", pc=%d, mfe=%.1f; %s>' \
+				%(self.label,self.pc,self.mfe,repr(self.enrichment))
 
 	def __str__(self):
-		return "<GOPCASignature: %s [%d:%d/%d@%d/%d] (p-value = %.1e, fold enr. = %.1fx, enr. score = %.1fx)>" \
-				%(str(self.term),self.pc,self.k,self.K,self.n,self.N,self.p_value,self.fold_enrichment,self.enrichment_socre)
+		return '<GO-PCA Signature "%s" (PC %d / MFE %.1fx / %s)>' \
+				%(self.label,self.pc,self.mfe, str(self.enrichment))
 
 	def __hash__(self):
 		return hash(repr(self))
@@ -73,21 +79,46 @@ class GOPCASignature(mHGTermResult):
 		else:
 			return False
 
+	@property:
+	def pval(self):
+		""" The enrichment p-value of the GO term that the signature is based on. """
+		return self.enrichment.pval
+	
+	@property:
+	def k(self):
+		""" The number of genes in the signature. """
+		return len(self.genes)
+
+	@property:
+	def K(self):
+		""" The number of genes annotated with the GO term whose enrichment led to the generation of the signature. """
+		return self.enrichment.K
+
+	@property:
+	def n(self):
+		""" The threshold used to generate the signature. """
+		return self.enrichment.ranks[self.k]
+
+	@property:
+	def N(self):
+		""" The total number of genes in the data. """
+		return self.enrichment.N
+
 	def get_pretty_format(self,GO,omit_acc=False,nitty_gritty=True,max_name_length=0):
-		term = GO.terms[self.term[0]]
+		enr = self.enrichment
+		term = GO.terms[enr.term[0]]
 		goterm_genes = GO.get_goterm_genes(term.id)
 		details = ''
 		if nitty_gritty:
-			details = ' [pval=%.1e,fe=%.1fx,E=%.1fx,pc=%d,%d/%d@%d]' \
-					%(self.p_value,self.fold_enrichment,self.enrichment_score,self.pc,len(self.genes),self.K,self.n)
-			#details = ' [pval=%.1e,fe=%.1fx,pc=%d,%d/%d@%d]' \
-			#		%(self.p_value,self.fold_enrichment,self.pc,len(self.genes),self.K,self.n)
+			details = ' [pval=%.1e,mfe=%.1fx,pc=%d,%d/%d@%d]' \
+					%(self.p_value,self.mfe,self.pc,self.k,self.K,self.n,self.N)
 		return '%s%s' %(term.get_pretty_format(omit_acc=omit_acc,max_name_length=max_name_length),details)
 
-	@staticmethod
-	def from_mHGTermResult(result,pc,es=None):
-		return GOPCASignature(result.term,result.p_value,result.N,result.n,result.K,result.genes,pc,es)
+	#@staticmethod
+	#def from_mHGTermResult(result,pc,es=None):
+	#	return GOPCASignature(result.term,result.p_value,result.N,result.n,result.K,result.genes,pc,es)
 
+c="""
 class GeneSet(object):
 	def __init__(self,genes):
 		self.genes = frozenset(genes)
@@ -130,7 +161,6 @@ class NamedGeneSet(GeneSet):
 	def from_GeneSet(name,geneset):
 		return NamedGeneSet(name,geneset.genes)
 
-
 class SignatureMatrix(object):
 	def __init__(self,genesets,S):
 		assert len(genesets) == S.shape[0]
@@ -140,3 +170,5 @@ class SignatureMatrix(object):
 	def save(self,fn):
 		with open(fn,'w') as ofh:
 			pickle.dump(self,ofh,pickle.HIGHEST_PROTOCOL)
+"""
+
