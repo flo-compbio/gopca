@@ -1,7 +1,9 @@
-# Cython implementation of the XL-mHG test
 # Copyright (c) 2015 Florian Wagner
 #
-# This program is free software: you can redistribute it and/or modify
+# This file is part of the Python/Cython implementation of the XL-mHG.
+#
+# The Python/Cython implementation of the XL-mHG
+# is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, Version 3,
 # as published by the Free Software Foundation.
 #
@@ -26,7 +28,6 @@ cimport numpy as np
 np.import_array()
 
 import sys
-from math import isnan
 
 cdef extern from "math.h":
 	long double fabsl(long double x)
@@ -179,83 +180,30 @@ cdef long double get_mHG_pvalue(long double s, int N, int K, int X, int L,\
 
 	return 1.0 - (matrix[K,W-1] + matrix[K-1,W])
 
+def xlmhg(unsigned char[::1] v, int N, int K, int X, int L, int use_upper_bound, long double[:,::1] matrix, double tol, double pval_thresh):
 
-def mHG_test(v, X, L, K=None, matrix=None, use_upper_bound=False, verbose=False, tol=1e-16, pval_thresh=1.0):
-	"""
-	Front-end for the XL-mHG test.
-	"""
-
-	### type checks
-
-	# check vector
-	assert type(v) == np.ndarray
-	assert v.ndim == 1
-	assert v.dtype == np.uint8
-	if not v.flags.c_contiguous:
-		print >> sys.stderr, 'Warning: mHG_test called with vector ("v" parameter) that is not C-contiguous!'
-		v = np.ascontiguousarray(v)
-
-	N = v.size
-
-	# check parameters
-	assert type(X) == int
-	assert type(L) == int
-	if K is not None:
-		assert type(K) == int
-	assert type(tol) == float
-	assert type(pval_thresh) == float
-
-	# check matrix
-	if matrix is not None:
-		assert type(matrix) == np.ndarray
-		assert matrix.dtype == np.longdouble
-		assert matrix.ndim == 2
-		assert matrix.shape[0] >= K+1 and matrix.shape[1] >= N-K+1
-		if not matrix.flags.c_contiguous:
-			print >> sys.stderr, 'Warning: mHG_test called with matrix ("matrix" parameter) that is not C-contiguous!'
-			matrix = np.ascontiguousarray(matrix)
-
-	# determine K (if not supplied)
-	if K is None:
-		K = np.nonzero(v)[0].size
-
-	# allocate matrix (if not supplied)
-	if matrix is None:
-		matrix = np.empty((K+1,N-K+1),dtype=np.longdouble)
-
-
-	# sanity checks
-	assert N >= 0
-	assert 0 <= K <= N
-	assert 0 <= L <= N
-	assert 0 <= X <= K
-
-	# special cases
-	if K == 0 or K == N: # check if we have any positives at all, or if all entries are positives
-		return 0,1.0,1.0
+	cdef int n
+	cdef long double[::1] s_array = np.zeros(1,dtype=np.longdouble)
+	cdef long double s, pval
+	cdef double s_double, pval_double
+	cdef long double tol_ld = <long double>tol
+	cdef long double pval_thresh_ld = <long double>pval_thresh
 
 	# get XL-mHG test statistic and corresponding threshold
-	cdef long double[::1] s_array = np.zeros(1,dtype=np.longdouble)
-	n = get_mHG_test_statistic(v, N, K, X, L, s_array, <long double>tol)
-	n = int(n)
-	s = float(s_array[0])
-	if s >= 1.0:
+	n = get_mHG_test_statistic(v, N, K, X, L, s_array, tol_ld)
+	s = s_array[0]
+	if s > 1.0 or is_equal(s,1.0,tol_ld):
 		return n,1.0,1.0
 
 	# get XL-mHG p-value (either exact or using upper bound)
-	pval = None
-	if s > pval_thresh or use_upper_bound:
+	pval_double = 0
+	if ((not is_equal(s,pval_thresh_ld,tol_ld)) and s > pval_thresh_ld) or use_upper_bound != 0:
 		# use upper bound
-		pval = float(min(1.0,s*K))
-
+		pval_double = <double>(min(1.0,s*<long double>K))
 	else:
 		# calculate exact p-value
-		pval = get_mHG_pvalue(s_array[0], N, K, X, L, matrix, tol)
-		pval = float(pval)
+		pval = get_mHG_pvalue(s, N, K, X, L, matrix, tol_ld)
+		pval_double = <double>pval
 
-		# check whether floating point accuracy was insufficient for calculation of the p-value
-		if isnan(pval) or pval <= 0:
-			# if so, use upper bound instead
-			pval = float(min(1.0,s*K))
-
-	return n,s,pval
+	s_double = <double>s
+	return n,s_double,pval_double

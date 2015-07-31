@@ -21,12 +21,14 @@ import os
 import csv
 import gzip
 import cPickle as pickle
+from math import ceil
 
 import numpy as np
+from scipy.stats import hypergeom
 
 import gopca
 from gopca.tools import misc
-from gopca.xlmhg import xlmHG_cython as mHG
+from gopca.xlmhg.mHG import mHG_test
 #from gopca import enrichment_score
 
 class mHGTermResult(object):
@@ -40,7 +42,7 @@ class mHGTermResult(object):
 	def __init__(self,term,genes,pval,ranks,N,X,L,mHG_n=None,mHG_k_n=None,mHG_s=None):
 
 		ranks = np.int32(ranks)
-		ranks.flags.writable=False # this makes ranks.data hashable
+		ranks.flags.writeable=False # this makes ranks.data hashable
 
 		self.term = term # 4-tuple (id,source,collection,name)
 		self.genes = tuple(genes) # genes corresponding to the "1's"
@@ -60,8 +62,8 @@ class mHGTermResult(object):
 				%('/'.join(self.term),self.pval,self.X,self.L,self.N,hash(self.genes),hash(self.ranks.data))
 
 	def __str__(self):
-		return '<mHGTermResult of term "%s" (%d genes) with p-value = %.1e (X=%d, L=%d, N=%d)>' \
-				%(str(self.term[3]),len(self.genes),self.pval,self.X,self.L,self.N)
+		return '<mHGTermResult of term "%s" (%s; %d genes) with p-value = %.1e (X=%d, L=%d, N=%d)>' \
+				%(str(self.term[3]),self.term[0],len(self.genes),self.pval,self.X,self.L,self.N)
 
 	def __hash__(self):
 		return hash(repr(self))
@@ -90,12 +92,13 @@ class mHGTermResult(object):
 	def fold_enrichment(self):
 		return self.k / (self.K * (self.n/float(self.N)))
 
-	def get_max_fold_enrichment(self):
+	def get_max_fold_enrichment(self,pval_thresh=1.0):
 		""" Find maximum fold enrichment. Returns both the number of genes selected and the corresponding fold enrichment. """
 		N = self.N
 		K = self.K
 		X = self.X
 		L = self.L
+		ranks = self.ranks
 		
 		if K == 0 or L == N or K < X:
 			return 0
@@ -103,13 +106,16 @@ class mHGTermResult(object):
 		k_max = 0
 		fe_max = 0.0
 		k = 1
-		while k <= K and ranks[k-1] <= L:
+		pval = 1.0
+
+		while k <= K and ranks[k-1] < L:
 			if k >= X:
 				n = ranks[k-1] + 1
-				fe = k / (K * (n / float(N)))
-				if fe >= fe_max:
-					fe_max = fe
-					k_max = k
+				if pval_thresh == 1.0 or hypergeom.sf(k-1,N,K,n) <= pval_thresh:
+					fe = k / (K * (n / float(N)))
+					if fe >= fe_max:
+						fe_max = fe
+						k_max = k
 			k += 1
 
 		return k_max, fe_max
@@ -193,11 +199,13 @@ class GOEnrichment(object):
 		# find enriched GO terms
 		if not quiet:
 			print "Testing for enrichment of %d terms..." %(m)
-			print "(N = %d, X = %d, L = %d; K_max = %d)" %(len(ranked_genes),X,L,K_max)
+			print "(N = %d, X_frac = %.2f, X_min = %d, L = %d; K_max = %d)" \
+					%(len(ranked_genes),X_frac,X_min,L,K_max)
 			sys.stdout.flush()
 
 		enriched_terms = []
 		tested = 0
+		tested_mHG = 0
 		for j in range(m):
 			#if j >= 1000: break
 			if (not quiet) and (j % 100) == 0:
@@ -207,12 +215,14 @@ class GOEnrichment(object):
 
 			# determine significance of enrichment using XL-mHG test
 			# (only if there are at least X_min genes annotated with this term before the L'th threshold)
-			if K_lim[j] >= X_min:
+			#if K_lim[j] >= X_min:
+			if K[j] >= X_min:
+				tested += 1
 				# determine term-specific X (based on K[j])
 				X = max(X_min,int(ceil(X_frac*float(K[j]))))
 				if K_lim[j] >= X:
-					tested += 1
-					mHG_n, mHG_s, pval = mHG.mHG_test(v,X,L,K=K[j],matrix=mat,pval_thresh=pval_thresh)
+					tested_mHG += 1
+					mHG_n, mHG_s, pval = mHG_test(v,X,L,K=int(K[j]),mat=mat,pval_thresh=pval_thresh)
 
 					# check if GO term is significantly enriched
 					if pval <= pval_thresh:
@@ -222,15 +232,21 @@ class GOEnrichment(object):
 						sel_genes = [ranked_genes[i] for i in sel]
 					
 						#def __init__(self,term,genes,pval,ranks,N,X,L,mHG_n=None,mHG_k_n=None,mHG_s=None):
-						enr = mHGTermResult(terms[j],sel_genes,pval,sel,N,X,L,mHG_n,mHG_k_n,mHG_s)
+						enr = mHGTermResult(terms[j],sel_genes,pval,sel,p,X,L,mHG_n,mHG_k_n,mHG_s)
 
 						enriched_terms.append(enr)
 
 		if not quiet:
 			print 'done!'; sys.stdout.flush()
+			remaining = ''
 			if X_min > 0:
 				ignored = m - tested
-				print '%d/%d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.' %(ignored,m,100*(ignored/float(m)),X_min)
+				remaining = ' remaining'
+				print ' %d/ %d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.' \
+						%(ignored,m,100*(ignored/float(m)),X_min)
+			if X_min > 0 or X_frac > 0:
+				print 'Ran XL-mHG test on %d / %d%s GO terms (%.1f%%)' \
+						%(tested_mHG,tested,remaining,100*(tested_mHG/float(tested)))
 			q = len(enriched_terms)
 			print '%d / %d tested GO terms (%.1f%%) were found to be significantly enriched (p-value <= %.1e).' \
 					%(q,tested,100*(q/float(tested)),pval_thresh)
@@ -238,43 +254,6 @@ class GOEnrichment(object):
 
 		assert self.A.shape == original_dimensions
 		return enriched_terms
-
-	def get_max_fold_enrichment(self,ranks, N, X, L):
-		K = ranks.size
-		
-		if K == 0 or L == N or K < X:
-			return 0
-
-		n_max = 0
-		fe_max = 0.0
-		k = 0
-		while k < K and ranks[k] <= L:
-		n = ranks[0]
-		for n in range(L):
-			if v[n] != 0:
-				k += 1
-				if k >= X:
-					fe = k / (K * (n / float(N)))
-					if fe >= fe_max:
-						fe_max = fe
-						n_max = n+1
-		return n_max,fe_max
-
-	def get_enrichment_scores(self,enriched_terms):
-
-		genes = self.genes
-		term_ids = self.term_ids
-
-		q = len(enriched_terms)
-		es = np.zeros(q,dtype=np.float64)
-		p = len(ranked_genes)
-		K = np.sum(A,axis=0,dtype=np.int64)
-		for i,enr in enumerate(enriched_terms):
-			assert enr.K == K[i]
-			assert enr.N == p
-			es[i] = self.get_max_fold_enrichment(enr.ranks,enr.N,enr.X,enr.L)
-
-		return es
 
 	def pretty_print_enrichment(self):
 		raise NotImplemented

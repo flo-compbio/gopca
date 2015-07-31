@@ -1,3 +1,3 @@
 import sys
 
-__all__ = ['xlmHG_cython']
+__all__ = ['mHG','xlmHG_cython']

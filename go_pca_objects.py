@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import re
 import cPickle as pickle
 
 #from go_enrichment import mHGTermResult
@@ -50,6 +51,8 @@ class GOPCAResult(object):
 
 class GOPCASignature(object):
 
+	abbrev = [('positive ','pos. '),('negative ','neg. '),('interferon-','IFN-'),('proliferation','prolif.'),('signaling','signal.')]
+
 	def __init__(self,genes,pc,mfe,enrichment,label=None):
 		self.genes = set(genes) # genes in the signature
 		self.pc = pc # principal component (sign indicates whether ordering was ascending or descending)
@@ -79,39 +82,60 @@ class GOPCASignature(object):
 		else:
 			return False
 
-	@property:
+	@property
 	def pval(self):
 		""" The enrichment p-value of the GO term that the signature is based on. """
 		return self.enrichment.pval
 	
-	@property:
+	@property
 	def k(self):
 		""" The number of genes in the signature. """
 		return len(self.genes)
 
-	@property:
+	@property
 	def K(self):
 		""" The number of genes annotated with the GO term whose enrichment led to the generation of the signature. """
 		return self.enrichment.K
 
-	@property:
+	@property
 	def n(self):
 		""" The threshold used to generate the signature. """
-		return self.enrichment.ranks[self.k]
+		return self.enrichment.ranks[self.k-1]
 
-	@property:
+	@property
 	def N(self):
 		""" The total number of genes in the data. """
 		return self.enrichment.N
 
-	def get_pretty_format(self,GO,omit_acc=False,nitty_gritty=True,max_name_length=0):
+	def get_pretty_format(self,omit_acc=False,nitty_gritty=True,max_name_length=0):
+		enr = self.enrichment
+
+		term = enr.term
+		term_name = term[3]
+		for abb in self.abbrev:
+			term_name = re.sub(abb[0],abb[1],term_name)
+		if len(term_name) > max_name_length:
+			term_name = term_name[:(max_name_length-3)] + '...'
+
+		term_str = '%s: %s' %(term[2],term_name)
+		if not omit_acc:
+			term_str = term_str + ' (%s)' %(term[0])
+
+		details = ''
+		if nitty_gritty:
+			details = ' [%d/%d genes,pc=%d,pval=%.1e,mfe=%.1fx]' \
+					%(self.k,self.K,self.pc,self.pval,self.mfe)
+
+		return '%s%s' %(term_str,details)
+
+	def get_pretty_format_GO(self,GO,omit_acc=False,nitty_gritty=True,max_name_length=0):
 		enr = self.enrichment
 		term = GO.terms[enr.term[0]]
 		goterm_genes = GO.get_goterm_genes(term.id)
 		details = ''
 		if nitty_gritty:
-			details = ' [pval=%.1e,mfe=%.1fx,pc=%d,%d/%d@%d]' \
-					%(self.p_value,self.mfe,self.pc,self.k,self.K,self.n,self.N)
+			details = ' [%d/%d genes,n=%d,pc=%d,mfe=%.1fx,pval=%.1e]' \
+					%(self.k,self.K,self.n,self.pc,self.mfe,self.pval)
 		return '%s%s' %(term.get_pretty_format(omit_acc=omit_acc,max_name_length=max_name_length),details)
 
 	#@staticmethod
