@@ -89,7 +89,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     #install_requires=['peppercorn'],
-    install_requires=['numpy','scipy','cython','scikit-learn','genometools','goparser'],
+    install_requires=['numpy','scipy','cython','scikit-learn','genometools','goparser','xlmhg'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
