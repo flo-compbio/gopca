@@ -14,12 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-
-
 import csv
 import numpy as np
 
-from tools import misc
+from genometools import misc
 
 def read_meta(fn):
 	meta = {}

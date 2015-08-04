@@ -16,7 +16,8 @@
 
 import cPickle as pickle
 
-from go_enrichment import mHGTermResult
+import gopca
+from gopca.go_enrichment import mHGTermResult
 
 class mHGTermResultWithPC(mHGTermResult):
 	"""

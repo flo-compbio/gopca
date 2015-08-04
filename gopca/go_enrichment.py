@@ -24,8 +24,8 @@ import cPickle as pickle
 
 import numpy as np
 
-from tools import misc
-from xlmhg import xlmHG_cython as mHG
+from genometools import misc
+from xlmhg import mHG_test as mHG
 
 class mHGTermResult(object):
 	"""

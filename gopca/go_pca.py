@@ -16,6 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import sys
+import os
+
+# allow explicit relative imports in executable script
+# source: http://stackoverflow.com/a/6655098
+if __name__ == '__main__' and __package__ is None:
+	parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+	sys.path.insert(1, parent_dir)
+	import gopca
+	__package__ = 'gopca'
+
 import common
 
 import sys
@@ -27,12 +38,13 @@ import itertools as it
 import numpy as np
 from sklearn.decomposition import PCA
 
-from tools import misc
-import common
-from go_enrichment import GOEnrichment
+import gopca
+from gopca import common
+from gopca.go_enrichment import GOEnrichment
+from gopca.go_pca_objects import mHGTermResultWithPC,SignatureMatrix,NamedGeneSet
 
+from genometools import misc
 from goparser.parser import GOParser
-from go_pca_objects import mHGTermResultWithPC,SignatureMatrix,NamedGeneSet
 
 def read_args_from_cmdline():
 	parser = argparse.ArgumentParser(description='')

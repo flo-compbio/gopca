@@ -17,12 +17,22 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 """
-Generate "GO annotation files" for use by the mHG annotation enrichment script.
+Generate a "gene-by-GO term" association matrix and store it as a Python pickle.
 """
 
 # we don't assume that gene names are sorted
 
 import sys
+import os
+
+if __name__ == '__main__' and __package__ is None:
+	# allow explicit relative imports in executable script
+	# source: http://stackoverflow.com/a/6655098
+	parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+	sys.path.insert(1, parent_dir)
+	import gopca
+	__package__ = 'gopca'
+
 import argparse
 import csv
 import gzip
@@ -32,13 +42,12 @@ import numpy as np
 import networkx as nx
 
 from tools import misc
-from goparser.parser import GOParser
 
 def read_args_from_cmdline():
 	parser = argparse.ArgumentParser(description='')
 
 	parser.add_argument('-g','--gene-file',required=True)
-	parser.add_argument('-p','--go-parser-file',required=True)
+	parser.add_argument('-p','--go-pickle-file',required=True)
 
 	parser.add_argument('-om','--output-matrix-file',required=True)
 	parser.add_argument('-ot','--output-term-file',required=True)
@@ -49,7 +58,7 @@ def read_args_from_cmdline():
 	parser.add_argument('--max-genes-per-term',type=int,required=True)
 	parser.add_argument('--max-term-overlap',type=float,default=100.0) # in percent
 
-	# random seed
+	# random seed (if max_term_overlap < 100%, we sometimes need to randomly break ties)
 	parser.add_argument('--seed',type=int,required=True)
 
 	return parser.parse_args()
@@ -71,7 +80,7 @@ def main(args):
 
 	# Read GO term definitions and parse UniProtKB GO annotations
 	GO = None
-	with open(args.go_parser_file) as fh:
+	with open(args.go_pickle_file) as fh:
 		GO = pickle.load(fh)
 
 	# Get sorted list of GO term IDs
