@@ -17,6 +17,7 @@ Installation of Prerequisites
 -----------------------------
 
 GO-PCA depends on the following third-party Python packages:
+
 - NumPy
 - SciPy
 - Scikit-Learn
