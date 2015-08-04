@@ -19,7 +19,7 @@ import os
 import csv
 import numpy as np
 
-from tools import misc
+from genometools import misc
 
 def read_meta(fn):
 	meta = {}

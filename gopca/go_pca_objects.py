@@ -17,8 +17,6 @@
 import re
 import cPickle as pickle
 
-#from go_enrichment import mHGTermResult
-
 class GOPCAResult(object):
 	def __init__(self,genes,W,mHG_X_frac,mHG_X_min,mHG_L,signatures):
 		assert len(genes) == W.shape[0]

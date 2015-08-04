@@ -41,7 +41,7 @@ import cPickle as pickle
 import numpy as np
 import networkx as nx
 
-from tools import misc
+from genometools import misc
 
 def read_args_from_cmdline():
 	parser = argparse.ArgumentParser(description='')
