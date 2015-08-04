@@ -36,10 +36,9 @@ import numpy as np
 from scipy import stats
 from sklearn.decomposition import PCA
 
-from gopca.tools import misc
+from genometools import misc
 from gopca import common
 from gopca.go_enrichment import GOEnrichment
-from gopca import fdr
 
 #from goparser.parser import GOParser
 from .go_pca_objects import GOPCAResult,GOPCASignature
