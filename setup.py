@@ -118,8 +118,8 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'generate_gene_by_goterm_matrix = gopca.generate_gene_by_goterm_matrix:main',
-            'go_pca = gopca.go_pca:main',
+            'generate_gene_by_goterm_matrix.py = gopca.generate_gene_by_goterm_matrix:main',
+            'go_pca.py = gopca.go_pca:main',
         ],
     },
 )

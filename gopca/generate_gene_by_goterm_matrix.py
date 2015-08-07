@@ -63,7 +63,10 @@ def read_args_from_cmdline():
 
 	return parser.parse_args()
 
-def main(args):
+def main(args=None):
+
+	if args is None:
+		args = read_args_from_cmdline()
 
 	np.random.seed(args.seed)
 
@@ -226,5 +229,5 @@ def main(args):
 	return 0
 
 if __name__ == '__main__':
-	return_code = main(read_args_from_cmdline())
+	return_code = main()
 	sys.exit(return_code)
