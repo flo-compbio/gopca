@@ -23,7 +23,7 @@ if __name__ == '__main__' and __package__ is None:
 
 import gopca
 from gopca import common
-from gopca.tools import misc
+from genometools import misc
 
 def read_args_from_cmdline():
 	parser = argparse.ArgumentParser(description='')
