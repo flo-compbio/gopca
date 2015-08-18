@@ -101,7 +101,8 @@ def get_signature_expression_robust(genes,E,sig_genes):
 
 def get_signature_label(GO,sig,max_length=40):
 	count = ' (%d:%d/%d)' %(sig.pc,len(sig.genes),sig.K)
-	return GO.terms[sig.term[0]].get_pretty_format(omit_acc=True,max_name_length=max_length) + count
+	enr = sig.enrichment
+	return GO.terms[enr.term[0]].get_pretty_format(omit_acc=True,max_name_length=max_length) + count
 
 def variance_filter(genes,E,top):
 	# filter genes by variance

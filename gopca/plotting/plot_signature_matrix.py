@@ -38,6 +38,8 @@ def read_args_from_cmdline():
 	parser.add_argument('--vmin',type=float,default=-3.0)
 	parser.add_argument('--vmax',type=float,default=3.0)
 
+	parser.add_argument('--disable-sample-clustering',action='store_true')
+
 	return parser.parse_args()
 
 def main(args=None):
@@ -85,13 +87,14 @@ def main(args=None):
 	labels = [labels[idx] for idx in order_rows]
 	print 'done!'; sys.stdout.flush()
 
-	# clustering of columns (samples)
-	print 'Clustering of samples...', ; sys.stdout.flush()
-	distxy = squareform(pdist(S.T, metric='euclidean'))
-	R = dendrogram(linkage(distxy, method='average'),no_plot=True)
-	order_cols = np.int64([int(l) for l in R['ivl']])
-	S = S[:,order_cols]
-	print 'done!'; sys.stdout.flush()
+	if not args.disable_sample_clustering:
+		# clustering of columns (samples)
+		print 'Clustering of samples...', ; sys.stdout.flush()
+		distxy = squareform(pdist(S.T, metric='euclidean'))
+		R = dendrogram(linkage(distxy, method='average'),no_plot=True)
+		order_cols = np.int64([int(l) for l in R['ivl']])
+		S = S[:,order_cols]
+		print 'done!'; sys.stdout.flush()
 
 	# plotting
 	print 'Plotting...'; sys.stdout.flush()
