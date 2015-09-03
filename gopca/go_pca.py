@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 # Copyright (c) 2015 Florian Wagner
 #
@@ -31,6 +31,7 @@ import argparse
 import csv
 import cPickle as pickle
 import itertools as it
+import hashlib
 
 import numpy as np
 from scipy import stats
@@ -41,7 +42,7 @@ from gopca import common
 from gopca.go_enrichment import GOEnrichment
 
 #from goparser.parser import GOParser
-from .go_pca_objects import GOPCAResult,GOPCASignature
+from .go_pca_objects import GOPCAConfig,GOPCASignature,GOPCAResult
 
 def read_args_from_cmdline():
 	parser = argparse.ArgumentParser(description='')
@@ -52,8 +53,8 @@ def read_args_from_cmdline():
 
 	# input files
 	parser.add_argument('-e','--expression-file',required=True)
-	parser.add_argument('-g','--go-pickle-file',required=True)
 
+	parser.add_argument('-g','--go-pickle-file',required=True)
 	parser.add_argument('-ag','--annotation-gene-file',required=True)
 	parser.add_argument('-at','--annotation-term-file',required=True)
 	parser.add_argument('-am','--annotation-matrix-file',required=True)
@@ -66,12 +67,12 @@ def read_args_from_cmdline():
 	###
 
 	# main parameters
-	parser.add_argument('-p','--go-pvalue-threshold',type=float,default=1e-6)
-	parser.add_argument('-f','--go-mfe-threshold',type=float,default=2.0)
 	parser.add_argument('-Xf','--mHG-X-frac',type=float,default=0.25) # 0=off
 	parser.add_argument('-Xm','--mHG-X-min',type=int,default=5) # 0=off
 	parser.add_argument('-L','--mHG-L',type=int,default=1000) # 0=off
-	parser.add_argument('--mfe-pvalue-threshold',type=float,default=1e-3)
+	parser.add_argument('-p','--pvalue-threshold',type=float,default=1e-6)
+	parser.add_argument('-m','--mfe-pvalue-threshold',type=float,default=1e-4)
+	parser.add_argument('-f','--mfe-threshold',type=float,default=2.0)
 
 	# allow filtering to be disabled
 	parser.add_argument('--disable-local-filter',action='store_true')
@@ -109,7 +110,7 @@ def print_signatures(signatures,GO):
 		#goterm_genes = GO.get_goterm_genes(term.id)
 		print sig.get_pretty_format(max_name_length=maxlength)
 
-def get_pc_signatures(M,W,pc,genes,X_frac,X_min,L,pval_thresh,mfe_pval_thresh,filtering=True,mfe_thresh=None,quiet=False):
+def get_pc_signatures(M,W,pc,genes,X_frac,X_min,L,pval_thresh,mfe_pval_thresh=None,filtering=True,mfe_thresh=None,quiet=False):
 	"""
 	Generate GO-PCA signatures for a specific PC and a specific ranking of loadings (ascending or descending).
 	The absolute value of the 'pc' parameter determines the principal component. Genes are then ranked by their loadings for this PC.
@@ -297,20 +298,28 @@ def main(args=None):
 	verbose = args.verbose
 
 	# read expression data
+	expression_hash = hashlib.md5(open(expression_file,'rb').read()).hexdigest()
+	print 'Expression file hash: %s' %(expression_hash)
 	genes,samples,E = common.read_expression(expression_file)
 	print "Expression matrix dimensions:", E.shape; sys.stdout.flush()
 
 	# filter for most variable genes
 	if most_variable_genes > 0:
-		p = len(genes)
+		p,n = E.shape
+		
 		sel = np.zeros(p,dtype=np.bool_)
-		a = np.argsort(np.var(E,axis=1,ddof=1))
+		var = np.var(E,axis=1)
+		a = np.argsort(var)
 		a = a[::-1]
 		sel[a[:most_variable_genes]] = True
 		sel = np.nonzero(sel)[0]
+		total_var = np.sum(var)
 		genes = [genes[i] for i in sel]
 		E = E[sel,:]
-		print 'Retained %d most variable genes.' %(most_variable_genes); sys.stdout.flush()
+		lost_n = n - sel.size
+		lost_var = total_var - np.sum(np.var(E,axis=1))
+		print 'Retained the %d most variable genes (excluded %.1f%% of genes, representing %.1f%% of total variance).' \
+				%(most_variable_genes,100*(lost_n/float(n)),100*(lost_var/total_var))
 		print 'New expression matrix dimensions:', E.shape; sys.stdout.flush()
 
 	if mHG_L == 0: # setting mHG_L to 0 will "turn off" the effect of the parameter (= set it to N)
@@ -325,8 +334,7 @@ def main(args=None):
 	print "Reading GO annotation data...", ; sys.stdout.flush()
 	M_enrich = GOEnrichment()
 	M_enrich.read_annotations(*annotation_files)
-	m = len(M_enrich.terms)
-	print "read data for %d GO terms!" %(m); sys.stdout.flush()
+	print "read data for %d GO terms!" %(len(M_enrich.terms)); sys.stdout.flush()
 
 	# determine number of PCs to compute
 	compute_pc = pc_num
@@ -375,19 +383,17 @@ def main(args=None):
 	res_var = None
 	all_genes = set(genes)
 	total_var = 0.0
+	filtering = not disable_local_filter
 	for pc in range(test_pc):
 
 		print
 		print '-'*70
-		print "PC %d explains %.1f%% of the total variance." %(pc+1,100*frac[pc])
+		print "PC %d explains %.1f%% of the variance." %(pc+1,100*frac[pc])
 		total_var += frac[pc]
-		print "The new cumulative fraction of total variance explained is %.1f%%." %(100*total_var)
+		print "The new cumulative fraction of variance explained is %.1f%%." %(100*total_var)
 		sys.stdout.flush()
 
 		#print "Testing for GO enrichment...", ; sys.stdout.flush()
-		filtering = True
-		if disable_local_filter:
-			filtering = False
 		signatures_dsc = get_pc_signatures(M_enrich,W,pc+1,genes,mHG_X_frac,mHG_X_min,mHG_L,go_pvalue_threshold,mfe_pvalue_threshold,\
 				filtering,go_mfe_threshold)
 		signatures_asc = get_pc_signatures(M_enrich,W,-pc-1,genes,mHG_X_frac,mHG_X_min,mHG_L,go_pvalue_threshold,mfe_pvalue_threshold,\
@@ -413,7 +419,8 @@ def main(args=None):
 	print_signatures(final_signatures,GO)
 	sys.stdout.flush()
 
-	result = GOPCAResult(genes=genes,W=W,mHG_X_frac=mHG_X_frac,mHG_X_min=mHG_X_min,mHG_L=mHG_L,signatures=final_signatures)
+	result = GOPCAResult(genes=genes,W=W,mHG_X_frac=mHG_X_frac,mHG_X_min=mHG_X_min,mHG_L=mHG_L,\
+			pval_thresh=pval_thresh,mfe_pval_thresh=mfe_pval_thresh,mfe_thresh=mfe_thresh,signatures=final_signatures)
 	with open(args.output_file,'w') as ofh:
 		pickle.dump(result,ofh,pickle.HIGHEST_PROTOCOL)
 

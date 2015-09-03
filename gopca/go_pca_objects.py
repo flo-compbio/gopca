@@ -17,35 +17,40 @@
 import re
 import cPickle as pickle
 
-class GOPCAResult(object):
-	def __init__(self,genes,W,mHG_X_frac,mHG_X_min,mHG_L,signatures):
-		assert len(genes) == W.shape[0]
-		self.genes = genes
-		self.W = W
-		self.mHG_X_frac = mHG_X_frac
-		self.mHG_X_min = mHG_X_min
-		self.mHG_L = mHG_L
-		self.signatures = signatures
+class GOPCAConfig(object):
+
+	valid_attrs = set(['mHG_X_frac','mHG_X_min','mHG_L','pval_thresh','mfe_pval_thresh','mfe_thresh','disable_local_filter','disable_global_filter'])
+
+	def __init__(self,**kwargs):
+		supplied_attrs = set(kwargs.keys())
+		unknown_attrs = supplied_attrs - self.valid_attrs
+		for k in sorted(unknown_attrs):
+			print 'Warning: Config attribute "%s" unknown (will be ignored).' %(k)
+
+		for k in list(self.valid_attrs):
+			assert k in supplied_attrs
+
+		kwargs = dict([k,kwargs[k]] for k in list(self.valid_attrs))
+		self.__dict__.update(kwargs)
+
 
 	def __repr__(self):
-		sig_hash = hash((hash(sig) for sig in self.signatures))
-		p,d = self.W.shape
-		return "<GO-PCA result (mHG_X_frac=%.2f, mHG_X_min=%d, mHG_L=%d); loading matrix dimensions: (%d,%d); hash of signature list: %d>" \
-				%(self.mHG_X_frac,self.mHG_X_min,self.mHG_L,p,d,sig_hash)
+		return '<GOPCAConfig object (%s)>' %('; '.join(['%s=%s' %(k,getattr(self,str(k))) for k in sorted(self.valid_attrs)]))
 
 	def __str__(self):
-		q = len(self.signatures)
-		p,d = self.W.shape
-		return "<GO-PCA result (%d signatures); mHG parameters: X_frac=%.2f, X_min=%d, L=%d; # genes (p) = %d, # principal components (d) = %d>" \
-				%(q,self.mHG_X_frac,self.mHG_X_min,self.mHG_L,p,d)
+		return '<GOPCAConfig object with attributes: %s>' %(', '.join(['%s=%s' %(k,getattr(self,str(k))) for k in sorted(self.valid_attrs)]))
 
-	def __eq__(self,other):
-		if type(self) != type(other):
+	def __hash__(self):
+		return hash(repr(self))
+
+	def __eq__(self):
+		if type(self) is not type(other):
 			return False
-		elif repr(self) == repr(other):
+		if repr(self) == repr(other):
 			return True
 		else:
 			return False
+
 
 class GOPCASignature(object):
 
@@ -73,7 +78,7 @@ class GOPCASignature(object):
 		return hash(repr(self))
 
 	def __eq__(self,other):
-		if type(self) != type(other):
+		if type(self) is not type(other):
 			return False
 		elif repr(self) == repr(other):
 			return True
@@ -136,61 +141,70 @@ class GOPCASignature(object):
 					%(self.k,self.K,self.n,self.pc,self.mfe,self.pval)
 		return '%s%s' %(term.get_pretty_format(omit_acc=omit_acc,max_name_length=max_name_length),details)
 
-	#@staticmethod
-	#def from_mHGTermResult(result,pc,es=None):
-	#	return GOPCASignature(result.term,result.p_value,result.N,result.n,result.K,result.genes,pc,es)
 
-c="""
-class GeneSet(object):
-	def __init__(self,genes):
-		self.genes = frozenset(genes)
+class GOPCAResult(object):
+	#def __init__(self,genes,W,mHG_X_frac,mHG_X_min,mHG_L,pval_thresh,mfe_pval_thresh,mfe_thresh,signatures):
+	def __init__(self,config,expression_hash,GO_hash,genes,samples,W,signatures,S):
 
-	def __repr__(self):
-		return '<GeneSet with %d genes (hash:%d)' %(len(self.genes),hash(self.genes))
+		# W = loading matrix
+		# S = signature matrix
 
-	def __str__(self):
-		return '<GeneSet with %d genes: %s>' %(len(self.genes),', '.join(sorted(self.genes)))
+		# checks
+		assert isinstance(config,GOPCAConfig)
+		assert isinstance(genes,list) or isinstance(genes,tuple)
+		assert isinstance(samples,list) or isinstance(samples,tuple)
+		assert isinstance(W,np.ndarray)
+		assert isinstance(signatures,list) or isinstance(signatures,tuple)
+		for s in signatures:
+			assert isinstance(s,GOPCASignature)
+		assert isinstance(S,np.ndarray)
 
-	def __eq__(self,other):
-		if type(self) != type(other):
-			return False
-		elif repr(self) == repr(other):
-			return True
-		else:
-			return False
+		assert W.shape[0] == len(genes)
+		assert S.shape[0] == len(signatures)
+		assert S.shape[1] == len(samples)
 
-
-class NamedGeneSet(GeneSet):
-	def __init__(self,name,genes):
-		GeneSet.__init__(self,genes)
-		self.name = name
-
-	def __repr__(self):
-		return '<NamedGeneSet "%s" with %d genes (hash:%d)' %(self.name,len(self.genes),hash(self.genes))
-
-	def __str__(self):
-		return '<NamedGeneSet "%s" with %d genes: %s>' %(self.name,len(self.genes),', '.join(sorted(self.genes)))
-
-	def __eq__(self,other):
-		if type(self) != type(other):
-			return False
-		elif repr(self) == repr(other):
-			return True
-		else:
-			return False
-
-	@staticmethod
-	def from_GeneSet(name,geneset):
-		return NamedGeneSet(name,geneset.genes)
-
-class SignatureMatrix(object):
-	def __init__(self,genesets,S):
-		assert len(genesets) == S.shape[0]
+		# initialization
+		self.config = config
+		self.genes = tuple(genes)
+		self.samples = tuple(samples)
+		self.W = W
+		self.signatures = tuple(signatures)
 		self.S = S
-		self.genesets = genesets
 
-	def save(self,fn):
-		with open(fn,'w') as ofh:
-			pickle.dump(self,ofh,pickle.HIGHEST_PROTOCOL)
-"""
+		@property
+		def p(self):
+			return len(self.genes)
 
+		@property
+		def n(self):
+			return len(self.samples)
+
+		@property
+		def d(self):
+			return self.W.shape[1]
+
+		@property
+		def q(sefl):
+			return len(self.signatures)
+			
+	def __repr__(self):
+		conf_hash = hash(self.config)
+		gene_hash = hash(self.genes)
+		sample_hash = hash(self.samples)
+		sig_hash = hash((hash(sig) for sig in self.signatures))
+		return "<GOPCAResult object (config hash: %d; gene hash: %d; sample hash: %d; # PCs: %d; signature hash: %d)>" \
+				%(conf_hash,gene_hash,sample_hash,self.d,self.q,sig_hash)
+
+	def __str__(self):
+		conf = self.config
+		return "<GOPCAResult object (%d signatures); mHG parameters: X_frac=%.2f, X_min=%d, L=%d; \
+				# genes (p) = %d, # principal components (d) = %d>" \
+				%(self.q,conf.mHG_X_frac,conf.mHG_X_min,cof.mHG_L,self.p,self.d)
+
+	def __eq__(self,other):
+		if type(self) is not type(other):
+			return False
+		elif repr(self) == repr(other):
+			return True
+		else:
+			return False

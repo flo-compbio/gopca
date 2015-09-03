@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 import sys
 import os
@@ -38,14 +38,14 @@ def read_args_from_cmdline():
 	parser = argparse.ArgumentParser(description='')
 
 	parser.add_argument('-e','--expression-file',required=True)
-	parser.add_argument('-s','--signature-file',required=True)
+	parser.add_argument('-r','--result-file',required=True)
 	parser.add_argument('-g','--go-pickle-file',required=True)
 
 	# GO-PCA parameters
-	parser.add_argument('-X','--go-mHG-X',type=int,required=True)
-	parser.add_argument('-L','--go-mHG-L',type=int,required=True)
-	parser.add_argument('-p','--go-pvalue-threshold',type=float,default=1e-6)
-	parser.add_argument('-q','--go-enrichment-fdr',type=float,default=0.05) # ignored if no z-score file is provided (-z)
+	#parser.add_argument('-X','--go-mHG-X',type=int,required=True)
+	#parser.add_argument('-L','--go-mHG-L',type=int,required=True)
+	#parser.add_argument('-p','--go-pvalue-threshold',type=float,default=1e-6)
+	#parser.add_argument('-q','--go-enrichment-fdr',type=float,default=0.05) # ignored if no z-score file is provided (-z)
 
 	# visualization options
 	parser.add_argument('--pvalue-show-below',type=float,default=1e-4)
@@ -76,13 +76,19 @@ def main():
 	args = read_args_from_cmdline()
 
 	expression_file = args.expression_file
-	signature_file = args.signature_file
+	result_file = args.result_file
 	go_pickle_file = args.go_pickle_file
 
-	go_mHG_X = args.go_mHG_X
-	go_mHG_L = args.go_mHG_L
-	go_pvalue_threshold = args.go_pvalue_threshold
-	go_enrichment_fdr = args.go_enrichment_fdr
+	result = pickle.load(open(result_file))
+	signatures = result.signatures
+	mHG_X_frac = result.mHG_X_frac
+	mHG_X_min = result.mHG_X_min
+	mHG_L = result.mHG_L
+
+	#go_mHG_X = args.go_mHG_X
+	#go_mHG_L = args.go_mHG_L
+	#go_pvalue_threshold = args.go_pvalue_threshold
+	#go_enrichment_fdr = args.go_enrichment_fdr
 
 	pval_show_below = args.pvalue_show_below
 	pval_best = args.pvalue_best
