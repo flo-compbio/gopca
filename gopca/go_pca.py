@@ -71,15 +71,15 @@ def read_args_from_cmdline():
 	parser.add_argument('-Xm','--mHG-X-min',type=int,default=5) # 0=off
 	parser.add_argument('-L','--mHG-L',type=int,default=1000) # 0=off
 	parser.add_argument('-p','--pvalue-threshold',type=float,default=1e-6)
-	parser.add_argument('-m','--mfe-pvalue-threshold',type=float,default=1e-4)
 	parser.add_argument('-f','--mfe-threshold',type=float,default=2.0)
+	parser.add_argument('--mfe-pvalue-threshold',type=float,default=1e-4)
 
 	# allow filtering to be disabled
 	parser.add_argument('--disable-local-filter',action='store_true')
 	parser.add_argument('--disable-global-filter',action='store_true')
 
 	# variance filter
-	parser.add_argument('-m','--most-variable-genes',type=int,default=0)
+	parser.add_argument('-n','--variance-filter-genes',type=int,default=0)
 	
 	### options for selecting the number of PCs to test
 
@@ -272,18 +272,19 @@ def main(args=None):
 
 	# input files
 	expression_file = args.expression_file
+	go_pickle_file = args.go_pickle_file
 	annotation_files = [args.annotation_gene_file,args.annotation_term_file,args.annotation_matrix_file]
 
 	# parameters
-	go_pvalue_threshold = args.go_pvalue_threshold
-	go_mfe_threshold = args.go_mfe_threshold
+	pval_thresh = args.pvalue_threshold
+	mfe_thresh = args.mfe_threshold
 	mHG_X_frac = args.mHG_X_frac
 	mHG_X_min = args.mHG_X_min
 	mHG_L = args.mHG_L
 
-	mfe_pvalue_threshold = args.mfe_pvalue_threshold
+	mfe_pval_thresh = args.mfe_pvalue_threshold
 
-	most_variable_genes = args.most_variable_genes
+	var_filter_genes = args.variance_filter_genes
 
 	pc_num = args.pc_num
 	pc_max = args.pc_max
@@ -304,14 +305,14 @@ def main(args=None):
 	print "Expression matrix dimensions:", E.shape; sys.stdout.flush()
 
 	# filter for most variable genes
-	if most_variable_genes > 0:
+	if var_filter_genes > 0:
 		p,n = E.shape
 		
 		sel = np.zeros(p,dtype=np.bool_)
 		var = np.var(E,axis=1)
 		a = np.argsort(var)
 		a = a[::-1]
-		sel[a[:most_variable_genes]] = True
+		sel[a[:var_filter_genes]] = True
 		sel = np.nonzero(sel)[0]
 		total_var = np.sum(var)
 		genes = [genes[i] for i in sel]
@@ -319,7 +320,7 @@ def main(args=None):
 		lost_n = n - sel.size
 		lost_var = total_var - np.sum(np.var(E,axis=1))
 		print 'Retained the %d most variable genes (excluded %.1f%% of genes, representing %.1f%% of total variance).' \
-				%(most_variable_genes,100*(lost_n/float(n)),100*(lost_var/total_var))
+				%(var_filter_genes,100*(lost_n/float(n)),100*(lost_var/total_var))
 		print 'New expression matrix dimensions:', E.shape; sys.stdout.flush()
 
 	if mHG_L == 0: # setting mHG_L to 0 will "turn off" the effect of the parameter (= set it to N)
@@ -327,14 +328,18 @@ def main(args=None):
 
 	# read GO data
 	print "Loading GO term data...", ; sys.stdout.flush()
+	GO_pickle_hash = hashlib.md5(open(go_pickle_file,'rb').read()).hexdigest()
 	GO = pickle.load(open(args.go_pickle_file))
 	print "done!"; sys.stdout.flush()
+	print 'GO pickle hash: %s' %(GO_pickle_hash)
 
 	# create GOEnrichment object
 	print "Reading GO annotation data...", ; sys.stdout.flush()
+	GO_annotation_hash = hashlib.md5(open(annotation_files[-1],'rb').read()).hexdigest()
 	M_enrich = GOEnrichment()
 	M_enrich.read_annotations(*annotation_files)
 	print "read data for %d GO terms!" %(len(M_enrich.terms)); sys.stdout.flush()
+	print 'GO annotation matrix hash: %s' %(GO_pickle_hash)
 
 	# determine number of PCs to compute
 	compute_pc = pc_num
@@ -394,10 +399,10 @@ def main(args=None):
 		sys.stdout.flush()
 
 		#print "Testing for GO enrichment...", ; sys.stdout.flush()
-		signatures_dsc = get_pc_signatures(M_enrich,W,pc+1,genes,mHG_X_frac,mHG_X_min,mHG_L,go_pvalue_threshold,mfe_pvalue_threshold,\
-				filtering,go_mfe_threshold)
-		signatures_asc = get_pc_signatures(M_enrich,W,-pc-1,genes,mHG_X_frac,mHG_X_min,mHG_L,go_pvalue_threshold,mfe_pvalue_threshold,\
-				filtering,go_mfe_threshold)
+		signatures_dsc = get_pc_signatures(M_enrich,W,pc+1,genes,mHG_X_frac,mHG_X_min,mHG_L,pval_thresh,mfe_pval_thresh,\
+				filtering,mfe_thresh)
+		signatures_asc = get_pc_signatures(M_enrich,W,-pc-1,genes,mHG_X_frac,mHG_X_min,mHG_L,go_pval_thresh,mfe_pval_thresh,\
+				filtering,mfe_thresh)
 		signatures = signatures_dsc + signatures_asc
 
 		print "# signatures:",len(signatures); sys.stdout.flush()

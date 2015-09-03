@@ -46,12 +46,12 @@ from genometools import misc
 def read_args_from_cmdline():
 	parser = argparse.ArgumentParser(description='')
 
+	# input files
 	parser.add_argument('-g','--gene-file',required=True)
 	parser.add_argument('-p','--go-pickle-file',required=True)
 
-	parser.add_argument('-om','--output-matrix-file',required=True)
-	parser.add_argument('-ot','--output-term-file',required=True)
-	parser.add_argument('-og','--output-gene-file',required=True)
+	# output file
+	parser.add_argument('-o','--output-file',required=True)
 
 	# which GO terms to icnlude in final output?
 	parser.add_argument('--min-genes-per-term',type=int,required=True)
@@ -68,13 +68,19 @@ def main(args=None):
 	if args is None:
 		args = read_args_from_cmdline()
 
-	np.random.seed(args.seed)
-
+	go_pickle_file = args.go_pickle_file
+	output_file = args.output_file
+	seed = args.seed
 	min_genes = args.min_genes_per_term
 	max_genes = args.max_genes_per_term
-
 	max_overlap = args.max_term_overlap
+
+	# checks
+	assert os.path.isfile(go_pickle_file)
 	assert 0.0 <= max_overlap <= 100.0
+
+	# initialize random number generator
+	np.random.seed(seed)
 
 	# read genes and sort them
 	genes = sorted(misc.read_single(args.gene_file))
@@ -83,49 +89,63 @@ def main(args=None):
 
 	# Read GO term definitions and parse UniProtKB GO annotations
 	GO = None
-	with open(args.go_pickle_file) as fh:
+	with open(go_pickle_file) as fh:
 		GO = pickle.load(fh)
 
 	# Get sorted list of GO term IDs
-	goterm_ids = sorted(GO.terms.keys())
-	goterms = [GO.terms[tid] for tid in goterm_ids]
+	all_term_ids = sorted(GO.terms.keys())
 
+	print 'Obtaining GO term associations...', ; sys.stdout.flush()
+	n = len(all_term_ids)
+	term_gene_counts = []
+	term_ids = []
+	term_genes = []
+	for j,id_ in enumerate(all_term_ids):
+		tg = GO.get_goterm_genes(id_)
+		assert isinstance(tg,set)
+		c = len(tg)
+		if c >= min_genes and c <= max_genes:
+			term_gene_counts.append(c)
+			term_ids.append(id_)
+			term_genes.append(tg)
+	term_gene_counts = np.int64(term_gene_counts)
+	print 'done.'; sys.stdout.flush()
+
+	c="""
 	# generate annotation matrix
 	n = len(genes)
-	m = len(goterm_ids)
-	print "Generating annotation matrix for %d genes (%d GO terms)..." %(n,m), ; sys.stdout.flush()
+	m = len(valid_term_ids)
+	print "Generating annotation matrix for %d genes and %d GO terms..." %(n,m), ; sys.stdout.flush()
 	A = np.zeros((n,m),dtype=np.uint8)
-	for i,gene in enumerate(genes):
-		if (i+1) % 100 == 0:
-			print i+1, ; sys.stdout.flush()
-		terms = GO.get_gene_goterms(gene,ancestors=True)
-		for j,t in enumerate(terms):
-			idx = misc.bisect_index(goterm_ids,t.id)
-			A[i,idx] = 1
-	print "done!"; sys.stdout.flush()
-
-	# remove GO terms that don't have enough or too many genes annotated with them
-	counts = np.sum(A,axis=0,dtype=np.int64)
-	sel = np.nonzero(np.all(np.c_[counts >= min_genes, counts <= max_genes],axis=1))[0]
-	A = A[:,sel]
-	goterm_ids = [goterm_ids[j] for j in sel]
-	goterms = [goterms[j] for j in sel]
-	print "Selected %d / %d GO terms with at least %d and at most %d genes associated." %(sel.size,m,min_genes,max_genes)
+	for j,(id_,tg) in enumerate(zip(valid_term_ids,valid_term_genes)):
+		for g in sorted(tg):
+			idx = misc.bisect_index(genes,g)
+			A[idx,j] = 1
+	"""
+	
+	#for i,gene in enumerate(genes):
+	#	if (i+1) % 100 == 0:
+	#		print i+1, ; sys.stdout.flush()
+	#	terms = GO.get_gene_goterms(gene,ancestors=True)
+	#	for j,t in enumerate(terms):
+	#		idx = misc.bisect_index(goterm_ids,t.id)
+	#		A[i,idx] = 1
+	#print "done!"; sys.stdout.flush()
 
 	# remove GO terms that are perfectly redundant, keep descendant terms
-	m = A.shape[1]
-	genesets = [set(np.nonzero(A[:,j])[0]) for j in range(m)]
-	term_gene_count = np.sum(A,axis=0,dtype=np.int64)
+	print "Testing for perfect overlap...", ; sys.stdout.flush()
+	m = len(term_ids)
+	#genesets = [set(np.nonzero(A[:,j])[0]) for j in range(m)]
+	#term_gene_count = np.sum(A,axis=0,dtype=np.int64)
 	G = nx.Graph()
 	G.add_nodes_from(range(m))
-	print "Testing for perfect overlap...", ; sys.stdout.flush()
 	for j1 in range(m):
 		if (j1+1) % 1000 == 0: print j1+1, ; sys.stdout.flush()
-		c = term_gene_count[j1]
-		gs = genesets[j1]
+		c = term_gene_counts[j1]
+		tg = term_genes[j1]
 		for j2 in range(m):
 			if j2 >= j1: break
-			if c == term_gene_count[j2] and gs == genesets[j2]:
+			if c == term_gene_counts[j2] and tg == term_genes[j2]:
 				G.add_edge(j1,j2)
 	print "done!"; sys.stdout.flush()
 
@@ -137,24 +157,24 @@ def main(args=None):
 		affected += len(cc)
 		for j1 in cc:
 			keep = True
-			term = GO.terms[goterm_ids[j1]]
+			term = GO.terms[term_ids[j1]]
 			for j2 in cc:
 				if j1 == j2: continue
-				if goterm_ids[j2] in term.descendants:
+				if term_ids[j2] in term.descendants:
 					keep = False
 					break
 			if not keep:
 				sel[j1] = False
-	print "Affected:",affected ; sys.stdout.flush()
-	print "Perfectly redundant:",np.sum(np.invert(sel)); sys.stdout.flush()
+	print "# affected terms:",affected ; sys.stdout.flush()
+	print "# perfectly redundant descendant terms:",np.sum(np.invert(sel)); sys.stdout.flush()
 	#print '\n'.join([GO.terms[goterm_ids[j]].get_pretty_format() for j in np.nonzero(np.invert(sel))[0]])
 
 	sel = np.nonzero(sel)[0]
-	A = A[:,sel]
-	goterm_ids = [goterm_ids[j] for j in sel]
-	goterms = [goterms[j] for j in sel]
+	term_ids = [term_ids[j] for j in sel]
+	term_genes = [term_genes[j] for j in sel]
 	print "Selected %d / %d GO non-redundant terms." %(sel.size,m)
 
+	c="""
 	if max_overlap < 100.0:
 		# filter GO terms that have too much overlap with other terms (keep term with most direct associations)
 		m = A.shape[1]
@@ -204,7 +224,18 @@ def main(args=None):
 		goterm_ids = [goterm_ids[j] for j in sel]
 		print 'Selected %d / %d GO terms (%.1f%%) with mutual overlap <= %.1f%%' %(sel.size,m,100*(sel.size/float(m)),max_overlap)
 		print 'Randomly selected a term in %d / %d of cases (%.1f%%).' %(ambiguous,total,100*(ambiguous/float(total)))
+	"""
 
+	# write output file
+	print 'Writing output file...' ; sys.stdout.flush()
+	p = len(genes)
+	with open(output_file,'w') as ofh:
+		writer = csv.writer(ofh,dialect='excel-tab',lineterminator=os.linesep,quoting=csv.QUOTE_NONE)
+		for j,(id_,tg) in enumerate(zip(term_ids,term_genes)):
+			writer.writerow([id_,','.join(sorted(tg))])
+	print 'done!'; sys.stdout.flush()
+
+	c="""
 	print 'Writing output files...', ; sys.stdout.flush()
 	# write matrix file
 	with gzip.open(args.output_matrix_file,'w') as ofh:
@@ -225,6 +256,7 @@ def main(args=None):
 			name = term.name
 			writer.writerow([id_,'GO',ns,name])
 	print 'done!'; sys.stdout.flush()
+	"""
 
 	return 0
 
