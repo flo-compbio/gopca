@@ -375,6 +375,11 @@ def main(args=None):
 	#print "done!"; sys.stdout.flush()
 	#print 'GO pickle hash: %s' %(GO_pickle_hash)
 
+	# sort genes alphabetically
+	gene_order = np.int64(misc.argsort(genes))
+	genes = [genes[i] for i in gene_order]
+	E = E[gene_order,:]
+
 	# create GOEnrichment object
 	print 'Generating gene x GO term matrix...', ; sys.stdout.flush()
 	M_enrich = GOEnrichment()

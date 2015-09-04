@@ -67,7 +67,7 @@ def write_gene_data(output_file,genes,labels,D):
 	n = len(labels)
 	assert D.shape == (p,n)
 	with open(output_file,'w') as ofh:
-		writer = csv.writer(ofh,dialect='excel-tab',lineterminator=os.linesep,quoting=csv.QUOTE_NONE)
+		writer = csv.writer(ofh,dialect='excel-tab',lineterminator='\n',quoting=csv.QUOTE_NONE)
 		writer.writerow(['.'] + labels)
 		for i,g in enumerate(genes):
 			writer.writerow([g] + ['%.5f' %(D[i,j]) for j in range(n)])

@@ -284,9 +284,9 @@ class GOEnrichment(object):
 				remaining = ' remaining'
 				print ' %d/ %d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.' \
 						%(ignored,m,100*(ignored/float(m)),X_min)
-			if X_min > 0 or X_frac > 0:
-				print 'Ran XL-mHG test on %d / %d%s GO terms (%.1f%%)' \
-						%(tested_mHG,tested,remaining,100*(tested_mHG/float(tested)))
+			#if X_min > 0 or X_frac > 0:
+			#	print 'Ran XL-mHG test on %d / %d%s GO terms (%.1f%%)' \
+			#			%(tested_mHG,tested,remaining,100*(tested_mHG/float(tested)))
 			print '%d / %d tested GO terms (%.1f%%) were found to be significantly enriched (p-value <= %.1e).' \
 					%(q,tested,100*(q/float(tested)),pval_thresh)
 			sys.stdout.flush()
