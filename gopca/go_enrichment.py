@@ -165,6 +165,26 @@ class GOEnrichment(object):
 		assert len(self.genes) == p
 		assert len(self.terms) == m
 
+	def initialize_annotations(self,GO,genes,annotations):
+		self.genes = genes[:]
+		self.term_ids = sorted(annotations.keys())
+		#self.terms = [GO.terms[id_] for id_ in self.term_ids] # 4-tuples
+		gt = GO.terms[self.term_ids[0]].get_tuple()
+		assert isinstance(gt,tuple)
+		self.terms = [GO.terms[id_].get_tuple() for id_ in self.term_ids]
+		p = len(genes)
+		m = len(annotations)
+		self.A = np.zeros((p,m),dtype=np.uint8)
+		for id_,term_genes in annotations.iteritems():
+			j = misc.bisect_index(self.term_ids,id_)
+			for g in term_genes:
+				try:
+					idx = misc.bisect_index(genes,g)
+				except ValueError:
+					pass
+				else:
+					self.A[idx,j] = 1
+
 	def test_enrichment(self,ranked_genes,pval_thresh,X_frac,X_min,L,selected_term_ids=[],mfe_pval_thresh=1.0,mfe_thresh=None,mat=None,quiet=False):
 		"""
 		Tests GO term enrichment of either all terms or the terms specified by ``selected_term_ids''.

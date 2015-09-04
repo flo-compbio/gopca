@@ -32,6 +32,7 @@ import csv
 import cPickle as pickle
 import itertools as it
 import hashlib
+import time
 
 import numpy as np
 from scipy import stats
@@ -40,12 +41,13 @@ from sklearn.decomposition import PCA
 from genometools import misc
 from gopca import common
 from gopca.go_enrichment import GOEnrichment
+from goparser import GOParser
 
 #from goparser.parser import GOParser
 from .go_pca_objects import GOPCAConfig,GOPCASignature,GOPCAResult
 
 def read_args_from_cmdline():
-	parser = argparse.ArgumentParser(description='')
+	parser = argparse.ArgumentParser(description='GO-PCA')
 
 	###
 	### Required arguments
@@ -53,11 +55,14 @@ def read_args_from_cmdline():
 
 	# input files
 	parser.add_argument('-e','--expression-file',required=True)
+	parser.add_argument('-a','--annotation-file',required=True)
+	parser.add_argument('-t','--ontology-file',required=True)
 
-	parser.add_argument('-g','--go-pickle-file',required=True)
-	parser.add_argument('-ag','--annotation-gene-file',required=True)
-	parser.add_argument('-at','--annotation-term-file',required=True)
-	parser.add_argument('-am','--annotation-matrix-file',required=True)
+	#parser.add_argument('-g','--go-pickle-file',required=True)
+	#parser.add_argument('-g','--go-ontology-file',required=True)
+	#parser.add_argument('-ag','--annotation-gene-file',required=True)
+	#parser.add_argument('-at','--annotation-term-file',required=True)
+	#parser.add_argument('-am','--annotation-matrix-file',required=True)
 
 	# output file
 	parser.add_argument('-o','--output-file',required=True)
@@ -92,6 +97,9 @@ def read_args_from_cmdline():
 	# data-driven method:
 	# stop testing PCs when the cumulative variance explained surpasses X %
 	parser.add_argument('--pc-cum-var',type=float,default=80.0) # in percent, 0=off
+
+	### legacy options
+	parser.add_argument('--go-part-of-cc-only',action='store_true')
 
 	# output verbosity
 	#parser.add_argument('-v','--verbose',action='store_true')
@@ -265,6 +273,14 @@ def remove_redundant_signatures(new_signatures,previous_signatures,GO):
 			kept_signatures.append(sig)
 	return kept_signatures
 
+def read_annotations(fn):
+	ann = {}
+	with open(fn) as fh:
+		reader = csv.reader(fh,dialect='excel-tab')
+		for l in reader:
+			ann[l[0]] = l[1].split(',')
+	return ann
+
 def main(args=None):
 
 	if args is None:
@@ -272,8 +288,11 @@ def main(args=None):
 
 	# input files
 	expression_file = args.expression_file
-	go_pickle_file = args.go_pickle_file
-	annotation_files = [args.annotation_gene_file,args.annotation_term_file,args.annotation_matrix_file]
+	ontology_file = args.ontology_file
+	annotation_file = args.annotation_file
+
+	# output file
+	output_file = args.output_file
 
 	# parameters
 	pval_thresh = args.pvalue_threshold
@@ -281,7 +300,6 @@ def main(args=None):
 	mHG_X_frac = args.mHG_X_frac
 	mHG_X_min = args.mHG_X_min
 	mHG_L = args.mHG_L
-
 	mfe_pval_thresh = args.mfe_pvalue_threshold
 
 	var_filter_genes = args.variance_filter_genes
@@ -293,16 +311,40 @@ def main(args=None):
 	disable_local_filter = args.disable_local_filter
 	disable_global_filter = args.disable_global_filter
 
+	part_of_cc_only = args.go_part_of_cc_only
+
 	# parameter checks?
 
 	# misc options
 	verbose = args.verbose
 
+	time_str = time.strftime('%Y-%m-%d_%H:%M:%S')
+	print 'Current time:',time_str
+
 	# read expression data
+	print 'Reading expression data...', ; sys.stdout.flush()
 	expression_hash = hashlib.md5(open(expression_file,'rb').read()).hexdigest()
-	print 'Expression file hash: %s' %(expression_hash)
 	genes,samples,E = common.read_expression(expression_file)
+	print 'done!'; sys.stdout.flush()
+	print 'Expression file hash: %s' %(expression_hash)
 	print "Expression matrix dimensions:", E.shape; sys.stdout.flush()
+
+	print 'Reading annotations...', ; sys.stdout.flush()
+	annotation_hash = hashlib.md5(open(annotation_file,'rb').read()).hexdigest()
+	annotations = read_annotations(annotation_file)
+	n_assign = sum(len(v) for k,v in annotations.iteritems())
+	print 'done!'; sys.stdout.flush()
+	print 'Annotation file hash: %s' %(annotation_hash)
+	print 'Read %d annotations for %d GO terms.' %(n_assign,len(annotations))
+
+	# parse ontology
+	print 'Reading ontology...', ; sys.stdout.flush()
+	ontology_hash = hashlib.md5(open(ontology_file,'rb').read()).hexdigest()
+	GO = GOParser()
+	GO.parse_ontology(ontology_file,part_of_cc_only=part_of_cc_only,quiet=True)
+	print 'done!'; sys.stdout.flush()
+	print 'Ontology file hash: %s' %(ontology_hash)
+	print 'Read ontology with %d terms.' %(len(GO.terms))
 
 	# filter for most variable genes
 	if var_filter_genes > 0:
@@ -327,19 +369,18 @@ def main(args=None):
 		mHG_L = len(genes)
 
 	# read GO data
-	print "Loading GO term data...", ; sys.stdout.flush()
-	GO_pickle_hash = hashlib.md5(open(go_pickle_file,'rb').read()).hexdigest()
-	GO = pickle.load(open(args.go_pickle_file))
-	print "done!"; sys.stdout.flush()
-	print 'GO pickle hash: %s' %(GO_pickle_hash)
+	#print "Loading GO term data...", ; sys.stdout.flush()
+	#GO_pickle_hash = hashlib.md5(open(go_pickle_file,'rb').read()).hexdigest()
+	#GO = pickle.load(open(args.go_pickle_file))
+	#print "done!"; sys.stdout.flush()
+	#print 'GO pickle hash: %s' %(GO_pickle_hash)
 
 	# create GOEnrichment object
-	print "Reading GO annotation data...", ; sys.stdout.flush()
-	GO_annotation_hash = hashlib.md5(open(annotation_files[-1],'rb').read()).hexdigest()
+	print 'Generating gene x GO term matrix...', ; sys.stdout.flush()
 	M_enrich = GOEnrichment()
-	M_enrich.read_annotations(*annotation_files)
-	print "read data for %d GO terms!" %(len(M_enrich.terms)); sys.stdout.flush()
-	print 'GO annotation matrix hash: %s' %(GO_pickle_hash)
+	#M_enrich.read_annotations(*annotation_files)
+	M_enrich.initialize_annotations(GO,genes,annotations)
+	print 'done!'; sys.stdout.flush()
 
 	# determine number of PCs to compute
 	compute_pc = pc_num
@@ -379,6 +420,7 @@ def main(args=None):
 	assert test_pc <= compute_pc
 	print "GO-PCA will test the first %d principal components!" %(test_pc)
 	sys.stdout.flush()
+	assert 'mHG_X_frac' in locals()
 
 	# run GO-PCA!
 	W = M_pca.components_.T
@@ -401,7 +443,7 @@ def main(args=None):
 		#print "Testing for GO enrichment...", ; sys.stdout.flush()
 		signatures_dsc = get_pc_signatures(M_enrich,W,pc+1,genes,mHG_X_frac,mHG_X_min,mHG_L,pval_thresh,mfe_pval_thresh,\
 				filtering,mfe_thresh)
-		signatures_asc = get_pc_signatures(M_enrich,W,-pc-1,genes,mHG_X_frac,mHG_X_min,mHG_L,go_pval_thresh,mfe_pval_thresh,\
+		signatures_asc = get_pc_signatures(M_enrich,W,-pc-1,genes,mHG_X_frac,mHG_X_min,mHG_L,pval_thresh,mfe_pval_thresh,\
 				filtering,mfe_thresh)
 		signatures = signatures_dsc + signatures_asc
 
@@ -424,12 +466,18 @@ def main(args=None):
 	print_signatures(final_signatures,GO)
 	sys.stdout.flush()
 
-	result = GOPCAResult(genes=genes,W=W,mHG_X_frac=mHG_X_frac,mHG_X_min=mHG_X_min,mHG_L=mHG_L,\
-			pval_thresh=pval_thresh,mfe_pval_thresh=mfe_pval_thresh,mfe_thresh=mfe_thresh,signatures=final_signatures)
-	with open(args.output_file,'w') as ofh:
+	#print locals()
+	#print globals()
+	print 'Writing results to file "%s"...' %(output_file), ; sys.stdout.flush()
+	conf_params = ['mHG_X_frac','mHG_X_min','mHG_L','pval_thresh','mfe_pval_thresh','mfe_thresh','disable_local_filter','disable_global_filter']
+	conf_dict = dict([[k,locals()[k]] for k in conf_params])
+	config = GOPCAConfig(**conf_dict)
+	S = np.float64([common.get_signature_expression(genes,E,sig.genes) for sig in final_signatures])
+	result = GOPCAResult(config,genes,samples,W,final_signatures,S)
+	with open(output_file,'w') as ofh:
 		pickle.dump(result,ofh,pickle.HIGHEST_PROTOCOL)
+	print "done!"; sys.stdout.flush()
 
-	print "Done!"
 	return 0
 
 if __name__ == '__main__':

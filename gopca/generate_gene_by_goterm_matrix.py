@@ -42,21 +42,29 @@ import numpy as np
 import networkx as nx
 
 from genometools import misc
+from goparser import GOParser
 
 def read_args_from_cmdline():
 	parser = argparse.ArgumentParser(description='')
 
 	# input files
 	parser.add_argument('-g','--gene-file',required=True)
-	parser.add_argument('-p','--go-pickle-file',required=True)
+	parser.add_argument('-t','--go-ontology-file',required=True)
+	parser.add_argument('-a','--go-annotation-file',required=True)
 
 	# output file
 	parser.add_argument('-o','--output-file',required=True)
+
+	# evidence
+	parser.add_argument('-e','--select-evidence',nargs='+',required=True)
 
 	# which GO terms to icnlude in final output?
 	parser.add_argument('--min-genes-per-term',type=int,required=True)
 	parser.add_argument('--max-genes-per-term',type=int,required=True)
 	parser.add_argument('--max-term-overlap',type=float,default=100.0) # in percent
+
+	# legacy options
+	parser.add_argument('--part-of-cc-only',action='store_true')
 
 	# random seed (if max_term_overlap < 100%, we sometimes need to randomly break ties)
 	parser.add_argument('--seed',type=int,required=True)
@@ -68,15 +76,25 @@ def main(args=None):
 	if args is None:
 		args = read_args_from_cmdline()
 
-	go_pickle_file = args.go_pickle_file
+	gene_file = args.gene_file
+	go_ontology_file = args.go_ontology_file
+	go_annotation_file = args.go_annotation_file
 	output_file = args.output_file
+
 	seed = args.seed
+	select_evidence = args.select_evidence
+	print select_evidence
 	min_genes = args.min_genes_per_term
 	max_genes = args.max_genes_per_term
 	max_overlap = args.max_term_overlap
 
+	part_of_cc_only = args.part_of_cc_only
+
 	# checks
-	assert os.path.isfile(go_pickle_file)
+	assert os.path.isfile(gene_file)
+	assert os.path.isfile(go_ontology_file)
+	assert os.path.isfile(go_annotation_file)
+
 	assert 0.0 <= max_overlap <= 100.0
 
 	# initialize random number generator
@@ -88,9 +106,12 @@ def main(args=None):
 	print "Read %d genes." %(n); sys.stdout.flush()
 
 	# Read GO term definitions and parse UniProtKB GO annotations
-	GO = None
-	with open(go_pickle_file) as fh:
-		GO = pickle.load(fh)
+	GO = GOParser()
+	GO.parse_ontology(go_ontology_file,part_of_cc_only=False)
+	GO.parse_annotations(go_annotation_file,gene_file,select_evidence=select_evidence)
+
+	#with open(go_pickle_file) as fh:
+	#	GO = pickle.load(fh)
 
 	# Get sorted list of GO term IDs
 	all_term_ids = sorted(GO.terms.keys())
@@ -227,7 +248,7 @@ def main(args=None):
 	"""
 
 	# write output file
-	print 'Writing output file...' ; sys.stdout.flush()
+	print 'Writing output file...', ; sys.stdout.flush()
 	p = len(genes)
 	with open(output_file,'w') as ofh:
 		writer = csv.writer(ofh,dialect='excel-tab',lineterminator=os.linesep,quoting=csv.QUOTE_NONE)

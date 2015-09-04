@@ -17,6 +17,8 @@
 import re
 import cPickle as pickle
 
+import numpy as np
+
 class GOPCAConfig(object):
 
 	valid_attrs = set(['mHG_X_frac','mHG_X_min','mHG_L','pval_thresh','mfe_pval_thresh','mfe_thresh','disable_local_filter','disable_global_filter'])
@@ -117,7 +119,7 @@ class GOPCASignature(object):
 		term_name = term[3]
 		for abb in self.abbrev:
 			term_name = re.sub(abb[0],abb[1],term_name)
-		if len(term_name) > max_name_length:
+		if max_name_length > 0 and len(term_name) > max_name_length:
 			term_name = term_name[:(max_name_length-3)] + '...'
 
 		term_str = '%s: %s' %(term[2],term_name)
@@ -144,7 +146,8 @@ class GOPCASignature(object):
 
 class GOPCAResult(object):
 	#def __init__(self,genes,W,mHG_X_frac,mHG_X_min,mHG_L,pval_thresh,mfe_pval_thresh,mfe_thresh,signatures):
-	def __init__(self,config,expression_hash,GO_hash,genes,samples,W,signatures,S):
+	#def __init__(self,config,expression_hash,GO_hash,genes,samples,W,signatures,S):
+	def __init__(self,config,genes,samples,W,signatures,S):
 
 		# W = loading matrix
 		# S = signature matrix

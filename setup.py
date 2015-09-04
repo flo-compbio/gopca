@@ -120,6 +120,7 @@ setup(
         'console_scripts': [
             'generate_gene_by_goterm_matrix.py = gopca.generate_gene_by_goterm_matrix:main',
             'go_pca.py = gopca.go_pca:main',
+            'extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
         ],
     },
 )
