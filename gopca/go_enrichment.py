@@ -28,17 +28,17 @@ from scipy.stats import hypergeom
 
 import gopca
 from genometools import misc
-from xlmhg import mHG_test
+import xlmhg
 
 class mHGTermResult(object):
 	"""
 	Stores mHG result for one particular term.
 	"""
 
-	#Note: Change this so that it inherits from class mHGTerm
+	#Note: Change this so that it inherits from class mHGResult
 	#	  (only additional attributes: term, genes).
 
-	def __init__(self,term,genes,pval,ranks,N,X,L,mHG_n=None,mHG_k_n=None,mHG_s=None,mfe=None):
+	def __init__(self,term,pval,genes,ranks,N,X,L,mHG_n=None,mHG_k_n=None,mHG_s=None):
 
 		ranks = np.int32(ranks)
 		ranks.flags.writeable=False # this makes ranks.data hashable
@@ -55,9 +55,6 @@ class mHGTermResult(object):
 		self.mHG_n = mHG_n
 		self.mHG_k_n = mHG_k_n
 		self.mHG_s = mHG_s
-
-		# measurement of strength of enrichment
-		self.mfe = mfe
 
 	def __repr__(self):
 		return "<mHGTermResult: %s (pval=%.1e; X=%d; L=%d; N=%d); genes hash=%d; positions hash=%d)>" \
@@ -150,40 +147,25 @@ class mHGTermResult(object):
 
 class GOEnrichment(object):
 
-	def __init__(self):
-		self.genes = None
-		self.terms = None
-		self.A = None
+	def __init__(self,genes,annotations):
 
-	def read_annotations(self,annotation_gene_file,annotation_term_file,annotation_matrix_file):
-		# read annotation data
-		self.genes = misc.read_single(annotation_gene_file) # we assume genes are sorted alphabetically
-		self.terms = misc.read_all(annotation_term_file) # we assume terms are sorted alphabetically by term ID
-		self.term_ids = [t[0] for t in self.terms]
-		self.A = np.load(gzip.open(annotation_matrix_file))
-		p,m = self.A.shape
-		assert len(self.genes) == p
-		assert len(self.terms) == m
-
-	def initialize_annotations(self,GO,genes,annotations):
-		self.genes = genes[:]
-		self.term_ids = sorted(annotations.keys())
+		a = misc.argsort(genes)
+		self.genes = [genes[i] for i in a]
+		self.terms = sorted(annotations.keys(), key=lambda x:x[0])
+		#term_ids = [t[0] for t in self.terms] # self.term_ids?
 		#self.terms = [GO.terms[id_] for id_ in self.term_ids] # 4-tuples
-		gt = GO.terms[self.term_ids[0]].get_tuple()
-		assert isinstance(gt,tuple)
-		self.terms = [GO.terms[id_].get_tuple() for id_ in self.term_ids]
 		p = len(genes)
 		m = len(annotations)
 		self.A = np.zeros((p,m),dtype=np.uint8)
-		for id_,term_genes in annotations.iteritems():
-			j = misc.bisect_index(self.term_ids,id_)
-			for g in term_genes:
+		for j,t in enumerate(self.terms):
+			for g in annotations[t]:
 				try:
-					idx = misc.bisect_index(genes,g)
+					idx = misc.bisect_index(self.genes,g)
 				except ValueError:
 					pass
 				else:
 					self.A[idx,j] = 1
+		print "TEST:",np.sum(self.A,dtype=np.int64); sys.stdout.flush()
 
 	def test_enrichment(self,ranked_genes,pval_thresh,X_frac,X_min,L,selected_term_ids=[],mfe_pval_thresh=1.0,mfe_thresh=None,mat=None,quiet=False):
 		"""
@@ -192,23 +174,19 @@ class GOEnrichment(object):
 
 		genes = self.genes
 		terms = self.terms
-		term_ids = self.term_ids
 		original_dimensions = self.A.shape
 		A = self.A
 
 		# test only some terms?
 		if selected_term_ids:
+			term_ids = [t[0] for t in terms]
 			term_indices = np.int64([misc.bisect_index(term_ids,t) for t in selected_term_ids])
-			terms = [self.terms[i] for i in term_indices]
+			terms = [terms[i] for i in term_indices]
 			A = A[:,term_indices] # not a view!
 
 		# sort rows in annotation matrix (and exclude genes not in the ranking)
-		order = []
-		for g in ranked_genes:
-			idx = misc.bisect_index(genes,g)
-			order.append(idx)
-		order = np.int64(order)
-		A = A[order,:] # not a view either!
+		gene_indices = np.int64([misc.bisect_index(genes,g) for g in ranked_genes])
+		A = A[gene_indices,:] # not a view either!
 
 		# determine largest K
 		K_lim = np.sum(A[:L,:],axis=0,dtype=np.int64)
@@ -232,10 +210,6 @@ class GOEnrichment(object):
 		tested = 0
 		tested_mHG = 0
 		for j in range(m):
-			#if j >= 1000: break
-			if (not quiet) and (j % 100) == 0:
-				print "\r%d..." %(j), ; sys.stdout.flush()
-
 			v = np.ascontiguousarray(A[:,j]) # copy
 
 			# determine significance of enrichment using XL-mHG test
@@ -246,8 +220,7 @@ class GOEnrichment(object):
 				# determine term-specific X (based on K[j])
 				X = max(X_min,int(ceil(X_frac*float(K[j]))))
 				if K_lim[j] >= X:
-					tested_mHG += 1
-					mHG_n, mHG_s, pval = mHG_test(v,X,L,K=int(K[j]),mat=mat,pval_thresh=pval_thresh)
+					mHG_n, mHG_s, pval = xlmhg.test(v,X,L,K=int(K[j]),mat=mat,pval_thresh=pval_thresh)
 
 					# check if GO term is significantly enriched
 					if pval <= pval_thresh:
@@ -278,17 +251,13 @@ class GOEnrichment(object):
 		# report results
 		q = len(enriched_terms)
 		if not quiet:
-			remaining = ''
-			if X_min > 0:
-				ignored = m - tested
-				remaining = ' remaining'
+			ignored = m - tested
+			if ignored > 0:
 				print ' %d/ %d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.' \
 						%(ignored,m,100*(ignored/float(m)),X_min)
-			#if X_min > 0 or X_frac > 0:
-			#	print 'Ran XL-mHG test on %d / %d%s GO terms (%.1f%%)' \
-			#			%(tested_mHG,tested,remaining,100*(tested_mHG/float(tested)))
-			print '%d / %d tested GO terms (%.1f%%) were found to be significantly enriched (p-value <= %.1e).' \
-					%(q,tested,100*(q/float(tested)),pval_thresh)
+
+			print '%d / %d tested GO terms were found to be significantly enriched (p-value <= %.1e).' \
+					%(q,tested,pval_thresh)
 			sys.stdout.flush()
 
 		if q > 0 and mfe_thresh is not None:
@@ -296,13 +265,14 @@ class GOEnrichment(object):
 			before = len(enriched_terms)
 			enriched_terms = [t for t in enriched_terms if t.mfe >= mfe_thresh]
 			if not quiet:
-				print 'Kept %d / %d with max. fold enrichment >= %.1fx' %(len(enriched_terms),before,mfe_thresh)
+				print 'Kept %d / %d significantly enriched terms with max. fold enrichment >= %.1fx' %(len(enriched_terms),before,mfe_thresh)
 				sys.stdout.flush()
 
 		assert self.A.shape == original_dimensions
 		return enriched_terms
 
 	def filter_enriched_terms(self,enriched_terms,ranked_genes,pval_thresh,X_frac,X_min,L,mfe_pval_thresh,mfe_thresh=None,quiet=False):
+
 		for enr in enriched_terms:
 			assert enr.mfe is not None
 

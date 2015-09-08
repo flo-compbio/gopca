@@ -17,11 +17,7 @@
 
 import os
 import csv
-import cPickle as pickle
-
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
-from scipy.cluster.hierarchy import linkage, dendrogram
 
 from genometools import misc
 
@@ -118,30 +114,3 @@ def variance_filter(genes,E,top):
 	genes = [genes[i] for i in sel]
 	E = E[sel,:]
 	return genes,E
-
-def read_gopca_result(fn):
-	result = None
-	with open(fn) as fh:
-		result = pickle.load(fh)
-	return result
-
-def read_annotations(fn):
-	ann = {}
-	with open(fn) as fh:
-		reader = csv.reader(fh,dialect='excel-tab')
-		for l in reader:
-			ann[tuple(l[:4])] = l[4].split(',')
-	return ann
-
-def get_signature_labels(signatures,omit_acc=False):
-	labels = []
-	for sig in signatures:
-		return sig.enrichment
-		
-
-def cluster_signatures(S,metric='correlation',method='average'):
-	# hierarchical clustering of signatures
-	distxy = squareform(pdist(S, metric=metric))
-	R = dendrogram(linkage(distxy, method=average),no_plot=True)
-	order_rows = np.int64([int(l) for l in R['ivl']])
-	return order_rows

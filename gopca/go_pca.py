@@ -56,7 +56,7 @@ def read_args_from_cmdline():
 	# input files
 	parser.add_argument('-e','--expression-file',required=True)
 	parser.add_argument('-a','--annotation-file',required=True)
-	parser.add_argument('-t','--ontology-file',required=True)
+	parser.add_argument('-t','--ontology-file',default=None)
 
 	#parser.add_argument('-g','--go-pickle-file',required=True)
 	#parser.add_argument('-g','--go-ontology-file',required=True)
@@ -91,12 +91,12 @@ def read_args_from_cmdline():
 	# direct method:
 	# --pc-numc directly specifies the number of PCs to test
 	# --pc-max forces testing to stop after the first X PCs (can be used in combination with --pc-cum-var)
-	parser.add_argument('--pc-num',type=int,default=0) # 0=off
-	parser.add_argument('--pc-max',type=int,default=15) # 0=off
+	parser.add_argument('-c','--principal-components',type=int,default=0) # 0=off
+	parser.add_argument('-m','--max-principal-components',type=int,default=15) # 0=off
 
 	# data-driven method:
 	# stop testing PCs when the cumulative variance explained surpasses X %
-	parser.add_argument('--pc-cum-var',type=float,default=80.0) # in percent, 0=off
+	parser.add_argument('--pc-cumulative-variance',type=float,default=80.0) # in percent, 0=off
 
 	### legacy options
 	parser.add_argument('--go-part-of-cc-only',action='store_true')
@@ -273,14 +273,6 @@ def remove_redundant_signatures(new_signatures,previous_signatures,GO):
 			kept_signatures.append(sig)
 	return kept_signatures
 
-def read_annotations(fn):
-	ann = {}
-	with open(fn) as fh:
-		reader = csv.reader(fh,dialect='excel-tab')
-		for l in reader:
-			ann[l[0]] = l[1].split(',')
-	return ann
-
 def main(args=None):
 
 	if args is None:
@@ -304,13 +296,13 @@ def main(args=None):
 
 	var_filter_genes = args.variance_filter_genes
 
-	pc_num = args.pc_num
-	pc_max = args.pc_max
-	pc_cum_var = args.pc_cum_var/100.0
+	pc_num = args.principal_components
+	pc_max = args.max_principal_components
+	pc_cum_var = args.pc_cumulative_variance/100.0
 
 	disable_local_filter = args.disable_local_filter
-	disable_global_filter = args.disable_global_filter
-
+	# disable global filter if no ontology is provided
+	disable_global_filter = args.disable_global_filter or (ontology_file is None) 
 	part_of_cc_only = args.go_part_of_cc_only
 
 	# parameter checks?
@@ -331,20 +323,21 @@ def main(args=None):
 
 	print 'Reading annotations...', ; sys.stdout.flush()
 	annotation_hash = hashlib.md5(open(annotation_file,'rb').read()).hexdigest()
-	annotations = read_annotations(annotation_file)
+	annotations = common.read_annotations(annotation_file)
 	n_assign = sum(len(v) for k,v in annotations.iteritems())
 	print 'done!'; sys.stdout.flush()
 	print 'Annotation file hash: %s' %(annotation_hash)
 	print 'Read %d annotations for %d GO terms.' %(n_assign,len(annotations))
 
 	# parse ontology
-	print 'Reading ontology...', ; sys.stdout.flush()
-	ontology_hash = hashlib.md5(open(ontology_file,'rb').read()).hexdigest()
-	GO = GOParser()
-	GO.parse_ontology(ontology_file,part_of_cc_only=part_of_cc_only,quiet=True)
-	print 'done!'; sys.stdout.flush()
-	print 'Ontology file hash: %s' %(ontology_hash)
-	print 'Read ontology with %d terms.' %(len(GO.terms))
+	if ontology_file is not None:
+		print 'Reading ontology...', ; sys.stdout.flush()
+		ontology_hash = hashlib.md5(open(ontology_file,'rb').read()).hexdigest()
+		GO = GOParser()
+		GO.parse_ontology(ontology_file,part_of_cc_only=part_of_cc_only,quiet=True)
+		print 'done!'; sys.stdout.flush()
+		print 'Ontology file hash: %s' %(ontology_hash)
+		print 'Read ontology with %d terms.' %(len(GO.terms))
 
 	# filter for most variable genes
 	if var_filter_genes > 0:
@@ -359,32 +352,23 @@ def main(args=None):
 		total_var = np.sum(var)
 		genes = [genes[i] for i in sel]
 		E = E[sel,:]
-		lost_n = n - sel.size
+		lost_p = p - sel.size
 		lost_var = total_var - np.sum(np.var(E,axis=1))
 		print 'Retained the %d most variable genes (excluded %.1f%% of genes, representing %.1f%% of total variance).' \
-				%(var_filter_genes,100*(lost_n/float(n)),100*(lost_var/total_var))
+				%(var_filter_genes,100*(lost_p/float(p)),100*(lost_var/total_var))
 		print 'New expression matrix dimensions:', E.shape; sys.stdout.flush()
 
 	if mHG_L == 0: # setting mHG_L to 0 will "turn off" the effect of the parameter (= set it to N)
 		mHG_L = len(genes)
 
-	# read GO data
-	#print "Loading GO term data...", ; sys.stdout.flush()
-	#GO_pickle_hash = hashlib.md5(open(go_pickle_file,'rb').read()).hexdigest()
-	#GO = pickle.load(open(args.go_pickle_file))
-	#print "done!"; sys.stdout.flush()
-	#print 'GO pickle hash: %s' %(GO_pickle_hash)
-
 	# sort genes alphabetically
-	gene_order = np.int64(misc.argsort(genes))
-	genes = [genes[i] for i in gene_order]
-	E = E[gene_order,:]
+	#gene_order = np.int64(misc.argsort(genes))
+	#genes = [genes[i] for i in gene_order]
+	#E = E[gene_order,:]
 
 	# create GOEnrichment object
 	print 'Generating gene x GO term matrix...', ; sys.stdout.flush()
-	M_enrich = GOEnrichment()
-	#M_enrich.read_annotations(*annotation_files)
-	M_enrich.initialize_annotations(GO,genes,annotations)
+	M_enrich = GOEnrichment(genes,annotations)
 	print 'done!'; sys.stdout.flush()
 
 	# determine number of PCs to compute
@@ -479,7 +463,7 @@ def main(args=None):
 	config = GOPCAConfig(**conf_dict)
 	S = np.float64([common.get_signature_expression(genes,E,sig.genes) for sig in final_signatures])
 	result = GOPCAResult(config,genes,samples,W,final_signatures,S)
-	with open(output_file,'w') as ofh:
+	with open(output_file,'wb') as ofh:
 		pickle.dump(result,ofh,pickle.HIGHEST_PROTOCOL)
 	print "done!"; sys.stdout.flush()
 

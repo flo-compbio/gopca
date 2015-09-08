@@ -88,6 +88,10 @@ class GOPCASignature(object):
 			return False
 
 	@property
+	def term(self):
+		return self.enrichment.term
+
+	@property
 	def pval(self):
 		""" The enrichment p-value of the GO term that the signature is based on. """
 		return self.enrichment.pval
@@ -112,7 +116,7 @@ class GOPCASignature(object):
 		""" The total number of genes in the data. """
 		return self.enrichment.N
 
-	def get_pretty_format(self,omit_acc=False,nitty_gritty=True,max_name_length=0):
+	def get_label(self,max_name_length=0,include_stats=True,include_id=True,include_collection=True):
 		enr = self.enrichment
 
 		term = enr.term
@@ -122,26 +126,19 @@ class GOPCASignature(object):
 		if max_name_length > 0 and len(term_name) > max_name_length:
 			term_name = term_name[:(max_name_length-3)] + '...'
 
-		term_str = '%s: %s' %(term[2],term_name)
-		if not omit_acc:
+		term_str = term_name
+		if include_collection:
+			term_str = '%s: %s' %(term[2],term_str)
+
+		if include_id:
 			term_str = term_str + ' (%s)' %(term[0])
 
-		details = ''
-		if nitty_gritty:
-			details = ' [%d/%d genes,pc=%d,pval=%.1e,mfe=%.1fx]' \
-					%(self.k,self.K,self.pc,self.pval,self.mfe)
+		stats_str = ''
+		if include_stats:
+			stats_str = ' [%d/%d@%d,pc=%d,mfe=%.1fx]' \
+					%(self.k,self.K,self.n,self.pc,self.mfe)
 
-		return '%s%s' %(term_str,details)
-
-	def get_pretty_format_GO(self,GO,omit_acc=False,nitty_gritty=True,max_name_length=0):
-		enr = self.enrichment
-		term = GO.terms[enr.term[0]]
-		goterm_genes = GO.get_goterm_genes(term.id)
-		details = ''
-		if nitty_gritty:
-			details = ' [%d/%d genes,n=%d,pc=%d,mfe=%.1fx,pval=%.1e]' \
-					%(self.k,self.K,self.n,self.pc,self.mfe,self.pval)
-		return '%s%s' %(term.get_pretty_format(omit_acc=omit_acc,max_name_length=max_name_length),details)
+		return term_str + stats_str
 
 
 class GOPCAResult(object):
@@ -174,34 +171,34 @@ class GOPCAResult(object):
 		self.signatures = tuple(signatures)
 		self.S = S
 
-		@property
-		def p(self):
-			return len(self.genes)
+	@property
+	def p(self):
+		return len(self.genes)
 
-		@property
-		def n(self):
-			return len(self.samples)
+	@property
+	def n(self):
+		return len(self.samples)
 
-		@property
-		def d(self):
-			return self.W.shape[1]
+	@property
+	def d(self):
+		return self.W.shape[1]
 
-		@property
-		def q(sefl):
-			return len(self.signatures)
-			
+	@property
+	def q(self):
+		return len(self.signatures)
+		
 	def __repr__(self):
 		conf_hash = hash(self.config)
 		gene_hash = hash(self.genes)
 		sample_hash = hash(self.samples)
 		sig_hash = hash((hash(sig) for sig in self.signatures))
-		return "<GOPCAResult object (config hash: %d; gene hash: %d; sample hash: %d; # PCs: %d; signature hash: %d)>" \
+		return '<GOPCAResult object (config hash: %d; gene hash: %d; sample hash: %d; # PCs: %d; signatures: %d; signature hash: %d)>' \
 				%(conf_hash,gene_hash,sample_hash,self.d,self.q,sig_hash)
 
 	def __str__(self):
 		conf = self.config
-		return "<GOPCAResult object (%d signatures); mHG parameters: X_frac=%.2f, X_min=%d, L=%d; \
-				# genes (p) = %d, # principal components (d) = %d>" \
+		return '<GOPCAResult object (%d signatures); mHG parameters: X_frac=%.2f, X_min=%d, L=%d; \
+				# genes (p) = %d, # principal components (d) = %d>' \
 				%(self.q,conf.mHG_X_frac,conf.mHG_X_min,cof.mHG_L,self.p,self.d)
 
 	def __eq__(self,other):

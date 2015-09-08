@@ -38,7 +38,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.1.2',
+    version='1.1.0',
 
     description=description,
     long_description=long_description,
@@ -79,8 +79,8 @@ setup(
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    #packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
-    packages=['gopca'],
+    packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
+    #packages=['gopca'],
 
 	#libraries = ['xlmHG_cython.so'],
 
@@ -118,9 +118,11 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'generate_gene_by_goterm_matrix.py = gopca.generate_gene_by_goterm_matrix:main',
+            'extract_go_annotations.py = gopca.extract_go_annotations:main',
             'go_pca.py = gopca.go_pca:main',
             'extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
+            'extract_matlab_file.py = gopca.scripts.extract_matlab_file:main',
+            'plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
         ],
     },
 )

@@ -22,11 +22,11 @@ from gopca import common
 from genometools import misc
 
 def read_args_from_cmdline():
-
 	parser = argparse.ArgumentParser(description='')
 
 	parser.add_argument('-g','--gopca-file',required=True)
-	parser.add_argument('-o','--output-file',required=True)
+	#parser.add_argument('-o','--output-file')
+	#parser.add_argument('-g','--go-pickle-file',required=True)
 
 	parser.add_argument('-d','--figure-dimensions',type=float,help='in inches',nargs=2,default=[15,15])
 	parser.add_argument('-r','--figure-resolution',type=int,help='in dpi',default=150)
@@ -36,11 +36,11 @@ def read_args_from_cmdline():
 	parser.add_argument('-vn','--figure-vmin',type=float,default=-3.0)
 	parser.add_argument('-vx','--figure-vmax',type=float,default=3.0)
 
-	parser.add_argument('-l','--sig-max-name-len',type=int,default=50)
-	parser.add_argument('-co','--figure-colorbar-orientation',default='horizontal')
-	parser.add_argument('-ca','--figure-colorbar-anchor',type=float,nargs=2,default=(0.95,1.0))
-	parser.add_argument('-cs','--figure-colorbar-shrink',type=float,default=0.3)
-	parser.add_argument('-cp','--figure-colorbar-pad',type=float,default=0.03)
+	parser.add_argument('-l','--sig-max-name-len',type=int,default=40)
+	parser.add_argument('-cs','--figure-colorbar-shrink',type=float,default=0.4)
+	parser.add_argument('-cp','--figure-colorbar-pad',type=float,default=0.015)
+
+	parser.add_argument('--plot-in-notebook',action='store_true') # if run using %run
 
 	parser.add_argument('--use-tex',action='store_true')
 	parser.add_argument('--matplotlib-backend',default=None)
@@ -54,26 +54,16 @@ def main(args=None):
 		args = read_args_from_cmdline()
 
 	result_file = args.gopca_file
-	output_file = args.output_file
 	#go_pickle_file = args.go_pickle_file
 
-	# figure size
 	fig_dim = args.figure_dimensions
 	fig_res = args.figure_resolution
-
-	# figure text
-	use_tex = args.use_tex
 	fig_font_size = args.figure_font_size
 	fig_font_family = args.figure_font_family
-
-	# figure heatmap
 	fig_vmin = args.figure_vmin
 	fig_vmax = args.figure_vmax
 	fig_cmap = args.figure_colormap
-
-	# figure colorbar
-	fig_cbar_orient = args.figure_colorbar_orientation
-	fig_cbar_anchor = args.figure_colorbar_anchor
+	use_tex = args.use_tex
 	fig_cbar_shrink = args.figure_colorbar_shrink
 	fig_cbar_pad = args.figure_colorbar_pad
 
@@ -84,12 +74,12 @@ def main(args=None):
 
 	# read GO-PCA result
 	result = None
-	with open(result_file,'rb') as fh:
+	with open(result_file) as fh:
 		result = pickle.load(fh)
 
 	signatures = result.signatures
 	# generate labels
-	labels = [sig.get_pretty_format(omit_acc=True,max_name_length=sig_max_name_len) for sig in signatures]
+	labels = [sig.get_pretty_format(max_name_length=sig_max_name_len) for sig in signatures]
 	samples = result.samples
 	S = result.S
 
@@ -113,7 +103,7 @@ def main(args=None):
 		print 'done!'; sys.stdout.flush()
 
 	# plotting
-	print 'Plotting...', ; sys.stdout.flush()
+	print 'Plotting...'; sys.stdout.flush()
 
 	import matplotlib as mpl
 	if mpl_backend is not None:
@@ -137,7 +127,7 @@ def main(args=None):
 	minint = int(fig_vmin)
 	maxint = int(fig_vmax)
 	cbticks = np.arange(minint,maxint+0.01,1.0)
-	cb = plt.colorbar(orientation=fig_cbar_orient,shrink=fig_cbar_shrink,pad=fig_cbar_pad,ticks=cbticks,use_gridspec=False,anchor=fig_cbar_anchor)
+	cb = plt.colorbar(orientation='horizontal',shrink=0.4,pad=0.02,ticks=cbticks,use_gridspec=False,anchor=(-0.3,1.0))
 	cb.ax.tick_params(labelsize='small')
 	cb.set_label('Standardized Expression',size='small')
 
@@ -145,11 +135,28 @@ def main(args=None):
 	plt.yticks(np.arange(q),labels,size='x-small')
 	plt.xlabel('Samples (n=%d)' %(n))
 	plt.ylabel('Signatures')
-	print 'done!'; sys.stdout.flush()
+	plt.show()
 
-	print 'Saving to file...', ; sys.stdout.flush()
-	plt.savefig(output_file,bbox_inches='tight')
-	print 'done!'; sys.stdout.flush()
+	c="""
+	plt.cla()
+	plt.clf()
+
+	rc('font',family='serif',size=fig_fontsize)
+	rc('figure',figsize=(fig_dim[0],fig_dim[1]))
+	rc('savefig',dpi=fig_res)
+
+	cmap = 'RdBu_r'
+	plt.imshow(np.corrcoef(S),interpolation='none',aspect=1.0,vmin=-1,vmax=1,cmap=cmap)
+	cbar = plt.colorbar(shrink=0.4,pad=0.015)
+	cbar.ax.tick_params(labelsize='small')
+	cbar.set_label('Pearson Correlation')
+	plt.yticks(np.arange(q),labels,size='x-small')
+	plt.xticks(np.arange(q),(),size='small')
+	plt.ylabel('Signatures')
+	plt.xlabel('Signatures')
+
+	plt.show()
+	"""
 
 	return 0
 

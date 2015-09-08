@@ -42,6 +42,8 @@ def read_args_from_cmdline():
 	parser.add_argument('-cs','--figure-colorbar-shrink',type=float,default=0.3)
 	parser.add_argument('-cp','--figure-colorbar-pad',type=float,default=0.03)
 
+	parser.add_argument('--plot-in-notebook',action='store_true') # if run using %run
+
 	parser.add_argument('--use-tex',action='store_true')
 	parser.add_argument('--matplotlib-backend',default=None)
 	parser.add_argument('--disable-sample-clustering',action='store_true')
