@@ -139,9 +139,11 @@ def get_signature_labels(signatures,omit_acc=False):
 		return sig.enrichment
 		
 
-def cluster_signatures(S,metric='correlation',method='average'):
+def cluster_signatures(S,metric='correlation',method='average',invert=False):
 	# hierarchical clustering of signatures
 	distxy = squareform(pdist(S, metric=metric))
-	R = dendrogram(linkage(distxy, method=average),no_plot=True)
+	R = dendrogram(linkage(distxy, method=method),no_plot=True)
 	order_rows = np.int64([int(l) for l in R['ivl']])
+	if invert:
+		order_rows = order_rows[::-1]
 	return order_rows

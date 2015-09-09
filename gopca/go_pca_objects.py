@@ -135,8 +135,8 @@ class GOPCASignature(object):
 
 		stats_str = ''
 		if include_stats:
-			stats_str = ' [%d/%d@%d,pc=%d,mfe=%.1fx]' \
-					%(self.k,self.K,self.n,self.pc,self.mfe)
+			stats_str = ' [%d/%d,%d]' \
+					%(self.k,self.K,self.pc)
 
 		return term_str + stats_str
 

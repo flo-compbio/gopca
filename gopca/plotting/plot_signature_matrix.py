@@ -28,7 +28,7 @@ def read_args_from_cmdline():
 	parser.add_argument('-g','--gopca-file',required=True)
 	parser.add_argument('-o','--output-file',required=True)
 
-	parser.add_argument('-d','--figure-dimensions',type=float,help='in inches',nargs=2,default=[15,15])
+	parser.add_argument('-d','--figure-dimensions',type=float,help='in inches',nargs=2,default=[18,18])
 	parser.add_argument('-r','--figure-resolution',type=int,help='in dpi',default=150)
 	parser.add_argument('-f','--figure-font-size',type=int,help='in pt',default=24)
 	parser.add_argument('-m','--figure-font-family',default='serif')
@@ -38,13 +38,14 @@ def read_args_from_cmdline():
 
 	parser.add_argument('-l','--sig-max-name-len',type=int,default=50)
 	parser.add_argument('-co','--figure-colorbar-orientation',default='horizontal')
-	parser.add_argument('-ca','--figure-colorbar-anchor',type=float,nargs=2,default=(0.95,1.0))
+	parser.add_argument('-ca','--figure-colorbar-anchor',type=float,nargs=2,default=(0.96,1.0))
 	parser.add_argument('-cs','--figure-colorbar-shrink',type=float,default=0.3)
-	parser.add_argument('-cp','--figure-colorbar-pad',type=float,default=0.03)
+	parser.add_argument('-cp','--figure-colorbar-pad',type=float,default=0.04)
 
-	parser.add_argument('--use-tex',action='store_true')
-	parser.add_argument('--matplotlib-backend',default=None)
+	parser.add_argument('-t','--use-tex',action='store_true')
+	parser.add_argument('-b','--matplotlib-backend',default=None)
 	parser.add_argument('--disable-sample-clustering',action='store_true')
+	parser.add_argument('-i','--invert-signature-order',action='store_true')
 
 	return parser.parse_args()
 
@@ -78,7 +79,7 @@ def main(args=None):
 	fig_cbar_pad = args.figure_colorbar_pad
 
 	mpl_backend = args.matplotlib_backend
-	plot_in_notebook = args.plot_in_notebook
+	invert_signature_order = args.invert_signature_order
 
 	sig_max_name_len = args.sig_max_name_len
 
@@ -89,18 +90,14 @@ def main(args=None):
 
 	signatures = result.signatures
 	# generate labels
-	labels = [sig.get_pretty_format(omit_acc=True,max_name_length=sig_max_name_len) for sig in signatures]
+	labels = [sig.get_label(include_id=False,max_name_length=sig_max_name_len) for sig in signatures]
 	samples = result.samples
 	S = result.S
 
 	# clustering of rows (signatures)
-	print 'Clustering of signatures...', ; sys.stdout.flush()
-	distxy = squareform(pdist(S, metric='correlation'))
-	R = dendrogram(linkage(distxy, method='average'),no_plot=True)
-	order_rows = np.int64([int(l) for l in R['ivl']])
+	order_rows = common.cluster_signatures(S,invert=invert_signature_order)
 	S = S[order_rows,:]
 	labels = [labels[idx] for idx in order_rows]
-	print 'done!'; sys.stdout.flush()
 
 	if not args.disable_sample_clustering:
 		# clustering of columns (samples)
@@ -121,10 +118,10 @@ def main(args=None):
 	import matplotlib.pyplot as plt
 	from matplotlib import rc
 
-	if plot_in_notebook:
-		from IPython import get_ipython
-		ipython = get_ipython()
-		ipython.magic('matplotlib inline')
+	#if plot_in_notebook:
+	#	from IPython import get_ipython
+	#	ipython = get_ipython()
+	#	ipython.magic('matplotlib inline')
 
 	if use_tex: rc('text',usetex=True)
 	rc('font',family=fig_font_family,size=fig_font_size)
