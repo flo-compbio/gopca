@@ -39,12 +39,10 @@ from scipy import stats
 from sklearn.decomposition import PCA
 
 from genometools import misc
+from goparser import GOParser
 from gopca import common
 from gopca.go_enrichment import GOEnrichment
-from goparser import GOParser
-
-#from goparser.parser import GOParser
-from .go_pca_objects import GOPCAConfig,GOPCASignature,GOPCAResult
+from gopca.go_pca_objects import GOPCAConfig,GOPCASignature,GOPCAResult
 
 def read_args_from_cmdline():
 	parser = argparse.ArgumentParser(description='GO-PCA')
