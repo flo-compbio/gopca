@@ -123,6 +123,7 @@ setup(
             'extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
             'extract_matlab_file.py = gopca.scripts.extract_matlab_file:main',
             'plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
+            'plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
         ],
     },
 )

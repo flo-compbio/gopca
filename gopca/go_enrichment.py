@@ -230,7 +230,8 @@ class GOEnrichment(object):
 						sel_genes = [ranked_genes[i] for i in sel]
 					
 						#def __init__(self,term,genes,pval,ranks,N,X,L,mHG_n=None,mHG_k_n=None,mHG_s=None):
-						enr = mHGTermResult(terms[j],sel_genes,pval,sel,p,X,L,mHG_n,mHG_k_n,mHG_s)
+						#print terms[j],pval,sel_genes,sel
+						enr = mHGTermResult(terms[j],pval,sel_genes,sel,p,X,L,mHG_n,mHG_k_n,mHG_s)
 
 						enriched_terms.append(enr)
 

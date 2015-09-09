@@ -1,5 +1,7 @@
 xlmhg/*.c
-*.swp
+
+# dropbox
+.dropbox
 
 # vim ignore
 [._]*.s[a-w][a-z]
