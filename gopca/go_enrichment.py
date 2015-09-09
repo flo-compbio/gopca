@@ -165,7 +165,6 @@ class GOEnrichment(object):
 					pass
 				else:
 					self.A[idx,j] = 1
-		print "TEST:",np.sum(self.A,dtype=np.int64); sys.stdout.flush()
 
 	def test_enrichment(self,ranked_genes,pval_thresh,X_frac,X_min,L,selected_term_ids=[],mfe_pval_thresh=1.0,mfe_thresh=None,mat=None,quiet=False):
 		"""
