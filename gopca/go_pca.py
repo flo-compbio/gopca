@@ -114,7 +114,7 @@ def print_signatures(signatures,GO):
 		sig = signatures[i]
 		#term = GO.terms[sig.term[0]]
 		#goterm_genes = GO.get_goterm_genes(term.id)
-		print sig.get_label(max_name_length=maxlength)
+		print sig.get_label(max_name_length=maxlength,include_pval=True)
 
 def get_pc_signatures(M,W,pc,genes,X_frac,X_min,L,pval_thresh,mfe_pval_thresh=None,filtering=True,mfe_thresh=None,quiet=False):
 	"""

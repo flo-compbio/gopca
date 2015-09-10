@@ -116,7 +116,7 @@ class GOPCASignature(object):
 		""" The total number of genes in the data. """
 		return self.enrichment.N
 
-	def get_label(self,max_name_length=0,include_stats=True,include_id=True,include_collection=True):
+	def get_label(self,max_name_length=0,include_stats=True,include_id=True,include_pval=False,include_collection=True):
 		enr = self.enrichment
 
 		term = enr.term
@@ -135,8 +135,12 @@ class GOPCASignature(object):
 
 		stats_str = ''
 		if include_stats:
-			stats_str = ' [%d:%d/%d]' \
-					%(self.pc,self.k,self.K)
+			if include_pval:
+				stats_str = ' [%d:%d/%d, p=%.1e]' \
+						%(self.pc,self.k,self.K,self.pval)
+			else:
+				stats_str = ' [%d:%d/%d]' \
+						%(self.pc,self.k,self.K)
 
 		return term_str + stats_str
 
