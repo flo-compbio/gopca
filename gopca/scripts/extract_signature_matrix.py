@@ -27,7 +27,7 @@ def main(args=None):
 		result = pickle.load(fh)
 	
 	signatures = result.signatures
-	labels = [sig.get_pretty_format() for sig in signatures]
+	labels = [sig.get_label() for sig in signatures]
 	samples = list(result.samples)
 	S = result.S
 	common.write_expression(output_file,labels,samples,S)

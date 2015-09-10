@@ -81,7 +81,7 @@ def get_signature_expression(genes,E,sig_genes):
 	p,n = E.shape
 	S = np.zeros((p_sig,n),dtype=np.float64)
 	for i,g in enumerate(sig_genes):
-		idx = misc.bisect_index(genes,g)
+		idx = genes.index(g)
 		S[i,:] = E[idx,:]
 		S[i,:] -= np.mean(S[i,:])
 		S[i,:] /= np.std(S[i,:],ddof=1)

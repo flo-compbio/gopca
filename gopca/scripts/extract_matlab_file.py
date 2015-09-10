@@ -31,8 +31,8 @@ def main(args=None):
 		result = pickle.load(fh)
 	
 	signatures = result.signatures
-	labels = [sig.get_pretty_format() for sig in signatures]
-	sig_genes = dict([sig.enrichment.term[0].replace(':','_'),sorted(sig.genes)] for sig in signatures)
+	labels = [sig.get_label() for sig in signatures]
+	sig_genes = dict([sig.term[0].replace(':','_'),sorted(sig.genes)] for sig in signatures)
 	#print sig_genes
 	samples = list(result.samples)
 	S = result.S
