@@ -40,20 +40,21 @@ In a terminal window:
 	
 	.. code-block:: bash
 	
-		$ sudo apt-get install python-pip cython python-numpy python-matplotlib python-scikits-learn
+		$ sudo apt-get install python-pip cython python-numpy python-matplotlib python-scikits-learn ipython ipython-notebook
+
+3. Make sure the Ubuntu package python-sphinx is *not* installed:
+
+	.. code-block:: bash
 	
-2. Make sure you have pip installed:
+		$ sudo apt-get remove python-sphinx
+
+	(The reason the package needs to be uninstalled is that it is an older version that conflicts with the version required by GO-PCA.)
+	
+4. Install GO-PCA:
 	
 	.. code-block:: bash
 	
-		$ pip -V
-		pip 7.1.0 from [path] (python 2.7)
-	
-3. Install GO-PCA:
-	
-	.. code-block:: bash
-	
-		$ pip install gopca
+		$ sudo pip install gopca
 
 Note: GO-PCA directly depends on the following third-party Python packages:
 
@@ -69,9 +70,20 @@ Note: GO-PCA directly depends on the following third-party Python packages:
 Installation Instructions for Microsoft Windows
 -----------------------------------------------
 
-1. `Download <http://continuum.io/downloads>`_ and install the "Anaconda" Python distribution (if you haven't already).
+First, `download <http://continuum.io/downloads>`_ and install the "Anaconda" Python distribution (if you haven't already). This distribution includes all third-party packages required by GO-PCA.
 
-2. This 
+Then, on the command line (Start -> Run -> "cmd"):
 
-On the command line (Run-> "cmd"):
-1. Download Microsoft Visual C++ Compiler for Python 2.7
+1. `Download <http://www.microsoft.com/en-us/download/details.aspx?id=44266>`_ and install the Microsoft Visual C++ Compiler for Python 2.7.
+
+2. Install the xlmhg python package using pip:
+	
+	.. code-block:: bash
+	
+		$ pip install xlmhg
+	
+3. Install GO-PCA using pip:
+
+	.. code-block:: bash
+	
+		$ pip install gopca

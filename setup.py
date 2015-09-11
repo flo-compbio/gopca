@@ -80,7 +80,7 @@ setup(
     entry_points={
         'console_scripts': [
             'extract_go_annotations.py = gopca.extract_go_annotations:main',
-            'go-pca.py = gopca.go-pca:main',
+            'go-pca.py = gopca.go_pca:main',
             'extract_matlab_file.py = gopca.scripts.extract_matlab_file:main',
             'plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
             'plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
