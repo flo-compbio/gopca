@@ -49,40 +49,36 @@ In a terminal window:
 		$ sudo apt-get remove python-sphinx
 
 	(The reason the package needs to be uninstalled is that it is an older version that conflicts with the version required by GO-PCA.)
+
+4. Install the xlmhg python package using pip:
+
+	.. code-block:: bash
 	
-4. Install GO-PCA:
+		$ sudo pip install xlmhg
+
+5. Install GO-PCA using pip (including all remaining dependencies):
 	
 	.. code-block:: bash
 	
 		$ sudo pip install gopca
 
-Note: GO-PCA directly depends on the following third-party Python packages:
-
-- Cython
-- NumPy
-- scikit-learn (which in turn depends on SciPy)
-- matplotlib
-- sphinx (for documentation)
-
-.. pip will attempt to download and install the latest versions of these packages automatically from the `PyPI, Python Package Index <https://pypi.python.org>`_, but SciPy in particular has additional dependencies that 
-
 
 Installation Instructions for Microsoft Windows
 -----------------------------------------------
 
-First, `download <http://continuum.io/downloads>`_ and install the "Anaconda" Python distribution (if you haven't already). This distribution includes all third-party packages required by GO-PCA.
+1. `Download <http://continuum.io/downloads>`_ and install the "Anaconda" Python distribution (if you haven't already). This distribution includes all third-party packages required by GO-PCA.
+
+2. `Download <http://www.microsoft.com/en-us/download/details.aspx?id=44266>`_ and install the Microsoft Visual C++ Compiler for Python 2.7. This compiler is required for installing the xlmhg python package (Step 3).
 
 Then, on the command line (Start -> Run -> "cmd"):
 
-1. `Download <http://www.microsoft.com/en-us/download/details.aspx?id=44266>`_ and install the Microsoft Visual C++ Compiler for Python 2.7.
-
-2. Install the xlmhg python package using pip:
+3. Install the xlmhg python package using pip:
 	
 	.. code-block:: bash
 	
 		$ pip install xlmhg
-	
-3. Install GO-PCA using pip:
+
+4. Install GO-PCA using pip (including all remaining dependencies):
 
 	.. code-block:: bash
 	
