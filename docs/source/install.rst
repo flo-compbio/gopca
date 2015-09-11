@@ -76,10 +76,10 @@ Then, on the command line (Start -> Run -> "cmd"):
 	
 	.. code-block:: bash
 	
-		$ pip install xlmhg
+		> pip install xlmhg
 
 4. Install GO-PCA using pip (including all remaining dependencies):
 
 	.. code-block:: bash
 	
-		$ pip install gopca
+		> pip install gopca
