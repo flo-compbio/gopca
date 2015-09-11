@@ -37,7 +37,10 @@ In a terminal window:
 	Ubuntu 14.04 (trusty) currently has Python version 2.7.6, but any Python 2.7 release should work.
 
 2. Install GO-PCA dependencies: (pip, Cython, NumPy, scikit-learn, Matplotlib, and sphinx for building this documentation locally):
-	sudo apt-get install python-pip cython python-numpy python-matplotlib python-scikits-learn 
+	
+	.. code-block:: bash
+	
+		$ sudo apt-get install python-pip cython python-numpy python-matplotlib python-scikits-learn
 	
 2. Make sure you have pip installed:
 	
