@@ -1,39 +1,18 @@
 GO-PCA
 ======
 
-GO-PCA is an unsupervised method for the exploratory analysis of heterogeneous transcriptomic data. It uses prior knowledge, in the form of `Gene Ontology (GO) <http://geneontology.org/>`_ anntoations, in combination with `principal component analysis (PCA) <https://en.wikipedia.org/wiki/Principal_component_analysis>`_, in order to generate *signatures*, i.e., small sets of genes that are both strongly correlated and closely functionally related. It then produces a *signature matrix*, which contains the expression profiles of all signatures across all samples, based on the untransformed data.
+GO-PCA is an unsupervised method to explore biological heterogeneity in expression data using prior knowledge. It combines `principal component analysis (PCA) <https://en.wikipedia.org/wiki/Principal_component_analysis>` with `nonparametric GO enrichment analysis <dx.doi.org/10.1186/1471-2105-10-48>`_, in order to generate *signatures*, i.e., small sets of genes that are both strongly correlated and closely functionally related. It then produces a *signature matrix*, which contains the expression profiles of all signatures across all samples, based on the untransformed data.
 
-Installation
-------------
+Documentation
+-------------
 
-GO-PCA is `available on PyPI <https://pypi.python.org/pypi/gopca>`_, the Python Package Index, and can be installed using ``pip``, the Python package manager:
-
-.. code-block:: bash
-
-	$ pip install gopca
-
-
-Installation of Prerequisites
------------------------------
-
-GO-PCA depends on the following third-party Python packages:
-
-- NumPy
-- SciPy
-- Scikit-Learn
-- Cython
-
-To-Do!
+In the works!
 
 How to Cite GO-PCA
 ------------------
 
 If you use GO-PCA in your research, please cite `Wagner (2015) <http://dx.doi.org/10.1101/018705>`_.
 
-Documentation
--------------
-
-In the works!
 
 Copyright and License
 ---------------------
