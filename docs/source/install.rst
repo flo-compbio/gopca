@@ -74,12 +74,12 @@ Then, on the command line (Start -> Run -> "cmd"):
 
 3. Install the xlmhg python package using pip:
 	
-	.. code-block:: bash
+	.. code-block:: bat
 	
 		> pip install xlmhg
 
 4. Install GO-PCA using pip (including all remaining dependencies):
 
-	.. code-block:: bash
+	.. code-block:: bat
 	
 		> pip install gopca
