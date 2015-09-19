@@ -16,6 +16,7 @@
 
 
 import os
+import sys
 import csv
 import cPickle as pickle
 
@@ -24,6 +25,97 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
 
 from genometools import misc
+
+class Logger(object):
+
+	def __init__(self,verbosity=1,outbuf=sys.stdout,errbuf=sys.stderr,log_file=None):
+
+		# verbosity levels
+		# 0: output nothing
+		# 1: output only errors
+		# 2: output errors and warnings
+		# 3: output errors, warnings and messages
+
+		# When then specified verbosity level indicates that output should occur,
+		# messages and warnings will be directed to 'outbuf',
+		# while errors will be directed to 'errbuf'.
+
+		# All events will be reported in a logfile (if specified).
+
+		self.verbosity = 0
+		self.log = []
+		self.outbuf = outbuf
+		self.errbuf = errbuf
+		self.log_file = log_file
+
+		self.ofh = None
+		if log_file is not None:
+			self.ofh = open(log_file,'w')
+
+	def __del__(self):
+		if self.outbuf is not None:
+			self.outbuf.flush()
+		if self.errbuf is not None:
+			self.errbuf.flush()
+		if self.ofh is not None:
+			self.ofh.flush()
+			self.ofh.close()
+
+	def output(self,s,buf,endline,flush):
+		# mimics print
+		end = ' '
+		if endline:
+			end = '\n'
+		s = s + end
+
+		# store in variable
+		self.log.append(s)
+
+		# write to buffer
+		if buf is not None:
+			buf.write(s)
+			buf.flush()
+
+		# write to log file
+		if self.ofh is not None:
+			self.ofh.write(s)
+
+	def message(self,s,endline=True,flush=False):
+
+		s = 'Info: ' + s
+
+		buf = self.outbuf
+		if self.verbosity < 3:
+			buf = None
+
+		self.output(s,buf,endline,flush)
+
+	def warning(self,s,endline=True,flush=False):
+
+		s = 'Warning: ' + s
+		buf = self.outbuf
+		if self.verbosity < 2:
+			buf = None
+
+		self.output(s,buf,endline,flush)
+
+	def error(self,s,endline=True,flush=False)
+
+		s = 'Error: ' + s
+		buf = self.errbuf
+		if self.verbosity == 0:
+			buf = None
+
+		self.output(s,buf,endline,flush)
+
+def print_signatures(signatures)
+	a = None
+	maxlength = 40
+	a = sorted(range(len(signatures)),key=lambda i: -signatures[i].msfe)
+
+	for i in a:
+		sig = signatures[i]
+		print sig.get_label(max_name_length=maxlength,include_pval=True)
 
 def read_meta(fn):
 	meta = {}
@@ -75,6 +167,12 @@ def write_gene_data(output_file,genes,labels,D):
 		writer.writerow(['.'] + labels)
 		for i,g in enumerate(genes):
 			writer.writerow([g] + ['%.5f' %(D[i,j]) for j in range(n)])
+
+def get_standardized(e):
+	e = e.copy()
+	e -= np.mean(e)
+	e /= np.std(e,ddof=1)
+	return e
 
 def get_signature_expression(genes,E,sig_genes):
 	p_sig = len(sig_genes)
@@ -138,12 +236,33 @@ def get_signature_labels(signatures,omit_acc=False):
 	for sig in signatures:
 		return sig.enrichment
 		
-
-def cluster_signatures(S,metric='correlation',method='average',invert=False):
-	# hierarchical clustering of signatures
+def cluster_rows(S,metric='correlation',method='average',invert=False):
 	distxy = squareform(pdist(S, metric=metric))
 	R = dendrogram(linkage(distxy, method=method),no_plot=True)
 	order_rows = np.int64([int(l) for l in R['ivl']])
 	if invert:
 		order_rows = order_rows[::-1]
 	return order_rows
+
+def cluster_signatures(S,metric='correlation',method='average',invert=False):
+	# hierarchical clustering of signatures
+	order_rows = cluster_rows(S,metric,method,invert)
+	return order_rows
+
+def get_qvalues(pvals,pi_zero=1.0):
+	# implements storey-tibshirani procedure for calculating q-values
+	n = pvals.size
+	qvals = np.empty(n,dtype=np.float64)
+
+	# start with largest p-value
+	a = np.argsort(pvals,kind='mergesort') # stable sort
+	a = a[::-1]
+
+	s = 1
+	q = 1.0
+	for i in a:
+		q = min(((pi_zero * pvals[i])*n)/s , q)
+		qvals[i] = q
+		s += 1
+
+	return qvals

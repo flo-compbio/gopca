@@ -39,15 +39,10 @@ def read_args_from_cmdline():
 	parser.add_argument('-r','--figure-resolution',type=int,help='in dpi',default=150)
 	parser.add_argument('-f','--figure-font-size',type=int,help='in pt',default=24)
 	parser.add_argument('-m','--figure-font-family',default='serif')
-	parser.add_argument('-c','--figure-colormap',default='RdBu_r')
-	parser.add_argument('-vn','--figure-vmin',type=float,default=-1.0)
-	parser.add_argument('-vx','--figure-vmax',type=float,default=1.0)
+	#parser.add_argument('-xn','--figure-xmin',type=float,default=0.8)
+	#parser.add_argument('-xx','--figure-xmax',type=float,default=1.0)
 
 	parser.add_argument('-l','--sig-max-name-len',type=int,default=50)
-	parser.add_argument('-co','--figure-colorbar-orientation',default='horizontal')
-	parser.add_argument('-ca','--figure-colorbar-anchor',type=float,nargs=2,default=(0.96,1.0))
-	parser.add_argument('-cs','--figure-colorbar-shrink',type=float,default=0.3)
-	parser.add_argument('-cp','--figure-colorbar-pad',type=float,default=0.015)
 
 	parser.add_argument('-t','--use-tex',action='store_true')
 	parser.add_argument('-b','--matplotlib-backend',default=None)
@@ -55,15 +50,19 @@ def read_args_from_cmdline():
 
 	return parser.parse_args()
 
+def simpleaxis(ax):
+	ax.spines['top'].set_visible(False)
+	ax.spines['right'].set_visible(False)
+	ax.get_xaxis().tick_bottom()
+	ax.get_yaxis().tick_left()
+
 def main(args=None):
 
 	if args is None:
 		args = read_args_from_cmdline()
 
-	print "TEST"
 	result_file = args.gopca_file
 	output_file = args.output_file
-	#go_pickle_file = args.go_pickle_file
 
 	# figure size
 	fig_dim = args.figure_dimensions
@@ -74,16 +73,9 @@ def main(args=None):
 	fig_font_size = args.figure_font_size
 	fig_font_family = args.figure_font_family
 
-	# figure heatmap
-	fig_vmin = args.figure_vmin
-	fig_vmax = args.figure_vmax
-	fig_cmap = args.figure_colormap
-
-	# figure colorbar
-	fig_cbar_orient = args.figure_colorbar_orientation
-	fig_cbar_anchor = args.figure_colorbar_anchor
-	fig_cbar_shrink = args.figure_colorbar_shrink
-	fig_cbar_pad = args.figure_colorbar_pad
+	# scale
+	#fig_xmin = args.figure_xmin
+	#fig_xmax = args.figure_xmax
 
 	mpl_backend = args.matplotlib_backend
 	invert_signature_order = args.invert_signature_order
@@ -95,60 +87,58 @@ def main(args=None):
 	with open(result_file,'rb') as fh:
 		result = pickle.load(fh)
 
-	signatures = result.signatures
 	# generate labels
+	signatures = result.signatures
 	labels = [sig.get_label(include_id=False,max_name_length=sig_max_name_len) for sig in signatures]
 	samples = result.samples
 	S = result.S
 
-	C = np.corrcoef(S)
-	q = S.shape[0]
-	assert C.shape[0] == q
-
 	# clustering of rows (signatures)
-	order_rows = common.cluster_rows(S,invert=invert_signature_order)
-	C = C[order_rows,:]
+	order_rows = common.cluster_signatures(S,invert=invert_signature_order)
+	S = S[order_rows,:]
 	labels = [labels[idx] for idx in order_rows]
 
-	# use the same ordering for columns
-	C = C[:,order_rows]
+	groups = []
+	for j,sig in enumerate(signatures):
+		C = np.corrcoef(sig.E)
+		sel = np.triu_indices(C.shape[0],k=1)
+		groups.append(C[sel])
+
+	print len(groups),len(labels)
 
 	# plotting
-	print 'Plotting...', ; sys.stdout.flush()
-
 	import matplotlib as mpl
 	if mpl_backend is not None:
 		mpl.use(mpl_backend)
 	import matplotlib.pyplot as plt
 	from matplotlib import rc
 
-	#if plot_in_notebook:
-	#	from IPython import get_ipython
-	#	ipython = get_ipython()
-	#	ipython.magic('matplotlib inline')
-
 	if use_tex: rc('text',usetex=True)
 	rc('font',family=fig_font_family,size=fig_font_size)
 	rc('figure',figsize=(fig_dim[0],fig_dim[1]))
 	rc('savefig',dpi=fig_res)
 
-	# plotting
-	plt.imshow(C,interpolation='none',aspect='auto',vmin=fig_vmin,vmax=fig_vmax,cmap=fig_cmap)
+	boxprops = {'ec':'none', 'fc':'skyblue', 'lw':0}
+	medianprops = {'color':'black', 'lw':2.0}
+	whiskerprops = {'color':'black'}
+	#flierprops = {'color':'gray'}
+	flierprops = {'color':'skyblue','markeredgewidth':2.0}
 
-	plt.xticks(())
-
-	minint = int(fig_vmin)
-	maxint = int(fig_vmax)
-	cbticks = np.arange(minint,maxint+0.01,0.5)
-	cb = plt.colorbar(orientation=fig_cbar_orient,shrink=fig_cbar_shrink,pad=fig_cbar_pad,ticks=cbticks,use_gridspec=False,anchor=fig_cbar_anchor)
-	cb.ax.tick_params(labelsize='small')
-	cb.set_label('Pearson Correlation',size='small')
-
-	q,n = S.shape
-	plt.yticks(np.arange(q),labels,size='x-small')
+	plt.boxplot(groups,vert=False,labels=labels,flierprops=flierprops,medianprops=medianprops,whiskerprops=whiskerprops,\
+           patch_artist=True,boxprops=boxprops)
+	plt.yticks(size='small')
+	plt.xlabel('Pair-wise Correlation of Signature Genes')
 	plt.ylabel('Signatures')
-	plt.xlabel('Signatures')
-	print 'done!'; sys.stdout.flush()
+
+	#plt.grid(b=True,which='major',axis='x',lw=3.0,color='red')
+	q = S.shape[0]
+	plt.grid(b=True,which='major',axis='y',lw=3.0,color='darkgray')
+	for x in [-0.5,0,0.5]:
+		plt.plot([x,x],[0.5,q+0.5],'-',color='pink',lw=2.0,zorder=-50)
+
+	plt.xlim(-1,1)
+	plt.ylim(0.5,q+0.5)
+	simpleaxis(plt.gca())
 
 	print 'Saving to file...', ; sys.stdout.flush()
 	#plt.gcf().set_size_inches(fig_dim[0],fig_dim[1])

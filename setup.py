@@ -81,9 +81,14 @@ setup(
         'console_scripts': [
             'extract_go_annotations.py = gopca.extract_go_annotations:main',
             'go-pca.py = gopca.go_pca:main',
+			'extract_signatures.py = gopca.scripts.extract_signatures:main',
+			'extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
             'extract_matlab_file.py = gopca.scripts.extract_matlab_file:main',
             'plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
+            'plot_signature_correlation_matrix.py = gopca.plotting.plot_signature_correlation_matrix:main',
+			'plot_within_signature_correlations.py = gopca.plotting.plot_within_signature_correlations:main',
             'plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
+			'gopca_test_components.py = gopca.test_components:main'
         ],
     },
 )

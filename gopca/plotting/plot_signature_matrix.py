@@ -25,16 +25,6 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
 
-if __name__ == '__main__' and __package__ is None:
-	# allow explicit relative imports in executable script
-	# source: http://stackoverflow.com/a/6655098
-	parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-	parent_dir = os.path.dirname(parent_dir)
-	print parent_dir; sys.stdout.flush()
-	sys.path.insert(1, parent_dir)
-	import gopca
-	__package__ = 'gopca'
-
 import gopca
 from gopca import common
 from genometools import misc
@@ -58,7 +48,7 @@ def read_args_from_cmdline():
 	parser.add_argument('-co','--figure-colorbar-orientation',default='horizontal')
 	parser.add_argument('-ca','--figure-colorbar-anchor',type=float,nargs=2,default=(0.96,1.0))
 	parser.add_argument('-cs','--figure-colorbar-shrink',type=float,default=0.3)
-	parser.add_argument('-cp','--figure-colorbar-pad',type=float,default=0.04)
+	parser.add_argument('-cp','--figure-colorbar-pad',type=float,default=0.015)
 
 	parser.add_argument('-t','--use-tex',action='store_true')
 	parser.add_argument('-b','--matplotlib-backend',default=None)
@@ -149,6 +139,8 @@ def main(args=None):
 	# plotting
 	plt.imshow(S,interpolation='none',aspect='auto',vmin=fig_vmin,vmax=fig_vmax,cmap=fig_cmap)
 
+	plt.xticks(())
+
 	minint = int(fig_vmin)
 	maxint = int(fig_vmax)
 	cbticks = np.arange(minint,maxint+0.01,1.0)
@@ -163,6 +155,7 @@ def main(args=None):
 	print 'done!'; sys.stdout.flush()
 
 	print 'Saving to file...', ; sys.stdout.flush()
+	#plt.gcf().set_size_inches(fig_dim[0],fig_dim[1])
 	plt.savefig(output_file,bbox_inches='tight')
 	print 'done!'; sys.stdout.flush()
 

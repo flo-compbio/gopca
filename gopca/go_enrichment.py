@@ -24,9 +24,9 @@ from math import ceil
 import numpy as np
 from scipy.stats import hypergeom
 
-import gopca
 from genometools import misc
 import xlmhg
+from gopca.printf import printf
 
 class mHGTermResult(object):
 	"""
@@ -89,8 +89,8 @@ class mHGTermResult(object):
 	def fold_enrichment(self):
 		return self.k / (self.K * (self.n/float(self.N)))
 
-	def get_max_fold_enrichment(self,pval_thresh=1.0):
-		""" Find maximum fold enrichment. Returns both the number of genes selected and the corresponding fold enrichment. """
+	def get_max_sig_fold_enrichment(self,pval_thresh=1.0):
+		""" Calculate maximum significant fold enrichment. Returns both the number of genes selected and the corresponding fold enrichment. """
 		N = self.N
 		K = self.K
 		X = self.X
@@ -126,10 +126,7 @@ class mHGTermResult(object):
 		param_str = ''
 		if not omit_param:
 			param_str = ' [X=%d,L=%d,N=%d]' %(self.X,self.L,self.N)
-		mfe_str = ''
-		if self.mfe is not None:
-			mfe_str = ',mfe=%.1fx' %(self.mfe)
-		details = ', p-value=%.1e%s%s' %(self.pval,mfe_str,param_str)
+		details = ', p-value=%.1e%s' %(self.pval,param_str)
 		return '%s%s' %(term_str,details)
 		
 	def get_pretty_GO_format(self,GO,omit_acc=False,omit_param=True,max_name_length=0):
@@ -145,11 +142,12 @@ class mHGTermResult(object):
 
 class GOEnrichment(object):
 
-	def __init__(self,genes,annotations):
+	def __init__(self,genes,annotations,verbose=True):
 
-		a = misc.argsort(genes)
+		a = np.lexsort([genes])
 		self.genes = [genes[i] for i in a]
 		self.terms = sorted(annotations.keys(), key=lambda x:x[0])
+		self.verbose = verbose
 		#term_ids = [t[0] for t in self.terms] # self.term_ids?
 		#self.terms = [GO.terms[id_] for id_ in self.term_ids] # 4-tuples
 		p = len(genes)
@@ -164,7 +162,7 @@ class GOEnrichment(object):
 				else:
 					self.A[idx,j] = 1
 
-	def test_enrichment(self,ranked_genes,pval_thresh,X_frac,X_min,L,selected_term_ids=[],mfe_pval_thresh=1.0,mfe_thresh=None,mat=None,quiet=False):
+	def test_enrichment(self,ranked_genes,pval_thresh,X_frac,X_min,L,selected_term_ids=[],msfe_pval_thresh=1.0,msfe_thresh=None,mat=None):
 		"""
 		Tests GO term enrichment of either all terms or the terms specified by ``selected_term_ids''.
 		"""
@@ -197,11 +195,9 @@ class GOEnrichment(object):
 			mat = np.empty((K_max+1,p+1),dtype=np.longdouble)
 
 		# find enriched GO terms
-		if not quiet:
-			print "Testing %d terms for enrichment..." %(m)
-			print "(N = %d, X_frac = %.2f, X_min = %d, L = %d; K_max = %d)" \
-					%(len(ranked_genes),X_frac,X_min,L,K_max)
-			sys.stdout.flush()
+		self.message('Testing %d terms for enrichment...' %(m))
+		self.message('(N = %d, X_frac = %.2f, X_min = %d, L = %d; K_max = %d)' \
+					%(len(ranked_genes),X_frac,X_min,L,K_max),flush=True)
 
 		enriched_terms = []
 		tested = 0
@@ -232,54 +228,48 @@ class GOEnrichment(object):
 
 						enriched_terms.append(enr)
 
-		if not quiet:
-			print 'done!'; sys.stdout.flush()
+		self.message('done!',flush=True)
 
 		# calculate max. fold enrichment
-		if not quiet:
-			print 'Calculating max. fold enrichment for enriched terms...', ; sys.stdout.flush()
+		self.message('Calculating max. fold enrichment for enriched terms...',flush=True)
 
 		for term in enriched_terms:
-			k_max, mfe = term.get_max_fold_enrichment(mfe_pval_thresh)
-			term.mfe = mfe
+			k_max, msfe = term.get_max_sig_fold_enrichment(msfe_pval_thresh)
+			term.msfe = msfe
 
-		if not quiet:
-			print 'done!'; sys.stdout.flush()
+		self.message('done!',flush=True)
 
 		# report results
 		q = len(enriched_terms)
-		if not quiet:
-			ignored = m - tested
-			if ignored > 0:
-				print ' %d/ %d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.' \
-						%(ignored,m,100*(ignored/float(m)),X_min)
+		ignored = m - tested
+		if ignored > 0:
+			self.message(' %d/ %d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.' \
+						%(ignored,m,100*(ignored/float(m)),X_min))
 
-			print '%d / %d tested GO terms were found to be significantly enriched (p-value <= %.1e).' \
-					%(q,tested,pval_thresh)
-			sys.stdout.flush()
+		self.message('%d / %d tested GO terms were found to be significantly enriched (p-value <= %.1e).' \
+				%(q,tested,pval_thresh),flush=True)
 
-		if q > 0 and mfe_thresh is not None:
+		if q > 0 and msfe_thresh is not None:
 			# apply fold enriched filter
 			before = len(enriched_terms)
-			enriched_terms = [t for t in enriched_terms if t.mfe >= mfe_thresh]
-			if not quiet:
-				print 'Kept %d / %d significantly enriched terms with max. fold enrichment >= %.1fx' %(len(enriched_terms),before,mfe_thresh)
-				sys.stdout.flush()
+			enriched_terms = [t for t in enriched_terms if t.msfe >= msfe_thresh]
+			self.message('Kept %d / %d significantly enriched terms with max. fold enrichment >= %.1fx' \
+					%(len(enriched_terms),before,msfe_thresh)flush=True)
 
 		assert self.A.shape == original_dimensions
 		return enriched_terms
 
-	def filter_enriched_terms(self,enriched_terms,ranked_genes,pval_thresh,X_frac,X_min,L,mfe_pval_thresh,mfe_thresh=None,quiet=False):
+	def filter_enriched_terms(self,enriched_terms,ranked_genes,pval_thresh,X_frac,X_min,L,msfe_pval_thresh,msfe_thresh=None):
 
 		for enr in enriched_terms:
-			assert enr.mfe is not None
+			assert enr.msfe is not None
 
 		if len(enriched_terms) <= 1:
 			return enriched_terms
 
 		# sort enriched terms by enrichment
 		q = len(enriched_terms)
-		a = sorted(range(q),key=lambda i:-enriched_terms[i].mfe)
+		a = sorted(range(q),key=lambda i:-enriched_terms[i].msfe)
 		todo = [enriched_terms[i] for i in a]
 
 		# keep the most enriched term
@@ -288,7 +278,6 @@ class GOEnrichment(object):
 		todo = todo[1:]
 
 		# exclude genes annotated with the most enriched term
-		ranked_genes = ranked_genes[:] # make a copy here!
 		genes_used = set(most_enriched.genes)
 		new_ranked_genes = []
 		new_L = L
@@ -309,7 +298,7 @@ class GOEnrichment(object):
 			term_id = most_enriched.term[0]
 
 			# test if GO term is still enriched after removing all previously used genes
-			enr = self.test_enrichment(ranked_genes,pval_thresh,X_frac,X_min,L,selected_term_ids=[term_id],mat=mat,quiet=True)
+			enr = self.test_enrichment(ranked_genes,pval_thresh,X_frac,X_min,L,selected_term_ids=[term_id],mat=mat)
 			assert len(enr) in [0,1]
 			if enr: # enr will be an empty list if GO term does not meet the p-value threshold
 				enr = enr[0]
@@ -317,11 +306,11 @@ class GOEnrichment(object):
 
 				# test fold enrichment threshold (if specified)
 				still_enriched = False
-				if mfe_thresh is None:
+				if msfe_thresh is None:
 					still_enriched = True
 				else:
-					mfe = enr.get_max_fold_enrichment(mfe_pval_thresh)
-					if mfe >= mfe_thresh:
+					msfe = enr.get_max_sig_fold_enrichment(msfe_pval_thresh)
+					if msfe >= msfe_thresh:
 						still_enriched = True
 
 				if still_enriched:
@@ -344,5 +333,6 @@ class GOEnrichment(object):
 			# next!
 			todo = todo[1:]
 
-		print 'Filtering: Kept %d / %d enriched terms.' %(len(kept_terms),len(enriched_terms)); sys.stdout.flush()
+		self.message('Filtering: Kept %d / %d enriched terms.' \
+				%(len(kept_terms),len(enriched_terms)),flush=True)
 		return kept_terms

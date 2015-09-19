@@ -19,20 +19,29 @@ import cPickle as pickle
 
 import numpy as np
 
+from gopca.common import Logger
+
+		
 class GOPCAConfig(object):
 
-	valid_attrs = set(['mHG_X_frac','mHG_X_min','mHG_L','pval_thresh','mfe_pval_thresh','mfe_thresh','disable_local_filter','disable_global_filter'])
+	valid_params = set(['D',\
+			'mHG_X_frac','mHG_X_min','mHG_L',\
+			'pval_thresh','msfe_pval_thresh','msfe_thresh',\
+			'disable_local_filter','disable_global_filter',\
+			'go_part_of_cc_only'])
 
 	def __init__(self,**kwargs):
-		supplied_attrs = set(kwargs.keys())
-		unknown_attrs = supplied_attrs - self.valid_attrs
-		for k in sorted(unknown_attrs):
-			print 'Warning: Config attribute "%s" unknown (will be ignored).' %(k)
+		supplied_params = set(kwargs.keys())
+		unknown_params = supplied_params - self.valid_params
+		for param in sorted(unknown_params):
+			print 'Warning: GO-PCA parameter "%s" is unknown (will be ignored).' %(k)
 
-		for k in list(self.valid_attrs):
-			assert k in supplied_attrs
+		# require that all parameters are specified
+		for k in list(self.valid_params):
+			assert k in supplied_params
 
-		kwargs = dict([k,kwargs[k]] for k in list(self.valid_attrs))
+		# to-do: make sure parmaeters parameter are valid
+		kwargs = dict([k,kwargs[k]] for k in list(self.valid_params))
 		self.__dict__.update(kwargs)
 
 
@@ -40,7 +49,7 @@ class GOPCAConfig(object):
 		return '<GOPCAConfig object (%s)>' %('; '.join(['%s=%s' %(k,getattr(self,str(k))) for k in sorted(self.valid_attrs)]))
 
 	def __str__(self):
-		return '<GOPCAConfig object with attributes: %s>' %(', '.join(['%s=%s' %(k,getattr(self,str(k))) for k in sorted(self.valid_attrs)]))
+		return '<GOPCAConfig object with parameters: %s>' %(', '.join(['%s=%s' %(k,getattr(self,str(k))) for k in sorted(self.valid_attrs)]))
 
 	def __hash__(self):
 		return hash(repr(self))
@@ -58,10 +67,11 @@ class GOPCASignature(object):
 
 	abbrev = [('positive ','pos. '),('negative ','neg. '),('interferon-','IFN-'),('proliferation','prolif.'),('signaling','signal.')]
 
-	def __init__(self,genes,pc,mfe,enrichment,label=None):
-		self.genes = set(genes) # genes in the signature
+	def __init__(self,genes,E,pc,msfe,enrichment,label=None):
+		self.genes = tuple(genes) # genes in the signature (NOT equal to self.enrichment.genes, which contains the gene names corresponding to all the 1's)
+		self.E = E # expression of the genes in the signture, with ordering matching that of self.genes
 		self.pc = pc # principal component (sign indicates whether ordering was ascending or descending)
-		self.mfe = mfe # maximum fold enrichment
+		self.msfe = msfe # maximum significant fold enrichment
 		self.enrichment = enrichment # GO enrichment this signature is based on
 		if label is None:
 			enr = enrichment
@@ -69,12 +79,12 @@ class GOPCASignature(object):
 		self.label = label # signature label
 
 	def __repr__(self):
-		return '<GOPCASignature: label="%s", pc=%d, mfe=%.1f; %s>' \
-				%(self.label,self.pc,self.mfe,repr(self.enrichment))
+		return '<GOPCASignature: label="%s", pc=%d, msfe=%.1f; %s>' \
+				%(self.label,self.pc,self.msfe,repr(self.enrichment))
 
 	def __str__(self):
-		return '<GO-PCA Signature "%s" (PC %d / MFE %.1fx / %s)>' \
-				%(self.label,self.pc,self.mfe, str(self.enrichment))
+		return '<GO-PCA Signature "%s" (PC %d / MSFE %.1fx / %s)>' \
+				%(self.label,self.pc,self.msfe, str(self.enrichment))
 
 	def __hash__(self):
 		return hash(repr(self))
@@ -146,8 +156,6 @@ class GOPCASignature(object):
 
 
 class GOPCAResult(object):
-	#def __init__(self,genes,W,mHG_X_frac,mHG_X_min,mHG_L,pval_thresh,mfe_pval_thresh,mfe_thresh,signatures):
-	#def __init__(self,config,expression_hash,GO_hash,genes,samples,W,signatures,S):
 	def __init__(self,config,genes,samples,W,signatures,S):
 
 		# W = loading matrix
@@ -168,7 +176,7 @@ class GOPCAResult(object):
 		assert S.shape[1] == len(samples)
 
 		# initialization
-		self.config = config
+		self.gopca_input = gopca_input
 		self.genes = tuple(genes)
 		self.samples = tuple(samples)
 		self.W = W
