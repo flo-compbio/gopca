@@ -28,7 +28,7 @@ from genometools import misc
 
 class Logger(object):
 
-	def __init__(self,verbosity=1,outbuf=sys.stdout,errbuf=sys.stderr,log_file=None):
+	def __init__(self,verbosity=1,log_file=None):
 
 		# verbosity levels
 		# 0: output nothing
@@ -42,10 +42,8 @@ class Logger(object):
 
 		# All events will be reported in a logfile (if specified).
 
-		self.verbosity = 0
+		self.verbosity = verbosity
 		self.log = []
-		self.outbuf = outbuf
-		self.errbuf = errbuf
 		self.log_file = log_file
 
 		self.ofh = None
@@ -53,10 +51,9 @@ class Logger(object):
 			self.ofh = open(log_file,'w')
 
 	def __del__(self):
-		if self.outbuf is not None:
-			self.outbuf.flush()
-		if self.errbuf is not None:
-			self.errbuf.flush()
+		sys.stdout.flush()
+		sys.stderr.flush()
+
 		if self.ofh is not None:
 			self.ofh.flush()
 			self.ofh.close()
@@ -71,10 +68,10 @@ class Logger(object):
 		# store in variable
 		self.log.append(s)
 
-		# write to buffer
+		# write to stdout/stderr
 		if buf is not None:
 			buf.write(s)
-			buf.flush()
+			if flush: buf.flush()
 
 		# write to log file
 		if self.ofh is not None:
@@ -84,7 +81,7 @@ class Logger(object):
 
 		s = 'Info: ' + s
 
-		buf = self.outbuf
+		buf = sys.stdout
 		if self.verbosity < 3:
 			buf = None
 
@@ -93,22 +90,22 @@ class Logger(object):
 	def warning(self,s,endline=True,flush=False):
 
 		s = 'Warning: ' + s
-		buf = self.outbuf
+		buf = sys.stdout
 		if self.verbosity < 2:
 			buf = None
 
 		self.output(s,buf,endline,flush)
 
-	def error(self,s,endline=True,flush=False)
+	def error(self,s,endline=True,flush=False):
 
 		s = 'Error: ' + s
-		buf = self.errbuf
+		buf = self.stderr
 		if self.verbosity == 0:
 			buf = None
 
 		self.output(s,buf,endline,flush)
 
-def print_signatures(signatures)
+def print_signatures(signatures):
 	a = None
 	maxlength = 40
 	a = sorted(range(len(signatures)),key=lambda i: -signatures[i].msfe)
