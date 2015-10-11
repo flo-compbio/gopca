@@ -20,16 +20,13 @@ import sys
 import os
 import argparse
 
-import numpy as np
-
 from gopca import common
-from gopca.go_pca_objects import GOPCAArgumentParser,GOPCAConfig,GOPCA
+from gopca.bootstrap_go_pca_objects import BootstrapGOPCAArgumentParser,BootstrapGOPCAConfig,BootstrapGOPCA
 
 def main(args=None):
 
-	# read command line options
 	if args is None:
-		parser = GOPCAArgumentParser()
+		parser = BootstrapGOPCAArgumentParser()
 		args = parser.parse_args()
 
 	# input files
@@ -57,17 +54,25 @@ def main(args=None):
 	disable_global_filter = args.disable_global_filter
 	go_part_of_cc_only = args.go_part_of_cc_only
 
-	# for automatically determining the number of PCs
 	seed = args.seed
-	pc_permutations = args.pc_permutations
+
+	# bootstrap parameters
+	repeats = args.repeats
+	resample_size = args.resample_size
+
+	# parameters for estimating the number of PCs
 	pc_zscore_thresh = args.pc_zscore_thresh
+	pc_permutations = args.pc_permutations
 
 	# verbosity
 	verbosity = args.verbosity
 
-	### checks
-	assert isinstance(n_components,int) and n_components >= 0
-	assert isinstance(verbosity,int) and verbosity >= 0
+	# intialize logger
+	logger = common.Logger(verbosity,log_file=log_file)
+
+	if seed is None:
+		seed = np.random.randint(int(1e9))
+	logger.message('Using seed: %d' %(seed))
 
 	# make sure input files exist
 	assert os.path.isfile(expression_file)
@@ -75,38 +80,27 @@ def main(args=None):
 	if ontology_file is not None:
 		assert os.path.isfile(ontology_file)
 
-	# intialize logger
-	logger = common.Logger(verbosity,log_file=log_file)
+	# checks
+	assert isinstance(verbosity,int) and verbosity >= 0
 
 	# disable global filter if no ontology is provided
 	if ontology_file is None:
 		logger.warning('Disabling global filter, since no ontology file was provided.')
 		disable_global_filter = True
 
-	# generate seed
-	if seed is None:
-		seed = np.random.randint(int(1e9))
-	
 	# initialize GO-PCA configuration
-	conf_dict = dict([[k,locals()[k]] for k in GOPCAConfig.valid_params])
-	config = GOPCAConfig(logger,**conf_dict)
+	conf_dict = dict([[k,locals()[k]] for k in BootstrapGOPCAConfig.all_valid_params])
+	config = BootstrapGOPCAConfig(logger,**conf_dict)
 
-	# initialize GO-PCA
-	M = GOPCA(logger=logger,config=config)
+	# initialize Bootstrap-GO-PCA
+	M = BootstrapGOPCA(logger,config)
 
 	# read expression data
 	M.read_expression(expression_file)
 
-	# estimate the number of PCs (if n_components is set to zero)
-	if n_components == 0:
-		M.estimate_n_components()
-		if M.D == 0:
-			logger.error('The estimated number of non-trivial principal components is zero!')
-			return 1
-
-	# setting mHG_L to 0 will set the parameter to the default value (= the number of genes / 8)
+	# setting mHG_L to 0 will "turn off" the effect of the parameter (= set it to the number of genes)
 	if mHG_L == 0:
-		mHG_L = int(M.p/8.0)
+		mHG_L = M.p
 
 	# filter for most variable genes
 	if sel_var_genes > 0:
@@ -120,12 +114,10 @@ def main(args=None):
 	M.read_annotations(annotation_file)
 
 	# run GO-PCA!
-	gopca_result = M.run()
+	result = M.run()
 
 	# save output to file
-	logger.message('Saving result to file "%s"...' %(output_file),endline=False)
-	gopca_result.save(output_file)
-	logger.message('done!')
+	result.save(output_file)
 
 	return 0
 

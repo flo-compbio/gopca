@@ -55,8 +55,8 @@ class mHGTermResult(object):
 		self.mHG_s = mHG_s
 
 		# strength of enrichment
-		self.msfe_pval_thresh = None
-		self.msfe = None
+		self.escore_pval_thresh = None
+		self.escore = None
 
 	def __repr__(self):
 		return "<mHGTermResult: %s (pval=%.1e; X=%d; L=%d; N=%d); genes hash=%d; positions hash=%d)>" \
@@ -93,8 +93,8 @@ class mHGTermResult(object):
 	def fold_enrichment(self):
 		return self.k / (self.K * (self.n/float(self.N)))
 
-	def calculate_msfe(self,pval_thresh=1.0):
-		""" Calculate maximum significant fold enrichment. Returns both the number of genes selected and the corresponding fold enrichment. """
+	def calculate_escore(self,pval_thresh=1.0):
+		""" Calculate XL-mHG enrichment score.  """
 		N = self.N
 		K = self.K
 		X = self.X
@@ -119,19 +119,22 @@ class mHGTermResult(object):
 						k_max = k
 			k += 1
 
-		self.msfe_pval_thresh = pval_thresh
-		self.msfe = fe_max
+		self.escore_pval_thresh = pval_thresh
+		self.escore = fe_max
 
 	def get_pretty_format(self,omit_param=True,max_name_length=0):
 		term_name = self.term[3]
-		if max_name_length > 0 and len(term_str) > max_name_length:
+		if max_name_length > 0 and len(term_name) > max_name_length:
 			assert max_name_length >= 3
-			term_name = term_str[:(len(term_str)-3)] + '...'
+			term_name = term_name[:(max_name_length-3)] + '...'
 		term_str = term_name + ' (%d)' %(len(self.genes))
 		param_str = ''
 		if not omit_param:
 			param_str = ' [X=%d,L=%d,N=%d]' %(self.X,self.L,self.N)
-		details = ', p-value=%.1e%s' %(self.pval,param_str)
+		escore_str = ''
+		if self.escore is not None:
+			escore_str = ', e=%.1fx' %(self.escore)
+		details = ', p=%.1e%s%s' %(self.pval,escore_str,param_str)
 		return '%s%s' %(term_str,details)
 		
 	def get_pretty_GO_format(self,GO,omit_acc=False,omit_param=True,max_name_length=0):
@@ -142,7 +145,10 @@ class mHGTermResult(object):
 		param_str = ''
 		if not omit_param:
 			param_str = ' [X=%d,L=%d,N=%d]' %(self.X,self.L,self.N)
-		details = ', p-value=%.1e%s' %(self.pval,param_str)
+		escore_str = ''
+		if self.escore is not None:
+			escore_str = ', e=%.1fx' %(self.escore)
+		details = ', p=%.1e%s%s' %(self.pval,escore_str,param_str)
 		return '%s%s' %(term_str,details)
 
 class GOEnrichment(object):
@@ -176,7 +182,7 @@ class GOEnrichment(object):
 	def error(self,s,endline=True,flush=True):
 		self.logger.error(s,endline,flush)
 
-	def get_enriched_terms(self,ranked_genes,pval_thresh,X_frac,X_min,L,msfe_pval_thresh=None,selected_term_ids=[],mat=None,verbosity=None):
+	def get_enriched_terms(self,ranked_genes,pval_thresh,X_frac,X_min,L,escore_pval_thresh=None,selected_term_ids=[],mat=None,verbosity=None):
 		"""
 		Tests GO term enrichment of either all terms or the terms specified by ``selected_term_ids''.
 		"""
@@ -189,8 +195,8 @@ class GOEnrichment(object):
 		terms = self.terms
 		A = self.A
 
-		if msfe_pval_thresh is None:
-			msfe_pval_thresh = pval_thresh
+		if escore_pval_thresh is None:
+			escore_pval_thresh = pval_thresh
 
 		# test only some terms?
 		if selected_term_ids:
@@ -250,17 +256,18 @@ class GOEnrichment(object):
 
 		self.message('done!')
 
-		# calculate max. fold enrichment
-		self.message('Calculating max. significant fold enrichment for enriched terms...',endline=False)
+		# calculate enrichment score
+		self.message('Calculating enrichment score (using p-value threshold psi=%.1e) for enriched terms...' \
+				%(escore_pval_thresh),endline=False)
 		for term in enriched_terms:
-			term.calculate_msfe(msfe_pval_thresh)
+			term.calculate_escore(escore_pval_thresh)
 		self.message('done!')
 
 		# report results
 		q = len(enriched_terms)
 		ignored = m - tested
 		if ignored > 0:
-			self.message('%d/ %d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.' \
+			self.message('%d / %d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.' \
 						%(ignored,m,100*(ignored/float(m)),X_min),flush=False)
 
 		self.message('%d / %d tested GO terms were found to be significantly enriched (p-value <= %.1e).' \

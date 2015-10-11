@@ -1,4 +1,3 @@
-from go_pca_objects import GOPCAConfig
-from go_pca import GOPCA
+from go_pca_objects import GOPCAConfig,GOPCA
 
 __all__ = ['GOPCAConfig','GOPCA']

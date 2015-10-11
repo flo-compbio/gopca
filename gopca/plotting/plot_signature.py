@@ -22,10 +22,7 @@ import argparse
 import cPickle as pickle
 
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
-from scipy.cluster.hierarchy import linkage, dendrogram
 
-import gopca
 from gopca import common
 from genometools import misc
 
@@ -34,30 +31,43 @@ def read_args_from_cmdline():
 	parser = argparse.ArgumentParser(description='')
 
 	parser.add_argument('-g','--gopca-file',required=True)
+	parser.add_argument('-s','--signature-name',required=True)
 	parser.add_argument('-o','--output-file',required=True)
 
-	parser.add_argument('-d','--figure-dimensions',type=float,help='in inches',nargs=2,default=[18,18])
-	parser.add_argument('-r','--figure-resolution',type=float,help='in dpi',default=150)
-	parser.add_argument('-f','--figure-font-size',type=int,help='in pt',default=24)
+	parser.add_argument('-l','--gene-label-size',default='x-small')
+
+	parser.add_argument('-d','--figure-dimensions',type=float,help='in inches',nargs=2,default=[15,10])
+	parser.add_argument('-r','--figure-resolution',type=int,help='in dpi',default=150)
+	parser.add_argument('-f','--figure-font-size',type=int,help='in pt',default=20)
 	parser.add_argument('-m','--figure-font-family',default='serif')
 	parser.add_argument('-c','--figure-colormap',default='RdBu_r')
 	parser.add_argument('-vn','--figure-vmin',type=float,default=-3.0)
 	parser.add_argument('-vx','--figure-vmax',type=float,default=3.0)
+	parser.add_argument('-p','--figure-title-pos',type=float,default=0.95)
 
-	parser.add_argument('-l','--sig-max-name-len',type=int,default=50)
 	parser.add_argument('-co','--figure-colorbar-orientation',default='horizontal')
 	parser.add_argument('-ca','--figure-colorbar-anchor',type=float,nargs=2,default=(0.96,1.0))
 	parser.add_argument('-cs','--figure-colorbar-shrink',type=float,default=0.3)
 	parser.add_argument('-cp','--figure-colorbar-pad',type=float,default=0.015)
 
-	parser.add_argument('--sample-cluster-metric',default='euclidean')
+	parser.add_argument('--exclude-id',action='store_true')
+
+	parser.add_argument('--figure-subgrid-ratio',type=int,default=10)
 
 	parser.add_argument('-t','--use-tex',action='store_true')
 	parser.add_argument('-b','--matplotlib-backend',default=None)
+	parser.add_argument('-i','--invert-gene-order',action='store_true')
 	parser.add_argument('--disable-sample-clustering',action='store_true')
-	parser.add_argument('-i','--invert-signature-order',action='store_true')
+	parser.add_argument('--cluster-global',action='store_true')
+	parser.add_argument('--sort-by-signature',action='store_true')
 
 	return parser.parse_args()
+
+def simpleaxis(ax):
+	ax.spines['top'].set_visible(False)
+	ax.spines['right'].set_visible(False)
+	ax.get_xaxis().tick_bottom()
+	ax.get_yaxis().tick_left()
 
 def main(args=None):
 
@@ -65,9 +75,11 @@ def main(args=None):
 		args = read_args_from_cmdline()
 
 	result_file = args.gopca_file
+	sig_name = args.signature_name
 	output_file = args.output_file
-	#go_pickle_file = args.go_pickle_file
-	sample_cluster_metric = args.sample_cluster_metric
+
+	gene_label_size = args.gene_label_size
+	include_id = not(args.exclude_id)
 
 	# figure size
 	fig_dim = args.figure_dimensions
@@ -89,60 +101,98 @@ def main(args=None):
 	fig_cbar_shrink = args.figure_colorbar_shrink
 	fig_cbar_pad = args.figure_colorbar_pad
 
-	mpl_backend = args.matplotlib_backend
-	invert_signature_order = args.invert_signature_order
+	# specific
+	fig_title_pos = args.figure_title_pos
+	fig_subgrid_ratio = args.figure_subgrid_ratio
+	disable_sample_clustering = args.disable_sample_clustering
+	cluster_global = args.cluster_global
+	sort_by_signature = args.sort_by_signature
 
-	sig_max_name_len = args.sig_max_name_len
+	mpl_backend = args.matplotlib_backend
+	invert_gene_order = args.invert_gene_order
 
 	# read GO-PCA result
 	result = None
 	with open(result_file,'rb') as fh:
 		result = pickle.load(fh)
 
-	# generate labels
+	# find signature selected
 	signatures = result.signatures
-	labels = [sig.get_label(include_id=False,max_name_length=sig_max_name_len) for sig in signatures]
-	samples = result.samples
-	S = result.S
+	term_ids = set([sig.term[0] for sig in signatures])
+	sig = None
+	if sig_name in term_ids:
+		sig = [s for s in signatures if s.term[0] == sig_name]
+		assert len(sig) == 1
+		sig = sig[0]
+	else:
+		sig_name = sig_name.lower()
+		sig = [s for s in signatures if s.term[3].lower().startswith(sig_name)]
+		if len(sig) == 0:
+			print >> sys.stderr, 'Error: signature name not found.'
+			return 1
+		elif len(sig) > 1:
+			print >> sys.stderr, 'Error: signature name not unique, matched: %s' %(', '.join([s.term[3] for s in sig]))
+			return 1
+		sig = sig[0]
 
-	# clustering of rows (signatures)
-	order_rows = common.cluster_signatures(S,invert=invert_signature_order)
-	S = S[order_rows,:]
-	labels = [labels[idx] for idx in order_rows]
+	# get signature gene expression matrix and cluster rows
+	sig_genes = sig.genes
+	E = sig.E
+	print E.shape
+	order_rows = common.cluster_rows(E,metric='correlation',method='average')
+	if invert_gene_order:
+		order_rows = order_rows[::-1]
+	sig_genes = [sig_genes[i] for i in order_rows]
+	E = E[order_rows,:]
 
-	if not args.disable_sample_clustering:
-		# clustering of columns (samples)
-		print 'Clustering of samples...', ; sys.stdout.flush()
-		#distxy = squareform(pdist(S.T, metric='euclidean'))
-		distxy = squareform(pdist(S.T, metric=sample_cluster_metric))
-		R = dendrogram(linkage(distxy, method='average'),no_plot=True)
-		order_cols = np.int64([int(l) for l in R['ivl']])
-		S = S[:,order_cols]
-		samples = [samples[j] for j in order_cols]
-		print 'done!'; sys.stdout.flush()
+	# standardize gene expression matrix
+	E_std = common.get_standardized_matrix(E)
+	# calculate signature label and expression
+	sig_label = sig.get_label(include_id=include_id)
+	sig_expr = np.mean(E_std,axis=0)
+
+
+	# get sample order from signature matrix
+	if sort_by_signature:
+		a = np.argsort(sig_expr)
+		a = a[::-1]
+		sig_expr = sig_expr[a]
+		E_std = E_std[:,a]
+	elif not disable_sample_clustering:
+		if cluster_global:
+			S = result.S
+			order_cols = common.cluster_samples(S)
+		else:
+			order_cols = common.cluster_samples(E)
+		sig_expr = sig_expr[order_cols]
+		E_std = E_std[:,order_cols]
 
 	# plotting
-	print 'Plotting...', ; sys.stdout.flush()
-
 	import matplotlib as mpl
 	if mpl_backend is not None:
 		mpl.use(mpl_backend)
 	import matplotlib.pyplot as plt
 	from matplotlib import rc
 
-	#if plot_in_notebook:
-	#	from IPython import get_ipython
-	#	ipython = get_ipython()
-	#	ipython.magic('matplotlib inline')
-
 	if use_tex: rc('text',usetex=True)
 	rc('font',family=fig_font_family,size=fig_font_size)
 	rc('figure',figsize=(fig_dim[0],fig_dim[1]))
 	rc('savefig',dpi=fig_res)
 
-	# plotting
-	plt.imshow(S,interpolation='none',aspect='auto',vmin=fig_vmin,vmax=fig_vmax,cmap=fig_cmap)
+	# subgrid layout
+	ax = plt.subplot2grid((fig_subgrid_ratio,1),(0,0))
+	plt.sca(ax)
 
+	plt.imshow(np.atleast_2d(sig_expr),aspect='auto',interpolation='none',vmin=fig_vmin,vmax=fig_vmax,cmap=fig_cmap)
+	plt.xticks(())
+	plt.yticks([0],['Signature'],size='small')
+
+	ax = plt.subplot2grid((fig_subgrid_ratio,1),(1,0),rowspan=fig_subgrid_ratio-1)
+	plt.sca(ax)
+	plt.imshow(E_std,interpolation='none',aspect='auto',vmin=fig_vmin,vmax=fig_vmax,cmap=fig_cmap)
+	plt.yticks(np.arange(len(sig_genes)),sig_genes,size=gene_label_size)
+	plt.xlabel('Samples')
+	plt.ylabel('Genes')
 	plt.xticks(())
 
 	minint = int(fig_vmin)
@@ -151,15 +201,11 @@ def main(args=None):
 	cb = plt.colorbar(orientation=fig_cbar_orient,shrink=fig_cbar_shrink,pad=fig_cbar_pad,ticks=cbticks,use_gridspec=False,anchor=fig_cbar_anchor)
 	cb.ax.tick_params(labelsize='small')
 	cb.set_label('Standardized Expression',size='small')
+	plt.suptitle(sig_label,va='top',y=fig_title_pos)
 
-	q,n = S.shape
-	plt.yticks(np.arange(q),labels,size='x-small')
-	plt.xlabel('Samples (n=%d)' %(n))
-	plt.ylabel('Signatures')
-	print 'done!'; sys.stdout.flush()
+	#plt.tight_layout()
 
 	print 'Saving to file...', ; sys.stdout.flush()
-	#plt.gcf().set_size_inches(fig_dim[0],fig_dim[1])
 	plt.savefig(output_file,bbox_inches='tight')
 	print 'done!'; sys.stdout.flush()
 

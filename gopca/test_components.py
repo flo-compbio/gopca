@@ -21,27 +21,26 @@ import os
 import argparse
 
 import numpy as np
-from scipy.stats import norm
 from sklearn.decomposition import PCA, RandomizedPCA
-#from sklearn.decomposition import RandomizedPCA
 
 from gopca import common
 from gopca.printf import printf
 
 def read_args_from_cmdline():
-	parser = argparse.ArgumentParser(description='GO-PCA')
+	parser = argparse.ArgumentParser(description='Principal Component Tester')
 
 	parser.add_argument('-e','--expression-file',required=True)
-	parser.add_argument('-t','--permutations',type=int,default=15)
-	parser.add_argument('-c','--test-components',type=int,default=50)
-	parser.add_argument('-q','--qval-thresh',type=float,default=0.05)
+	parser.add_argument('-G','--select-variable-genes',type=int,default=0)
 
-	parser.add_argument('-s','--seed',type=int,default=123456789)
+	parser.add_argument('-t','--permutations',type=int,default=15)
+	parser.add_argument('-z','--zscore-thresh',type=float,default=3.0)
+
+	parser.add_argument('-s','--seed',type=int,default=None)
 	parser.add_argument('--quiet',action='store_true')
 
 	return parser.parse_args()
 
-def message(m,quiet,flush=True,endline=False):
+def message(m,quiet,flush=True,endline=True):
 	if not quiet:
 		end = ' '
 		if endline:
@@ -56,79 +55,53 @@ def main(args=None):
 		args = read_args_from_cmdline()
 
 	expression_file = args.expression_file
+	sel_var_genes = args.select_variable_genes
 	t = args.permutations
-	test_components = args.test_components
-	qval_thresh = args.qval_thresh
+	zscore_thresh = args.zscore_thresh
 	seed = args.seed
 	quiet = args.quiet
 
 	# set seed for random number generator
-	if seed is not None:
-		np.random.seed(seed)
+	if seed is None:
+		seed = np.random.randint(int(1e9))
+	np.random.seed(seed)
+	message('Using seed: %d' %(seed),quiet)
 
 	# checks
 	assert os.path.isfile(expression_file)
 	assert t >= 2
-	assert 0 < qval_thresh <= 1.0
+	assert zscore_thresh >= 0
 
 	# read expression
 	genes,samples,E = common.read_expression(expression_file)
 
+	# filter for most variable genes
+	if sel_var_genes > 0:
+		var = np.var(E,axis=1)
+		a = np.argsort(var)
+		a = a[::-1]
+		genes = [genes[i] for i in a[:sel_var_genes]]
+		E = E[a[:sel_var_genes]]
+		
+	message('Expression matrix shape: ' + str(E.shape),quiet)
 	#E += (np.random.rand(*E.shape)*1e-4)
 
 	# do PCA on unpermuted data
 	p,n = E.shape
-	n_comps = test_components
-	all_comps = min(p,n-1)
-	if all_comps < test_components:
-		n_comps = all_comps
-		message('Warning: The number of PCs to test that was specified is %d. However, there are only %d principal components!' \
-				%(test_components,n_comps),quiet=quiet)
-		print
-		
+	n_comps = min(p,n-1)
 	M = PCA(n_components = n_comps)
 	M.fit(E.T)
 	d = M.explained_variance_ratio_.copy()
 
-	# do permutations
+	# get permutation-based threshold
 	message('Performing permutations...',quiet=quiet,endline=False)
-	d_max_null = np.empty(t,dtype=np.float64)
-	E_perm = np.empty((p,n),dtype=np.float64)
-	M_null = RandomizedPCA(n_components = 1, random_state=seed)
-	for j in xrange(t):
-		message('%d...' %(j+1),quiet=quiet,endline=False)
-
-		for i in range(p):
-			E_perm[i,:] = E[i,np.random.permutation(n)]
-
-		M_null.fit(E_perm.T)
-		d_max_null[j] = M_null.explained_variance_ratio_[0]
+	thresh = common.get_pc_explained_variance_threshold(E,zscore_thresh,t,seed)
 	message('done!',quiet=quiet)
 
-	mean_null = np.mean(d_max_null)
-	std_null = np.std(d_max_null,ddof=1)
-
-	# calculate z-scores and corresponding p-values
-	zscores = (d-mean_null) / std_null
-	pvals = norm.sf(zscores)
-
-	if test_components > n_comps:
-		pvals = np.r_[pvals,[1.0]*(test_components-n_comps)]
-	assert pvals.size == test_components
-
-	# conservatively force monotonicity of p-values
-	for i in xrange(1,n_comps):
-		pvals[i] = max(pvals[i-1],pvals[i])
-	assert np.all(np.argsort(pvals,kind='mergesort') == np.arange(test_components)) # stable sort
-
-	# calculate q-values
-	qvals = common.get_qvalues(pvals)
-	assert np.all(np.argsort(qvals,kind='mergesort') == np.arange(test_components)) # stable sort
-
-	significant = np.sum(qvals <= qval_thresh)
-	args.output = significant
-	message('Number of significant principal components at FDR threshold of q=%.3f: %d (p-value cutoff = %.1e)' \
-			%(qval_thresh,significant,pvals[significant-1]),quiet)
+	significant = np.sum(d >= thresh)
+	args.result = significant
+	message('Number of significant principal components with z-score >= %.1f: %d' \
+			%(zscore_thresh,significant),quiet)
 
 	return 0
 

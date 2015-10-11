@@ -23,6 +23,7 @@ import cPickle as pickle
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
+from sklearn.decomposition import RandomizedPCA
 
 from genometools import misc
 
@@ -99,11 +100,43 @@ class Logger(object):
 	def error(self,s,endline=True,flush=False):
 
 		s = 'Error: ' + s
-		buf = self.stderr
-		if self.verbosity == 0:
+		buf = sys.stderr
+		if self.verbosity < 1:
 			buf = None
 
 		self.output(s,buf,endline,flush)
+
+
+def get_pc_explained_variance_threshold(E,z,t,seed):
+
+	# initialize random number generator
+	np.random.seed(seed)
+
+	# do permutations
+	p,n = E.shape
+	d_max_null = np.empty(t,dtype=np.float64)
+	E_perm = np.empty((p,n),dtype=np.float64)
+	M_null = RandomizedPCA(n_components = 1, random_state=seed)
+	for j in xrange(t):
+
+		for i in range(p):
+			E_perm[i,:] = E[i,np.random.permutation(n)]
+
+		M_null.fit(E_perm.T)
+		d_max_null[j] = M_null.explained_variance_ratio_[0]
+
+	# calculate z-score threshold
+	mean_null = np.mean(d_max_null)
+	std_null = np.std(d_max_null,ddof=1)
+	thresh = mean_null + z * std_null
+
+	return thresh
+		
+def simpleaxis(ax):
+	ax.spines['top'].set_visible(False)
+	ax.spines['right'].set_visible(False)
+	ax.get_xaxis().tick_bottom()
+	ax.get_yaxis().tick_left()
 
 def print_signatures(signatures):
 	a = None
@@ -165,11 +198,25 @@ def write_gene_data(output_file,genes,labels,D):
 		for i,g in enumerate(genes):
 			writer.writerow([g] + ['%.5f' %(D[i,j]) for j in range(n)])
 
+def get_centered(e):
+	e = e.copy()
+	e -= np.mean(e)
+	return e
+
+def get_centered_matrix(E):
+	return np.float64([get_centered(e) for e in E])
+
 def get_standardized(e):
 	e = e.copy()
 	e -= np.mean(e)
 	e /= np.std(e,ddof=1)
 	return e
+
+def get_standardized_matrix(E):
+	return np.float64([get_standardized(e) for e in E])
+
+#def get_mean_standardized_(E):
+#	return np.mean(np.float64([get_standardized(e) for e in E]),axis=0)
 
 def get_signature_expression(genes,E,sig_genes):
 	p_sig = len(sig_genes)
@@ -198,9 +245,14 @@ def get_signature_expression_robust(genes,E,sig_genes):
 	sig = np.mean(S,axis=0)
 	return sig
 
+def get_median_pairwise_correlation(E):
+	C = np.corrcoef(E)
+	sel = np.triu_indices(C.shape[0],k=1)
+	return np.median(C[sel])
+
 def get_signature_label(GO,sig,max_length=40):
 	count = ' (%d:%d/%d)' %(sig.pc,len(sig.genes),sig.K)
-	enr = sig.enrichment
+	enr = sig.enr
 	return GO.terms[enr.term[0]].get_pretty_format(omit_acc=True,max_name_length=max_length) + count
 
 def variance_filter(genes,E,top):
@@ -245,6 +297,10 @@ def cluster_signatures(S,metric='correlation',method='average',invert=False):
 	# hierarchical clustering of signatures
 	order_rows = cluster_rows(S,metric,method,invert)
 	return order_rows
+
+def cluster_samples(S,metric='euclidean',method='average',invert=False):
+	order_cols = cluster_rows(S.T,metric,method,invert)
+	return order_cols
 
 def get_qvalues(pvals,pi_zero=1.0):
 	# implements storey-tibshirani procedure for calculating q-values

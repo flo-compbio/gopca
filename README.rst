@@ -3,10 +3,16 @@ GO-PCA
 
 GO-PCA is an unsupervised method to explore biological heterogeneity in expression data using prior knowledge. It combines `principal component analysis (PCA) <https://en.wikipedia.org/wiki/Principal_component_analysis>`_ with `nonparametric GO enrichment analysis <dx.doi.org/10.1186/1471-2105-10-48>`_, in order to generate *signatures*, i.e., small sets of genes that are both strongly correlated and closely functionally related. It then produces a *signature matrix*, which contains the expression profiles of all signatures across all samples, based on the untransformed data.
 
+Installation
+------------
+
+Installation instructions can be found in the `"Installation" section <https://gopca.readthedocs.org/en/latest/install.html>`_ of the documentation.
+
 Documentation
 -------------
 
-In the works!
+Read `GO-PCA's documentation <https://gopca.readthedocs.org/en/latest>`_ on Read The Docs.
+
 
 How to Cite GO-PCA
 ------------------

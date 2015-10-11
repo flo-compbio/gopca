@@ -22,8 +22,6 @@ import argparse
 import cPickle as pickle
 
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
-from scipy.cluster.hierarchy import linkage, dendrogram
 
 from gopca import common
 from genometools import misc
@@ -35,9 +33,9 @@ def read_args_from_cmdline():
 	parser.add_argument('-g','--gopca-file',required=True)
 	parser.add_argument('-o','--output-file',required=True)
 
-	parser.add_argument('-d','--figure-dimensions',type=float,help='in inches',nargs=2,default=[18,18])
+	parser.add_argument('-s','--figure-size',type=float,help='in inches',nargs=2,default=[18,18])
 	parser.add_argument('-r','--figure-resolution',type=int,help='in dpi',default=150)
-	parser.add_argument('-f','--figure-font-size',type=int,help='in pt',default=24)
+	parser.add_argument('-f','--figure-font-size',type=int,help='in pt',default=32)
 	parser.add_argument('-m','--figure-font-family',default='serif')
 	#parser.add_argument('-xn','--figure-xmin',type=float,default=0.8)
 	#parser.add_argument('-xx','--figure-xmax',type=float,default=1.0)
@@ -65,7 +63,7 @@ def main(args=None):
 	output_file = args.output_file
 
 	# figure size
-	fig_dim = args.figure_dimensions
+	fig_size = args.figure_size
 	fig_res = args.figure_resolution
 
 	# figure text
@@ -115,7 +113,7 @@ def main(args=None):
 
 	if use_tex: rc('text',usetex=True)
 	rc('font',family=fig_font_family,size=fig_font_size)
-	rc('figure',figsize=(fig_dim[0],fig_dim[1]))
+	rc('figure',figsize=(fig_size[0],fig_size[1]))
 	rc('savefig',dpi=fig_res)
 
 	boxprops = {'ec':'none', 'fc':'skyblue', 'lw':0}
@@ -124,25 +122,34 @@ def main(args=None):
 	#flierprops = {'color':'gray'}
 	flierprops = {'color':'skyblue','markeredgewidth':2.0}
 
-	plt.boxplot(groups,vert=False,labels=labels,flierprops=flierprops,medianprops=medianprops,whiskerprops=whiskerprops,\
+	bp = plt.boxplot(groups,vert=False,labels=labels,flierprops=flierprops,medianprops=medianprops,whiskerprops=whiskerprops,\
            patch_artist=True,boxprops=boxprops)
-	plt.yticks(size='small')
-	plt.xlabel('Pair-wise Correlation of Signature Genes')
+
+	plt.setp(bp['boxes'], zorder=100)
+	plt.setp(bp['whiskers'], zorder=100)
+	plt.setp(bp['fliers'], zorder=100)
+	plt.setp(bp['medians'], zorder=200)
+	plt.setp(bp['caps'], zorder=100)
+
+
+	plt.yticks(size='x-small')
+	plt.xlabel('Pairwise Correlation of Signature Genes')
 	plt.ylabel('Signatures')
 
 	#plt.grid(b=True,which='major',axis='x',lw=3.0,color='red')
 	q = S.shape[0]
 	plt.grid(b=True,which='major',axis='y',lw=3.0,color='darkgray')
 	for x in [-0.5,0,0.5]:
-		plt.plot([x,x],[0.5,q+0.5],'-',color='pink',lw=2.0,zorder=-50)
+		plt.plot([x,x],[0.5,q+0.5],'-',color='pink',lw=2.0)
 
 	plt.xlim(-1,1)
-	plt.ylim(0.5,q+0.5)
+	#plt.ylim(0.5,q+0.5)
+	plt.ylim(q+0.5,0.5)
 	simpleaxis(plt.gca())
 
 	print 'Saving to file...', ; sys.stdout.flush()
 	#plt.gcf().set_size_inches(fig_dim[0],fig_dim[1])
-	plt.savefig(output_file,bbox_inches='tight')
+	plt.savefig(output_file,bbox_inches='tight',zorder=0)
 	print 'done!'; sys.stdout.flush()
 
 	return 0

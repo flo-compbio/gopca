@@ -24,7 +24,7 @@ from os import path
 root = 'gopca'
 
 here = path.abspath(path.dirname(__file__))
-description = 'GO-PCA: An Unsupervised Method to Explore Biological Heterogeneity in Gene Expression Data Using Prior Knowledge'
+description = 'GO-PCA: An Unsupervised Method to Explore Gene Expression Data Using Prior Knowledge'
 
 long_description = ''
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
@@ -33,7 +33,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='gopca',
 
-    version='1.1rc1',
+    version='1.1rc2',
 
     description=description,
     long_description=long_description,
@@ -79,16 +79,30 @@ setup(
 	# executable scripts
     entry_points={
         'console_scripts': [
-            'extract_go_annotations.py = gopca.extract_go_annotations:main',
-            'go-pca.py = gopca.go_pca:main',
-			'extract_signatures.py = gopca.scripts.extract_signatures:main',
-			'extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
-            'extract_matlab_file.py = gopca.scripts.extract_matlab_file:main',
-            'plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
-            'plot_signature_correlation_matrix.py = gopca.plotting.plot_signature_correlation_matrix:main',
-			'plot_within_signature_correlations.py = gopca.plotting.plot_within_signature_correlations:main',
-            'plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
-			'gopca_test_components.py = gopca.test_components:main'
+			'gopca_test_components.py = gopca.test_components:main',
+			'gopca_extract_go_annotations.py = gopca.extract_go_annotations:main',
+			'go-pca.py = gopca.go_pca:main',
+
+			'gopca_extract_signatures.py = gopca.scripts.extract_signatures:main',
+			'gopca_extract_signatures_excel.py = gopca.scripts.extract_signatures_excel:main',
+			'gopca_extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
+			'gopca_extract_matlab_file.py = gopca.scripts.extract_matlab_file:main',
+
+			'gopca_plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
+			'gopca_plot_signature_correlation_matrix.py = gopca.plotting.plot_signature_correlation_matrix:main',
+			'gopca_plot_within_signature_correlations.py = gopca.plotting.plot_within_signature_correlations:main',
+			'gopca_plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
+			'gopca_plot_signature.py = gopca.plotting.plot_signature:main',
+			'gopca_plot_pc_variance_explained.py = gopca.plotting.plot_pc_variance_explained:main',
+			'gopca_plot_pc_scores.py = gopca.plotting.plot_pc_scores:main',
+
+			'bootstrap-go-pca.py = gopca.bootstrap_go_pca:main',
+			'gopca_extract_bootstrap_sample.py = gopca.scripts.extract_bootstrap_sample:main',
+			'gopca_plot_bootstrap_numbers.py = gopca.plotting.plot_bootstrap_numbers:main',
+			'gopca_plot_bootstrap_sample_size_summary.py = gopca.plotting.plot_bootstrap_sample_size_summary:main',
+			'gopca_plot_bootstrap_sample_size_matrix.py = gopca.plotting.plot_bootstrap_sample_size_matrix:main',
+			'gopca_plot_bootstrap_pc_matrix.py = gopca.plotting.plot_bootstrap_pc_analysis:main',
+			'gopca_plot_bootstrap_signature_detection.py = gopca.plotting.plot_bootstrap_signature_detection:main',
         ],
     },
 )

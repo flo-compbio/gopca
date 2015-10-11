@@ -35,23 +35,23 @@ def read_args_from_cmdline():
 	parser.add_argument('-g','--gopca-file',required=True)
 	parser.add_argument('-o','--output-file',required=True)
 
-	parser.add_argument('-d','--figure-dimensions',type=float,help='in inches',nargs=2,default=[18,18])
-	parser.add_argument('-r','--figure-resolution',type=int,help='in dpi',default=150)
-	parser.add_argument('-f','--figure-font-size',type=int,help='in pt',default=24)
-	parser.add_argument('-m','--figure-font-family',default='serif')
-	parser.add_argument('-c','--figure-colormap',default='RdBu_r')
-	parser.add_argument('-vn','--figure-vmin',type=float,default=-1.0)
-	parser.add_argument('-vx','--figure-vmax',type=float,default=1.0)
+	parser.add_argument('-fs','--figure-size',type=float,help='in inches',nargs=2,default=[18,18])
+	parser.add_argument('-fr','--figure-resolution',type=int,help='in dpi',default=150)
+	parser.add_argument('-ff','--figure-font-size',type=int,help='in pt',default=24)
+	parser.add_argument('-fm','--figure-font-family',default='serif')
+	parser.add_argument('-fc','--figure-colormap',default='RdBu_r')
+	parser.add_argument('-fvn','--figure-vmin',type=float,default=-1.0)
+	parser.add_argument('-fvx','--figure-vmax',type=float,default=1.0)
 
 	parser.add_argument('-l','--sig-max-name-len',type=int,default=50)
-	parser.add_argument('-co','--figure-colorbar-orientation',default='horizontal')
-	parser.add_argument('-ca','--figure-colorbar-anchor',type=float,nargs=2,default=(0.96,1.0))
-	parser.add_argument('-cs','--figure-colorbar-shrink',type=float,default=0.3)
-	parser.add_argument('-cp','--figure-colorbar-pad',type=float,default=0.015)
+	parser.add_argument('-co','--colorbar-orientation',default='horizontal')
+	parser.add_argument('-ca','--colorbar-anchor',type=float,nargs=2,default=(0.96,1.0))
+	parser.add_argument('-cs','--colorbar-shrink',type=float,default=0.3)
+	parser.add_argument('-cp','--colorbar-pad',type=float,default=0.015)
 
 	parser.add_argument('-t','--use-tex',action='store_true')
 	parser.add_argument('-b','--matplotlib-backend',default=None)
-	parser.add_argument('-i','--invert-signature-order',action='store_true')
+	parser.add_argument('-r','--reverse-signature-order',action='store_true')
 
 	return parser.parse_args()
 
@@ -60,13 +60,11 @@ def main(args=None):
 	if args is None:
 		args = read_args_from_cmdline()
 
-	print "TEST"
 	result_file = args.gopca_file
 	output_file = args.output_file
-	#go_pickle_file = args.go_pickle_file
 
 	# figure size
-	fig_dim = args.figure_dimensions
+	fig_size = args.figure_size
 	fig_res = args.figure_resolution
 
 	# figure text
@@ -80,13 +78,13 @@ def main(args=None):
 	fig_cmap = args.figure_colormap
 
 	# figure colorbar
-	fig_cbar_orient = args.figure_colorbar_orientation
-	fig_cbar_anchor = args.figure_colorbar_anchor
-	fig_cbar_shrink = args.figure_colorbar_shrink
-	fig_cbar_pad = args.figure_colorbar_pad
+	cbar_orient = args.colorbar_orientation
+	cbar_anchor = args.colorbar_anchor
+	cbar_shrink = args.colorbar_shrink
+	cbar_pad = args.colorbar_pad
 
 	mpl_backend = args.matplotlib_backend
-	invert_signature_order = args.invert_signature_order
+	reverse_signature_order = args.reverse_signature_order
 
 	sig_max_name_len = args.sig_max_name_len
 
@@ -106,7 +104,7 @@ def main(args=None):
 	assert C.shape[0] == q
 
 	# clustering of rows (signatures)
-	order_rows = common.cluster_rows(S,invert=invert_signature_order)
+	order_rows = common.cluster_rows(S,invert=reverse_signature_order)
 	C = C[order_rows,:]
 	labels = [labels[idx] for idx in order_rows]
 
@@ -129,7 +127,7 @@ def main(args=None):
 
 	if use_tex: rc('text',usetex=True)
 	rc('font',family=fig_font_family,size=fig_font_size)
-	rc('figure',figsize=(fig_dim[0],fig_dim[1]))
+	rc('figure',figsize=(fig_size[0],fig_size[1]))
 	rc('savefig',dpi=fig_res)
 
 	# plotting
@@ -140,7 +138,7 @@ def main(args=None):
 	minint = int(fig_vmin)
 	maxint = int(fig_vmax)
 	cbticks = np.arange(minint,maxint+0.01,0.5)
-	cb = plt.colorbar(orientation=fig_cbar_orient,shrink=fig_cbar_shrink,pad=fig_cbar_pad,ticks=cbticks,use_gridspec=False,anchor=fig_cbar_anchor)
+	cb = plt.colorbar(orientation=cbar_orient,shrink=cbar_shrink,pad=cbar_pad,ticks=cbticks,use_gridspec=False,anchor=cbar_anchor)
 	cb.ax.tick_params(labelsize='small')
 	cb.set_label('Pearson Correlation',size='small')
 

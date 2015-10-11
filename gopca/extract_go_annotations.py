@@ -85,6 +85,7 @@ def main(args=None):
 	if len(select_evidence) == 1 and (not select_evidence[0].strip(' ')):
 		select_evidence = []
 	GO = GOParser()
+	print go_ontology_file
 	GO.parse_ontology(go_ontology_file,part_of_cc_only=False)
 	GO.parse_annotations(go_association_file,gene_file,select_evidence=select_evidence)
 

@@ -15,24 +15,90 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+import argparse
 import re
 import cPickle as pickle
 import hashlib
 import time
+from copy import deepcopy
+from collections import OrderedDict
 
 import numpy as np
 from sklearn.decomposition import PCA
+from scipy.stats import pearsonr
 
 from gopca import common
 from goparser import GOParser
 from go_enrichment import GOEnrichment
-		
+
+class GOPCAArgumentParser(argparse.ArgumentParser):
+
+	def __init__(self,*args,**kwargs):
+
+		if 'description' not in kwargs or kwargs['description'] is None:
+			kwargs['description'] = 'GO-PCA'
+		argparse.ArgumentParser.__init__(self,*args,**kwargs)
+		parser = self
+
+		###
+		### Required arguments
+		###
+
+		# input files
+		parser.add_argument('-e','--expression-file',required=True)
+		parser.add_argument('-a','--annotation-file',required=True)
+		parser.add_argument('-t','--ontology-file',default=None)
+
+		# output file
+		parser.add_argument('-o','--output-file',required=True)
+
+		# number of principal components to test
+		parser.add_argument('-D','--principal-components',type=int,default=0) # 0 = automatic
+
+		###
+		### Optional arguments
+		###
+
+		# log file
+		parser.add_argument('-l','--log-file',default=None)
+
+		# GO-PCA parameters
+		parser.add_argument('-P','--pval-thresh',type=float,default=1e-6) # p-value threshold for GO enrichment
+		parser.add_argument('-R','--sig-corr-thresh',type=float,default=0.5) # correlation threshold for signature genes
+		parser.add_argument('-E','--escore-thresh',type=float,default=2.0) # XL-mHG enrichment score threshold
+
+		parser.add_argument('-Xf','--mHG-X-frac',type=float,default=0.25) # 0=off
+		parser.add_argument('-Xm','--mHG-X-min',type=int,default=5) # 0=off
+		parser.add_argument('-L','--mHG-L',type=int,default=1000) # 0=off
+		parser.add_argument('--escore-pval-thresh',type=float,default=1e-4) # p-value threshold for XL-mHG enrichment score calculation
+
+		# variance filter
+		parser.add_argument('-G','--select-variable-genes',type=int,default=0)
+
+		# allow filtering to be disabled
+		parser.add_argument('--disable-local-filter',action='store_true')
+		parser.add_argument('--disable-global-filter',action='store_true')
+
+		# output verbosity
+		parser.add_argument('-v','--verbosity',type=int,default=3)
+
+		# for automatically determining the number of PCs
+		# (only used if -D is unset)
+		parser.add_argument('-s','--seed',type=int,default=None)
+		parser.add_argument('-pp','--pc-permutations',type=int,default=15)
+		parser.add_argument('-pz','--pc-zscore-thresh',type=float,default=2.0)
+
+		### legacy options
+		parser.add_argument('--go-part-of-cc-only',action='store_true')
+
+
 class GOPCAConfig(object):
 
 	valid_params = set(['n_components','pval_thresh','sig_corr_thresh',\
 			'mHG_X_frac','mHG_X_min','mHG_L',\
-			'msfe_pval_thresh','msfe_thresh',\
+			'escore_pval_thresh','escore_thresh',\
 			'disable_local_filter','disable_global_filter',\
+			'seed','pc_permutations','pc_zscore_thresh',\
 			'go_part_of_cc_only'])
 
 	def __init__(self,logger,**kwargs):
@@ -54,10 +120,13 @@ class GOPCAConfig(object):
 		assert kwargs['mHG_L'] >= 0
 		assert isinstance(kwargs['pval_thresh'],(int,float))
 		assert 0.0 < float(kwargs['pval_thresh']) <= 1.0
-		assert isinstance(kwargs['msfe_pval_thresh'],(int,float))
-		assert 0.0 < float(kwargs['msfe_pval_thresh']) <= 1.0
-		assert isinstance(kwargs['msfe_thresh'],(int,float))
-		assert float(kwargs['msfe_thresh']) >= 0.0
+		assert isinstance(kwargs['escore_pval_thresh'],(int,float))
+		assert 0.0 < float(kwargs['escore_pval_thresh']) <= 1.0
+		assert isinstance(kwargs['escore_thresh'],(int,float))
+		assert float(kwargs['escore_thresh']) >= 0.0
+		assert isinstance(kwargs['seed'],int) and kwargs['seed'] >= 0
+		assert isinstance(kwargs['pc_permutations'],int) and kwargs['pc_permutations'] > 0
+		assert isinstance(kwargs['pc_zscore_thresh'],float)
 
 		kwargs = dict([k,kwargs[k]] for k in list(GOPCAConfig.valid_params))
 		self.__dict__.update(kwargs)
@@ -105,10 +174,12 @@ class GOPCA(object):
 		self.GO = None
 		self.annotations = None
 
-		self.result = None
-
 	@property
 	def n_components(self):
+		return self.config.n_components
+
+	@property
+	def D(self):
 		return self.config.n_components
 
 	@property
@@ -130,6 +201,10 @@ class GOPCA(object):
 		return self.config.pval_thresh
 
 	@property
+	def sig_corr_thresh(self):
+		return self.config.sig_corr_thresh
+
+	@property
 	def L(self):
 		return self.config.mHG_L
 
@@ -142,12 +217,24 @@ class GOPCA(object):
 		return self.config.mHG_X_min
 
 	@property
-	def msfe_pval_thresh(self):
-		return self.config.msfe_pval_thresh
+	def escore_pval_thresh(self):
+		return self.config.escore_pval_thresh
 
 	@property
-	def msfe_thresh(self):
-		return self.config.msfe_thresh
+	def seed(self):
+		return self.config.seed
+
+	@property
+	def pc_permutations(self):
+		return self.config.pc_permutations
+
+	@property
+	def pc_zscore_thresh(self):
+		return self.config.pc_zscore_thresh
+
+	@property
+	def escore_thresh(self):
+		return self.config.escore_thresh
 
 	def message(self,s,endline=True,flush=True):
 		self.logger.message(s,endline,flush)
@@ -178,10 +265,32 @@ class GOPCA(object):
 		self.samples = samples
 		self.E = E
 
+	def estimate_n_components(self,quiet=False):
+
+		assert isinstance(self.E,np.ndarray) # make sure expression data has already been read
+
+		# perform PCA
+		if not quiet:
+			self.message('Estimating the number of principal components (seed = %d)...' %(self.seed), endline=False)
+		p,n = self.E.shape
+		d_max = min(p,n-1)
+		M_pca = PCA(n_components = d_max)
+		M_pca.fit(self.E.T)
+
+		d = M_pca.explained_variance_ratio_
+
+		thresh = common.get_pc_explained_variance_threshold(self.E,self.pc_zscore_thresh,self.pc_permutations,self.seed)
+		d_est = np.sum(d >= thresh)
+
+		if not quiet:
+			self.message('done!')
+			self.message('The estimated number of PCs is %d.' %(d_est))
+		self.config.n_components = d_est
+
 	def print_signatures(self,signatures):
 		a = None
 		maxlength = 50
-		a = sorted(range(len(signatures)),key=lambda i: -signatures[i].msfe)
+		a = sorted(range(len(signatures)),key=lambda i: -signatures[i].escore)
 
 		for i in a:
 			sig = signatures[i]
@@ -209,7 +318,7 @@ class GOPCA(object):
 		lost_var = total_var - np.sum(np.var(self.E,axis=1))
 		self.message('Selected the %d most variable genes (excluded %.1f%% of genes, representing %.1f%% of total variance).' \
 				%(n_top,100*(lost_p/float(p)),100*(lost_var/total_var)),flush=False)
-		p,n = E.shape
+		p,n = self.E.shape
 		self.message('New expression matrix dimensions: %d genes x %d samples.' %(p,n))
 
 		# adjust mHG L parameter, if necessary
@@ -261,7 +370,7 @@ class GOPCA(object):
 		self.message('Performing PCA...', endline=False)
 		sys.stdout.flush()
 		M_pca = PCA(n_components = self.n_components)
-		M_pca.fit(self.E.T)
+		Y = M_pca.fit_transform(self.E.T)
 		self.message('done!')
 
 		# output cumulative fraction explained for each PC
@@ -309,21 +418,14 @@ class GOPCA(object):
 		self.print_signatures(final_signatures)
 
 		S = np.float64([common.get_signature_expression(self.genes,self.E,sig.genes) for sig in final_signatures])
-		self.result = GOPCAResult(self.config,self.genes,self.samples,W,final_signatures,S)
+
+		# it's important that we generate a copy of self.config for the result
+		result = GOPCAResult(deepcopy(self.config),self.genes,self.samples,W,Y,final_signatures,S)
 
 		t1 = time.time()
 		self.message('GO-PCA runtime: %.2fs' %(t1-t0))
 
-	def save_result(self,output_file):
-		self.message('Saving GO-PCA result to file "%s"...' %(output_file),endline=False)
-		with open(output_file,'wb') as ofh:
-			pickle.dump(self.result,ofh,pickle.HIGHEST_PROTOCOL)
-		self.message("done!")
-
-		#config = GOPCAConfig(**conf_dict)
-		#result = GOPCAResult(config,genes,samples,W,final_signatures,S)
-		#with open(output_file,'wb') as ofh:
-		#	pickle.dump(result,ofh,pickle.HIGHEST_PROTOCOL)
+		return result
 
 	def local_filter(self,M_enrich,enriched_terms,ranked_genes):
 		# implements GO-PCA's "local" filter
@@ -334,7 +436,7 @@ class GOPCA(object):
 
 		# sort enriched terms by enrichment
 		q = len(enriched_terms)
-		a = sorted(range(q),key=lambda i:-enriched_terms[i].msfe)
+		a = sorted(range(q),key=lambda i:-enriched_terms[i].escore)
 		todo = [enriched_terms[i] for i in a]
 
 		# keep the most enriched term
@@ -366,7 +468,7 @@ class GOPCA(object):
 			# test if GO term is still enriched after removing all previously used genes
 			enr = M_enrich.get_enriched_terms(ranked_genes,self.pval_thresh,\
 					self.X_frac,self.X_min,L,\
-					self.msfe_pval_thresh,selected_term_ids=[term_id],\
+					escore_pval_thresh=self.escore_pval_thresh,selected_term_ids=[term_id],\
 					mat=mat,verbosity=1)
 			assert len(enr) in [0,1]
 			if enr: # enr will be an empty list if GO term does not meet the p-value threshold
@@ -375,9 +477,9 @@ class GOPCA(object):
 
 				# test fold enrichment threshold (if specified)
 				still_enriched = False
-				if self.msfe_thresh is None:
+				if self.escore_thresh is None:
 					still_enriched = True
-				elif enr.msfe >= self.msfe_thresh:
+				elif enr.escore >= self.escore_thresh:
 					still_enriched = True
 
 				if still_enriched:
@@ -406,9 +508,9 @@ class GOPCA(object):
 		if len(previous_signatures) == 0:
 			return new_signatures
 		kept_signatures = []
-		previous_terms = set([sig.enrichment.term[0] for sig in previous_signatures])
+		previous_terms = set([sig.term[0] for sig in previous_signatures])
 		for sig in new_signatures:
-			term_id = sig.enrichment.term[0]
+			term_id = sig.term[0]
 			term = GO.terms[term_id]
 			novel = True
 			for t in set([term_id]) | term.ancestors | term.descendants:
@@ -436,18 +538,18 @@ class GOPCA(object):
 		ranked_genes = [self.genes[i] for i in a]
 
 		# find enriched GO terms using the XL-mHG test
-		enriched_terms = M.get_enriched_terms(ranked_genes,self.pval_thresh,self.X_frac,self.X_min,self.L,self.msfe_pval_thresh)
+		# get_enriched_terms also calculates the enrichment score, but does not use it for filtering
+		enriched_terms = M.get_enriched_terms(ranked_genes,self.pval_thresh,self.X_frac,self.X_min,self.L,self.escore_pval_thresh)
 		if not enriched_terms:
 			return []
 
 		# filter enriched GO terms by strength of enrichment (if threshold is provided)
-		if self.msfe_thresh is not None:
+		if self.escore_thresh is not None:
 			q_before = len(enriched_terms)
-			enriched_terms = [t for t in enriched_terms if t.msfe >= self.msfe_thresh]
+			enriched_terms = [t for t in enriched_terms if t.escore >= self.escore_thresh]
 			q = len(enriched_terms)
-			self.message('Enrichment filter: Kept %d / %d enriched terms with max. significant fold enrichment >= %.1fx.' \
-					%(q,q_before,self.msfe_thresh))
-
+			self.message('Enrichment filter: Kept %d / %d enriched terms with enrichment score >= %.1fx.' \
+					%(q,q_before,self.escore_thresh))
 
 		# filter enriched GO terms (local filter)
 		if not self.config.disable_local_filter:
@@ -460,37 +562,53 @@ class GOPCA(object):
 		signatures = []
 		q = len(enriched_terms)
 		for j,enr in enumerate(enriched_terms):
-			sig_genes = enr.genes[:enr.mHG_k_n] # important!
-			indices = np.zeros(len(sig_genes),dtype=np.int64)
-			for i,g in enumerate(sig_genes):
-				indices[i] = self.genes.index(g) # bisect_index?
-			sig_E = self.E[indices,:]
-			signatures.append(GOPCASignature(sig_genes,sig_E,pc,enr))
+			signatures.append(self.get_signature(pc,enr))
 		self.message('Generated %d GO-PCA signatures based on the enriched GO terms.' %(q))
 
 		return signatures
 
+	def get_signature(self,pc,enr):
+		""" Generate signature seed by selecting the X genes most correlated with average expression. """
+
+		# select genes above cutoff giving rise to XL-mHG test statistic
+		enr_genes = enr.genes[:enr.mHG_k_n]
+
+		# calculate average expression
+		indices = np.int64([self.genes.index(g) for g in enr_genes])
+		E_enr = self.E[indices,:]
+		mean = np.mean(common.get_standardized_matrix(E_enr),axis=0)
+
+		# calculate seed based on the X genes most strongly correlated with the average
+		corr = np.float64([pearsonr(mean,e)[0] for e in E_enr])
+		a = np.argsort(corr)
+		a = a[::-1]
+		seed = np.mean(common.get_standardized_matrix(E_enr[a[:enr.X],:]),0)
+
+		# select all other genes with correlation of at least sig_corr_thresh
+		additional_indices = np.int64([i for i in a[enr.X:] if pearsonr(seed,E_enr[i,:])[0] > self.sig_corr_thresh])
+		sel = np.r_[a[:enr.X],additional_indices]
+		sig_genes = [enr_genes[i] for i in sel]
+		sig_E = E_enr[sel,:]
+
+		return GOPCASignature(sig_genes,sig_E,pc,enr)
 
 class GOPCASignature(object):
 
 	abbrev = [('positive ','pos. '),('negative ','neg. '),('interferon-','IFN-'),('proliferation','prolif.'),('signaling','signal.')]
 
-	def __init__(self,genes,E,pc,enr,label=None):
-		self.genes = tuple(genes) # genes in the signature (NOT equal to self.enrichment.genes, which contains the gene names corresponding to all the 1's)
+	def __init__(self,genes,E,pc,xlmhg_result,label=None):
+		self.genes = tuple(genes) # genes in the signature (NOT equal to self.enr.genes, which contains the gene names corresponding to all the 1's)
 		self.E = E # expression of the genes in the signture, with ordering matching that of self.genes
 		self.pc = pc # principal component (sign indicates whether ordering was ascending or descending)
-		self.enrichment = enr # GO enrichment this signature is based on
-		if label is None:
-			label = '%s: %s (%d:%d/%d)' %(enr.term[2],enr.term[3],pc,enr.k,enr.K)
-		self.label = label # signature label
+		self.xlmhg_result = xlmhg_result # GO enrichment this signature is based on
 
 	def __repr__(self):
-		return '<GOPCASignature: label="%s", pc=%d, msfe=%.1f; %s>' \
-				%(self.label,self.pc,self.msfe,repr(self.enrichment))
+		return '<GOPCASignature: label="%s", pc=%d, es=%.1f; %s>' \
+				%(self.label,self.pc,self.escore,repr(self.enr))
 
 	def __str__(self):
-		return '<GO-PCA Signature "%s" (PC %d / MSFE %.1fx / %s)>' \
-				%(self.label,self.pc,self.msfe, str(self.enrichment))
+		return '<GO-PCA Signature "%s" (PC %d / E-score %.1fx / %s)>' \
+				%(self.label,self.pc,self.escore, str(self.enr))
 
 	def __hash__(self):
 		return hash(repr(self))
@@ -505,7 +623,7 @@ class GOPCASignature(object):
 
 	@property
 	def enr(self):
-		return self.enrichment
+		return self.xlmhg_result
 
 	@property
 	def term(self):
@@ -513,13 +631,21 @@ class GOPCASignature(object):
 		return self.enr.term
 
 	@property
+	def term_id(self):
+		return self.enr.term[0]
+
+	@property
+	def term_name(self):
+		return self.enr.term[3]
+
+	@property
 	def pval(self):
 		""" The enrichment p-value of the GO term that the signature is based on. """
 		return self.enr.pval
 
 	@property
-	def msfe(self):
-		return self.enr.msfe
+	def escore(self):
+		return self.enr.escore
 	
 	@property
 	def k(self):
@@ -540,6 +666,38 @@ class GOPCASignature(object):
 	def N(self):
 		""" The total number of genes in the data. """
 		return self.enr.N
+
+	@property
+	def label(self):
+		return self.get_label(include_id=False)
+
+	@property
+	def median_correlation(self):
+		C = np.corrcoef(self.E)
+		ind = np.triu_indices(self.k,k=1)
+		return np.median(C[ind])
+
+	@property
+	def escore_pval_thresh(self):
+		return self.enr.escore_pval_thresh
+
+	@property
+	def gene_list(self):
+		return ','.join(sorted(self.genes))
+
+	def get_ordered_dict(self):
+		elements = OrderedDict([
+				['label',['Label',r'%s']],
+				['pc',['PC',r'%d']],
+				['term_id',['GO Term ID',r'%s']],
+				['k',['k',r'%d']],['K',['K',r'%d']],
+				['pval',['P-value',r'%.1e']],
+				['escore',['E-score (psi=%.1e)' %(self.escore_pval_thresh),r'%.1f']],
+				['median_correlation',['Median Correlation',r'%.2f']],
+				['gene_list',['Genes',r'%s']]
+		])
+		od = OrderedDict([v[0],v[1] % (getattr(self,k))] for k,v in elements.iteritems())
+		return od
 
 	def get_label(self,max_name_length=0,include_stats=True,include_id=True,include_pval=False,include_collection=True):
 		enr = self.enr
@@ -571,10 +729,11 @@ class GOPCASignature(object):
 
 
 class GOPCAResult(object):
-	def __init__(self,config,genes,samples,W,signatures,S):
+	def __init__(self,config,genes,samples,W,Y,signatures,S):
 
-		# W = loading matrix
-		# S = signature matrix
+		# W = PCA loading matrix
+		# Y = PCA score matrix
+		# S = GO-PCA signature matrix
 
 		# checks
 		assert isinstance(config,GOPCAConfig)
@@ -587,6 +746,8 @@ class GOPCAResult(object):
 		assert isinstance(S,np.ndarray)
 
 		assert W.shape[0] == len(genes)
+		assert Y.shape[0] == len(samples)
+		assert W.shape[1] == Y.shape[1]
 		assert S.shape[0] == len(signatures)
 		assert S.shape[1] == len(samples)
 
@@ -595,6 +756,7 @@ class GOPCAResult(object):
 		self.genes = tuple(genes)
 		self.samples = tuple(samples)
 		self.W = W
+		self.Y = Y
 		self.signatures = tuple(signatures)
 		self.S = S
 
@@ -607,26 +769,64 @@ class GOPCAResult(object):
 		return len(self.samples)
 
 	@property
-	def d(self):
+	def D(self):
 		return self.W.shape[1]
 
 	@property
 	def q(self):
 		return len(self.signatures)
-		
+
+	@property
+	def L(self):
+		return self.config.mHG_L
+
+	@property
+	def X_frac(self):
+		return self.config.mHG_X_frac
+
+	@property
+	def X_min(self):
+		return self.config.mHG_X_min
+
+	@property
+	def escore_pval_thresh(self):
+		return self.config.escore_pval_thresh
+
+	@property
+	def escore_thresh(self):
+		return self.config.escore_thresh
+
+	def save(self,output_file):
+		#self.message('Saving GO-PCA result to file "%s"...' %(output_file),endline=False)
+		with open(output_file,'wb') as ofh:
+			pickle.dump(self,ofh,pickle.HIGHEST_PROTOCOL)
+		#self.message("done!")
+
+		#config = GOPCAConfig(**conf_dict)
+		#result = GOPCAResult(config,genes,samples,W,final_signatures,S)
+		#with open(output_file,'wb') as ofh:
+		#	pickle.dump(result,ofh,pickle.HIGHEST_PROTOCOL)
+
+	@staticmethod
+	def load(file_name):
+		result = None
+		with open(file_name,'rb') as fh:
+			result = pickle.load(fh)
+		return result
+
 	def __repr__(self):
 		conf_hash = hash(self.config)
 		gene_hash = hash(self.genes)
 		sample_hash = hash(self.samples)
 		sig_hash = hash((hash(sig) for sig in self.signatures))
 		return '<GOPCAResult object (config hash: %d; gene hash: %d; sample hash: %d; # PCs: %d; signatures: %d; signature hash: %d)>' \
-				%(conf_hash,gene_hash,sample_hash,self.d,self.q,sig_hash)
+				%(conf_hash,gene_hash,sample_hash,self.D,self.q,sig_hash)
 
 	def __str__(self):
 		conf = self.config
 		return '<GOPCAResult object (%d signatures); mHG parameters: X_frac=%.2f, X_min=%d, L=%d; \
-				# genes (p) = %d, # principal components (d) = %d>' \
-				%(self.q,conf.mHG_X_frac,conf.mHG_X_min,cof.mHG_L,self.p,self.d)
+				# genes (p) = %d, # principal components (D) = %d>' \
+				%(self.q,conf.mHG_X_frac,conf.mHG_X_min,cof.mHG_L,self.p,self.D)
 
 	def __eq__(self,other):
 		if type(self) is not type(other):
@@ -635,3 +835,5 @@ class GOPCAResult(object):
 			return True
 		else:
 			return False
+
+

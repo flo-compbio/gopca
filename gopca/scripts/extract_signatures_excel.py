@@ -21,6 +21,11 @@ import os
 import argparse
 import cPickle as pickle
 import csv
+import math
+
+import numpy as np
+
+from gopca import common
 
 def read_args_from_cmdline():
 	parser = argparse.ArgumentParser(description='')
@@ -30,7 +35,15 @@ def read_args_from_cmdline():
 
 	return parser.parse_args()
 
+sign = lambda x:int(math.copysign(1.0,x))
+
 def main(args=None):
+
+	try:
+		import xlsxwriter
+	except ImportError:
+		print >> sys.stdout, 'Error: You must have the Python package "xlsxwriter" installed!'
+		return 1
 
 	if args is None:
 		args = read_args_from_cmdline()
@@ -40,23 +53,33 @@ def main(args=None):
 
 	assert os.path.isfile(gopca_file)
 
-	result = None
-	with open(gopca_file,'rb') as fh:
-		result = pickle.load(fh)
-	
+	workbook = xlsxwriter.Workbook(output_file,{'strings_to_numbers': True, 'in_memory': True})
+	workbook.set_properties({'title': 'GO-PCA Signatures'})
+
+	bold = workbook.add_format({'bold': True})
+
+	ws = workbook.add_worksheet()
+
+	result = common.read_gopca_result(gopca_file)
 	signatures = result.signatures
 
-	signatures = sorted(signatures,key=lambda sig:sig.term[3])
+	# sort signatures first by PC, then by fold enrichment
+	signatures = sorted(signatures,key=lambda sig:[abs(sig.pc),-sign(sig.pc),-sig.escore])
 
-	with open(output_file,'w') as ofh:
-		writer = csv.writer(ofh,dialect='excel-tab',lineterminator='\n',quoting=csv.QUOTE_NONE)
-		# write header
-		header = ['Term ID','Label','PC','No. of genes','Total no. of genes','Threshold','P-value','E-score','Genes']
-		writer.writerow(header)
-		for sig in signatures:
-			gene_str = ','.join(sorted(sig.genes))
-			data = [sig.term[0],sig.get_label(include_id=False),str(sig.pc),str(sig.k),str(sig.K),str(sig.n),'%.1e' %(sig.pval),'%.1f' %(sig.escore),gene_str]
-			writer.writerow(data)
+	labels = signatures[0].get_ordered_dict().keys()
+	ws.write_row(0,0,labels,cell_format=bold)
+
+	max_width = np.float64([len(labels[j]) for j in range(len(labels))])
+	for i,sig in enumerate(signatures):
+		vals = sig.get_ordered_dict().values()
+		for j,v in enumerate(vals):
+			max_width[j] = max(max_width[j],float(len(v)))
+		ws.write_row(i+1,0,vals)
+
+	for j in range(len(labels)):
+		ws.set_column(j,j,max_width[j]+0.43)
+
+	workbook.close()
 
 	print 'Wrote %d signatures to "%s".' %(len(signatures),output_file)
 	return 0

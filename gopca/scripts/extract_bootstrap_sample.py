@@ -19,14 +19,17 @@
 import sys
 import os
 import argparse
-import cPickle as pickle
-import csv
+
+#import numpy as np
+from gopca import common
 
 def read_args_from_cmdline():
+
 	parser = argparse.ArgumentParser(description='')
 
-	parser.add_argument('-g','--gopca-file',required=True)
-	parser.add_argument('-o','--output-file',required=True)
+	parser.add_argument('-b','--bootstrap-gopca-file',required=True)
+	parser.add_argument('-i','--result-index',type=int,required=True)
+	parser.add_argument('-o','--output_file',required=True)
 
 	return parser.parse_args()
 
@@ -35,30 +38,20 @@ def main(args=None):
 	if args is None:
 		args = read_args_from_cmdline()
 
-	gopca_file = args.gopca_file
+
+	bootstrap_gopca_file = args.bootstrap_gopca_file
+	result_index = args.result_index
 	output_file = args.output_file
 
-	assert os.path.isfile(gopca_file)
+	assert os.path.isfile(bootstrap_gopca_file)
+	assert result_index >= 0
 
-	result = None
-	with open(gopca_file,'rb') as fh:
-		result = pickle.load(fh)
-	
-	signatures = result.signatures
+	bootstrap_result = common.read_gopca_result(bootstrap_gopca_file)
+	result = bootstrap_result.gopca_results[result_index]
 
-	signatures = sorted(signatures,key=lambda sig:sig.term[3])
-
-	with open(output_file,'w') as ofh:
-		writer = csv.writer(ofh,dialect='excel-tab',lineterminator='\n',quoting=csv.QUOTE_NONE)
-		# write header
-		header = ['Term ID','Label','PC','No. of genes','Total no. of genes','Threshold','P-value','E-score','Genes']
-		writer.writerow(header)
-		for sig in signatures:
-			gene_str = ','.join(sorted(sig.genes))
-			data = [sig.term[0],sig.get_label(include_id=False),str(sig.pc),str(sig.k),str(sig.K),str(sig.n),'%.1e' %(sig.pval),'%.1f' %(sig.escore),gene_str]
-			writer.writerow(data)
-
-	print 'Wrote %d signatures to "%s".' %(len(signatures),output_file)
+	print 'Saving to file...', ; sys.stdout.flush()
+	result.save(output_file)
+	print 'done!'; sys.stdout.flush()
 	return 0
 
 if __name__ == '__main__':
