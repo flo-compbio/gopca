@@ -19,8 +19,12 @@
 import sys
 import os
 import argparse
-import cPickle as pickle
 import csv
+import math
+
+import numpy as np
+
+from gopca import common
 
 def read_args_from_cmdline():
 	parser = argparse.ArgumentParser(description='')
@@ -29,6 +33,8 @@ def read_args_from_cmdline():
 	parser.add_argument('-o','--output-file',required=True)
 
 	return parser.parse_args()
+
+sign = lambda x:int(math.copysign(1.0,x))
 
 def main(args=None):
 
@@ -40,23 +46,22 @@ def main(args=None):
 
 	assert os.path.isfile(gopca_file)
 
-	result = None
-	with open(gopca_file,'rb') as fh:
-		result = pickle.load(fh)
-	
+	result = common.read_gopca_result(gopca_file)
 	signatures = result.signatures
 
-	signatures = sorted(signatures,key=lambda sig:sig.term[3])
+	# sort signatures first by PC, then by fold enrichment
+	signatures = sorted(signatures,key=lambda sig:[abs(sig.pc),-sign(sig.pc),-sig.escore])
+
+	labels = signatures[0].get_ordered_dict().keys()
 
 	with open(output_file,'w') as ofh:
 		writer = csv.writer(ofh,dialect='excel-tab',lineterminator='\n',quoting=csv.QUOTE_NONE)
-		# write header
-		header = ['Term ID','Label','PC','No. of genes','Total no. of genes','Threshold','P-value','E-score','Genes']
-		writer.writerow(header)
-		for sig in signatures:
-			gene_str = ','.join(sorted(sig.genes))
-			data = [sig.term[0],sig.get_label(include_id=False),str(sig.pc),str(sig.k),str(sig.K),str(sig.n),'%.1e' %(sig.pval),'%.1f' %(sig.escore),gene_str]
-			writer.writerow(data)
+
+		writer.writerow(labels)
+
+		for i,sig in enumerate(signatures):
+			vals = sig.get_ordered_dict().values()
+			writer.writerow(vals)
 
 	print 'Wrote %d signatures to "%s".' %(len(signatures),output_file)
 	return 0
