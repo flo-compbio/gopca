@@ -97,6 +97,10 @@ def main(args=None):
 	# read expression data
 	M.read_expression(expression_file)
 
+	# filter for most variable genes
+	if sel_var_genes > 0:
+		M.filter_genes_by_variance(sel_var_genes)
+
 	# estimate the number of PCs (if n_components is set to zero)
 	if n_components == 0:
 		M.estimate_n_components()
@@ -106,11 +110,9 @@ def main(args=None):
 
 	# setting mHG_L to 0 will set the parameter to the default value (= the number of genes / 8)
 	if mHG_L == 0:
-		mHG_L = int(M.p/8.0)
-
-	# filter for most variable genes
-	if sel_var_genes > 0:
-		M.filter_genes_by_variance(sel_var_genes)
+		L = int(M.p/8.0)
+		logger.message('Setting mHG_L to %d.' %(L))
+		M.config.mHG_L = L
 
 	# read ontology
 	if ontology_file is not None:

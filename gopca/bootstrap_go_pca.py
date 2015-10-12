@@ -98,13 +98,16 @@ def main(args=None):
 	# read expression data
 	M.read_expression(expression_file)
 
-	# setting mHG_L to 0 will "turn off" the effect of the parameter (= set it to the number of genes)
-	if mHG_L == 0:
-		mHG_L = M.p
-
 	# filter for most variable genes
 	if sel_var_genes > 0:
 		M.filter_genes_by_variance(sel_var_genes)
+
+	# setting mHG_L to 0 will set the parameter to the default value (= the number of genes / 8)
+	if mHG_L == 0:
+		L = int(M.p/8.0)
+		logger.message('Setting mHG_L to %d.' %(L))
+		M.config.mHG_L = L
+
 
 	# read ontology
 	if ontology_file is not None:

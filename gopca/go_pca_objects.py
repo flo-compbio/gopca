@@ -69,7 +69,7 @@ class GOPCAArgumentParser(argparse.ArgumentParser):
 
 		parser.add_argument('-Xf','--mHG-X-frac',type=float,default=0.25) # 0=off
 		parser.add_argument('-Xm','--mHG-X-min',type=int,default=5) # 0=off
-		parser.add_argument('-L','--mHG-L',type=int,default=1000) # 0=off
+		parser.add_argument('-L','--mHG-L',type=int,default=0) # 0 = no. of genes / 8
 		parser.add_argument('--escore-pval-thresh',type=float,default=1e-4) # p-value threshold for XL-mHG enrichment score calculation
 
 		# variance filter
@@ -187,14 +187,14 @@ class GOPCA(object):
 		if self.E is None:
 			return 0
 		else:
-			return E.shape[0]
+			return self.E.shape[0]
 
 	@property
 	def n(self):
 		if self.E is None:
 			return 0
 		else:
-			return E.shape[1]
+			return self.E.shape[1]
 
 	@property
 	def pval_thresh(self):
@@ -256,11 +256,6 @@ class GOPCA(object):
 		p,n = E.shape
 		self.message('Expression matrix size: p = %d genes x n = %d samples.' %(p,n))
 
-		# adjust mHG L parameter, if necessary
-		if self.config.mHG_L == 0 or self.config.mHG_L > p:
-			self.config.mHG_L = p
-			self.message('Set mHG_L to p (%d).'%(p))
-		
 		self.genes = genes
 		self.samples = samples
 		self.E = E
@@ -320,11 +315,6 @@ class GOPCA(object):
 				%(n_top,100*(lost_p/float(p)),100*(lost_var/total_var)),flush=False)
 		p,n = self.E.shape
 		self.message('New expression matrix dimensions: %d genes x %d samples.' %(p,n))
-
-		# adjust mHG L parameter, if necessary
-		if self.config.mHG_L > sel.size:
-			self.config.mHG_L = sel.size
-			self.message('Adjusted "L" parameter to %d.' %(sel.size))
 
 	def read_ontology(self,ontology_file):
 		self.message('Reading ontology...')
