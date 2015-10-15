@@ -35,6 +35,8 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 sys.path.insert(0, os.path.abspath('../scripts'))
 sys.path.insert(0, os.path.abspath('../plotting'))
 
+print sys.path
+
 
 
 #import scripts.extract_signature_matrix
