@@ -8,8 +8,8 @@ Installation
 
 Installation instructions can be found in the `"Installation" section <https://gopca.readthedocs.org/en/latest/install.html>`_ of the documentation.
 
-Documentation
--------------
+`Documentation <https://gopca.readthedocs.org/en/latest>`_
+----------------------------------------------------------
 
 Read `GO-PCA's documentation <https://gopca.readthedocs.org/en/latest>`_ on Read The Docs.
 
