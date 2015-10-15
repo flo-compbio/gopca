@@ -61,7 +61,7 @@ setup(
     keywords='unsupervised analysis gene expression data transcriptomics prior knowledge',
 
     #packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
-    packages=[root],
+    packages=['gopca','gopca.scripts','gopca.plotting'],
 
 	#libraries = [],
 
