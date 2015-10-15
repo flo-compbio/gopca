@@ -13,7 +13,7 @@ Installation instructions can be found in the `"Installation" section <https://g
 
 - `Demo <http://nbviewer.ipython.org/github/flo-compbio/gopca/blob/master/notebooks/GO-PCA_Demo.ipynb>`_
 - `Installation <https://gopca.readthedocs.org/en/latest/install.html>`_
-- `Running GO-PCA https://gopca.readthedocs.org/en/latest/running.html>`_
+- `Running GO-PCA <https://gopca.readthedocs.org/en/latest/running.html>`_
 
 How to Cite GO-PCA
 ------------------
