@@ -29,7 +29,7 @@ import gopca
 from gopca import common
 from genometools import misc
 
-def read_args_from_cmdline():
+def get_argument_parser():
 
 	parser = argparse.ArgumentParser(description='')
 
@@ -57,6 +57,11 @@ def read_args_from_cmdline():
 	parser.add_argument('--disable-sample-clustering',action='store_true')
 	parser.add_argument('-i','--invert-signature-order',action='store_true')
 
+	return parser
+
+def read_args_from_cmdline():
+
+	parser = get_argument_parser()
 	return parser.parse_args()
 
 def main(args=None):

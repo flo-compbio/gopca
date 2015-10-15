@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.7
+# -*- coding: utf-8 -*-
 
 # Copyright (c) 2015 Florian Wagner
 #
@@ -15,6 +16,29 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+"""
+
+GO-PCA: An Unsupervised Method for Exploring Gene Expression Data \
+		Using Prior Knowledge
+
+This script runs GO-PCA and stores the result in a Python "pickle".
+
+Parameters
+----------
+module_level_variable1 : int
+    Module level variables may be documented in either the ``Attributes``
+    section of the module docstring, or in an inline docstring immediately
+    following the variable.
+
+Example
+-------
+
+::
+
+	$ go-pca.py -e [expression_file] -a [annotation_file] -t [ontology-file] -o [output-file]
+
+"""
 
 import sys
 import os
@@ -66,7 +90,7 @@ def main(args=None):
 	verbosity = args.verbosity
 
 	### checks
-	assert isinstance(n_components,int) and n_components >= 0
+	assert n_components is None or (isinstance(n_components,int) and n_components > 0)
 	assert isinstance(verbosity,int) and verbosity >= 0
 
 	# make sure input files exist
@@ -102,7 +126,7 @@ def main(args=None):
 		M.filter_genes_by_variance(sel_var_genes)
 
 	# estimate the number of PCs (if n_components is set to zero)
-	if n_components == 0:
+	if n_components is None:
 		M.estimate_n_components()
 		if M.D == 0:
 			logger.error('The estimated number of non-trivial principal components is zero!')

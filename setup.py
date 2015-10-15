@@ -65,7 +65,7 @@ setup(
 
 	#libraries = [],
 
-    install_requires=['cython','numpy','scipy','scikit-learn','networkx','genometools','goparser','xlmhg','sphinx','sphinx-rtd-theme'],
+    install_requires=['cython','numpy','scipy','scikit-learn','networkx','genometools','goparser','xlmhg','sphinx','sphinx-rtd-theme','sphinx-argparse'],
 
 	# development dependencies
     #extras_require={},

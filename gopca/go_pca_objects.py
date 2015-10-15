@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2015 Florian Wagner
 #
 # This file is part of GO-PCA.
@@ -14,8 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""
+
+Module containing the main GO-PCA objects.
+
+"""
+
 import sys
+import os
 import argparse
+from argparse import RawTextHelpFormatter
 import re
 import cPickle as pickle
 import hashlib
@@ -36,61 +46,112 @@ class GOPCAArgumentParser(argparse.ArgumentParser):
 	def __init__(self,*args,**kwargs):
 
 		if 'description' not in kwargs or kwargs['description'] is None:
-			kwargs['description'] = 'GO-PCA'
+			kwargs['description'] = 'GO-PCA: An Unsupervised Method to Explore Gene Expression Data Using Prior Knowledge'
+
+		if 'formatter_class' not in kwargs or kwargs['formatter_class'] is None:
+			kwargs['formatter_class'] = RawTextHelpFormatter
+
+		if 'add_help' not in kwargs:
+			kwargs['add_help'] = False
+
 		argparse.ArgumentParser.__init__(self,*args,**kwargs)
 		parser = self
+
+		helpgroup = parser.add_argument_group('Help')
+		repgroup = parser.add_argument_group('Reporting options')
+		iogroup = parser.add_argument_group('Input and output files')
+		gopca = parser.add_argument_group('GO-PCA parameters')
+
+		perm = parser.add_argument_group('PC permutation test parameters')
+
+		helpgroup.add_argument('-h','--help',action='help',help='show this help message and exit')
 
 		###
 		### Required arguments
 		###
 
 		# input files
-		parser.add_argument('-e','--expression-file',required=True)
-		parser.add_argument('-a','--annotation-file',required=True)
-		parser.add_argument('-t','--ontology-file',default=None)
+		iogroup.add_argument('-e','--expression-file',required=True,help='Tab-separated text file containing the expression matrix.')
+		iogroup.add_argument('-a','--annotation-file',required=True,help='Tab-separated text file containing the GO term annotations.')
 
 		# output file
-		parser.add_argument('-o','--output-file',required=True)
-
-		# number of principal components to test
-		parser.add_argument('-D','--principal-components',type=int,default=0) # 0 = automatic
+		iogroup.add_argument('-o','--output-file',required=True,help='Output pickle file (extension ".pickle" is recommended).')
 
 		###
 		### Optional arguments
 		###
 
-		# log file
-		parser.add_argument('-l','--log-file',default=None)
+		# reporting
+		repgroup.add_argument('-l','--log-file',default=None,
+				help='log file - by default, messages will be printed to stdout.')
+		repgroup.add_argument('-v','--verbosity',type=int,default=3,
+				help='output verbosity - 0=silent, 1=only errors, 2=errors + warnings, 3=full')
+
+		iogroup.add_argument('-t','--ontology-file',default=None,
+			help='OBO file containing the Gene Ontology.')
 
 		# GO-PCA parameters
-		parser.add_argument('-P','--pval-thresh',type=float,default=1e-6) # p-value threshold for GO enrichment
-		parser.add_argument('-R','--sig-corr-thresh',type=float,default=0.5) # correlation threshold for signature genes
-		parser.add_argument('-E','--escore-thresh',type=float,default=2.0) # XL-mHG enrichment score threshold
+		gopca.add_argument('-D','--principal-components',type=int,default=None,
+				help='number of principal components to test (default = automatic).')
 
-		parser.add_argument('-Xf','--mHG-X-frac',type=float,default=0.25) # 0=off
-		parser.add_argument('-Xm','--mHG-X-min',type=int,default=5) # 0=off
-		parser.add_argument('-L','--mHG-L',type=int,default=0) # 0 = no. of genes / 8
-		parser.add_argument('--escore-pval-thresh',type=float,default=1e-4) # p-value threshold for XL-mHG enrichment score calculation
+		gopca.add_argument('-G','--select-variable-genes',type=int,default=0,\
+				help='variance filter: Keep G most variable genes (0=off)')
 
-		# variance filter
-		parser.add_argument('-G','--select-variable-genes',type=int,default=0)
+		gopca.add_argument('-P','--pval-thresh',type=float,default=1e-6,
+				help='p-value threshold for GO enrichment')
+
+		gopca.add_argument('-E','--escore-thresh',type=float,default=2.0,
+				help='E-score threshold for GO enrichment')
+
+		gopca.add_argument('-R','--sig-corr-thresh',type=float,default=0.5,
+				help='threshold for correlation with seed for signature genes')
+
+		gopca.add_argument('-Xf','--mHG-X-frac',type=float,default=0.25,
+				help='X_frac parameter for GO enrichment (=> XL-mHG''s X)')
+
+		gopca.add_argument('-Xm','--mHG-X-min',type=int,default=5,
+				help='X_min parameter for GO enrichment (=> XL-mHG''s X')
+
+		gopca.add_argument('-L','--mHG-L',type=int,default=0,
+				help='L parameter for GO enrichment (=> XL-mHG''s L; default = # genes/8)')
+
+		gopca.add_argument('--escore-pval-thresh',type=float,default=1e-4,
+				help='p-value threshold for XL-mHG enrichment score calculation (=psi)')
 
 		# allow filtering to be disabled
-		parser.add_argument('--disable-local-filter',action='store_true')
-		parser.add_argument('--disable-global-filter',action='store_true')
-
-		# output verbosity
-		parser.add_argument('-v','--verbosity',type=int,default=3)
+		gopca.add_argument('--disable-local-filter',action='store_true',
+				help='disable GO-PCA''s "local" filter')
+		gopca.add_argument('--disable-global-filter',action='store_true',
+				help='disable GO-PCA''s "global" filter (only if ontology file is provided)')
 
 		# for automatically determining the number of PCs
 		# (only used if -D is unset)
-		parser.add_argument('-s','--seed',type=int,default=None)
-		parser.add_argument('-pp','--pc-permutations',type=int,default=15)
-		parser.add_argument('-pz','--pc-zscore-thresh',type=float,default=2.0)
+		perm.add_argument('-s','--seed',type=int,default=None,
+				help='random number generator seed')
+		perm.add_argument('-pp','--pc-permutations',type=int,default=15,
+				help='number of permutations')
+		perm.add_argument('-pz','--pc-zscore-thresh',type=float,default=2.0,
+				help='z-score threshold')
 
-		### legacy options
-		parser.add_argument('--go-part-of-cc-only',action='store_true')
+		perm.add_argument('--go-part-of-cc-only',action='store_true',
+				help='Only propagate "part of" GO relationships for the CC domain.')
 
+
+	def validate_arguments(self,args):
+
+		# test existence of input files
+		assert os.path.isfile(args.expression_file)
+		assert os.path.isfile(args.annotation_file)
+		assert args.ontology_file is None or os.path.isfile(args.ontology_file)
+
+		# test if output directory is writable
+		output_file = args.output_file.strip()
+		output_dir,output_file_name = os.path.split(output_file)
+		if output_dir == '': output_dir = '.'
+		assert os.access(output_dir, os.W_OK)
+		#output_dir = output_dir.rstrip(os.sep) + os.sep
+
+		
 
 class GOPCAConfig(object):
 
