@@ -22,8 +22,10 @@ import sphinx_rtd_theme
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('./scripts'))
-sys.path.insert(0, os.path.abspath('./plotting'))
+sys.path.insert(0, os.path.abspath('../scripts'))
+sys.path.insert(0, os.path.abspath('../plotting'))
+
+#import scripts.extract_signature_matrix
 
 # -- General configuration ------------------------------------------------
 
