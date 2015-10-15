@@ -1,4 +1,3 @@
-cython
 sphinx
 sphinx-rtd-theme
 sphinx-argparse
