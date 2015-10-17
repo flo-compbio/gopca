@@ -25,19 +25,15 @@ class Mock(MagicMock):
 	def __getattr__(cls, name):
 			return Mock()
 
-MOCK_MODULES = ['xlmhg']
+MOCK_MODULES = ['xlmhg','sklearn','sklearn.decomposition']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../../scripts'))
-sys.path.insert(0, os.path.abspath('../../plotting'))
-
-print sys.path
-
-
+sys.path.insert(0, os.path.realpath(os.path.abspath('../../scripts')))
+sys.path.insert(0, os.path.realpath(os.path.abspath('../../plotting')))
 
 #import scripts.extract_signature_matrix
 
