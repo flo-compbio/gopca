@@ -40,4 +40,4 @@ Copyright (c) 2015 Florian Wagner
   You should have received a copy of the GNU General Public License
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-.. image:: https://ga-beacon.appspot.com/UA-68967189-4/gopca/
+.. image:: https://ga-beacon.appspot.com/UA-68967189-4/gopca/?pixel
