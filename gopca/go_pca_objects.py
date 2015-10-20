@@ -18,7 +18,7 @@
 
 """
 
-Module containing the main GO-PCA objects.
+Module containing the main GO-PCA classes.
 
 """
 
@@ -42,8 +42,14 @@ from goparser import GOParser
 from go_enrichment import GOEnrichment
 
 class GOPCAArgumentParser(argparse.ArgumentParser):
+	"""Class for handling the GO-PCA command line arguments.
+
+	"""
 
 	def __init__(self,*args,**kwargs):
+		"""Adds all the command line arguments.
+
+		"""
 
 		if 'description' not in kwargs or kwargs['description'] is None:
 			kwargs['description'] = 'GO-PCA: An Unsupervised Method to Explore Gene Expression Data Using Prior Knowledge'
@@ -138,6 +144,8 @@ class GOPCAArgumentParser(argparse.ArgumentParser):
 
 
 	def validate_arguments(self,args):
+		"""This function makes sure the command line parameters are valid.
+		"""
 
 		# test existence of input files
 		assert os.path.isfile(args.expression_file)
@@ -154,6 +162,17 @@ class GOPCAArgumentParser(argparse.ArgumentParser):
 		
 
 class GOPCAConfig(object):
+	"""Class that stores all GO-PCA parameters.
+
+	Attributes
+	----------
+	n_components: int
+		Number of principal components to test.
+	pval_thresh: float
+		
+		
+	
+	"""
 
 	valid_params = set(['n_components','pval_thresh','sig_corr_thresh',\
 			'mHG_X_frac','mHG_X_min','mHG_L',\
@@ -162,8 +181,23 @@ class GOPCAConfig(object):
 			'seed','pc_permutations','pc_zscore_thresh',\
 			'go_part_of_cc_only'])
 
-	def __init__(self,logger,**kwargs):
-		supplied_params = set(kwargs.keys())
+	def __init__(self,logger,params):
+		"""Initializes the configuration and validates the parameter values.
+
+		GO-PCA parameters are provided in a dictionary (`params`), with keys
+		corresponding to parameter names. The list of keys is compared against
+		the list of valid parameters (`valid_params`), and an error is produced
+		if not all parameters are found. If parameters 
+
+		Parameters
+		----------
+		logger: Logger
+			Logger object (for reporting errors and warnings).
+		params: dict
+			Dictionary containing the parameter values.
+		"""
+
+		supplied_params = set(params.keys())
 		unknown_params = supplied_params - GOPCAConfig.valid_params
 		for param in sorted(unknown_params):
 			logger.warning('GO-PCA parameter "%s" is unknown and will be ignored.' %(param))
@@ -173,6 +207,7 @@ class GOPCAConfig(object):
 			assert k in supplied_params
 
 		# make sure the parameters are valid
+		kwargs = params
 		assert isinstance(kwargs['mHG_X_frac'],(int,float))
 		assert 0.0 <= float(kwargs['mHG_X_frac']) <= 1.0
 		assert isinstance(kwargs['mHG_X_min'],int)

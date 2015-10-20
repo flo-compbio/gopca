@@ -113,7 +113,7 @@ def main(args=None):
 	
 	# initialize GO-PCA configuration
 	conf_dict = dict([[k,locals()[k]] for k in GOPCAConfig.valid_params])
-	config = GOPCAConfig(logger,**conf_dict)
+	config = GOPCAConfig(logger,params=conf_dict)
 
 	# initialize GO-PCA
 	M = GOPCA(logger=logger,config=config)
