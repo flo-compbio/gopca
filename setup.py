@@ -101,7 +101,7 @@ setup(
             'gopca_plot_bootstrap_numbers.py = gopca.plotting.plot_bootstrap_numbers:main',
             'gopca_plot_bootstrap_sample_size_summary.py = gopca.plotting.plot_bootstrap_sample_size_summary:main',
             'gopca_plot_bootstrap_sample_size_matrix.py = gopca.plotting.plot_bootstrap_sample_size_matrix:main',
-            'gopca_plot_bootstrap_pc_matrix.py = gopca.plotting.plot_bootstrap_pc_analysis:main',
+            'gopca_plot_bootstrap_pc_matrix.py = gopca.plotting.plot_bootstrap_pc_matrix:main',
             'gopca_plot_bootstrap_signature_detection.py = gopca.plotting.plot_bootstrap_signature_detection:main',
         ],
     },
