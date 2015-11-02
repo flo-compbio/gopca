@@ -21,9 +21,9 @@ import sphinx_rtd_theme
 from mock import Mock as MagicMock
 
 class Mock(MagicMock):
-	@classmethod
-	def __getattr__(cls, name):
-			return Mock()
+    @classmethod
+    def __getattr__(cls, name):
+            return Mock()
 
 MOCK_MODULES = ['xlmhg','sklearn','sklearn.decomposition']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
@@ -50,8 +50,8 @@ extensions = [
     #'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-	'sphinx.ext.napoleon',
-	'sphinxarg.ext',
+    'sphinx.ext.napoleon',
+    'sphinxarg.ext',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

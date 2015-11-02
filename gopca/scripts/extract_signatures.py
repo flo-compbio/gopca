@@ -27,45 +27,45 @@ import numpy as np
 from gopca import common
 
 def read_args_from_cmdline():
-	parser = argparse.ArgumentParser(description='')
+    parser = argparse.ArgumentParser(description='')
 
-	parser.add_argument('-g','--gopca-file',required=True)
-	parser.add_argument('-o','--output-file',required=True)
+    parser.add_argument('-g','--gopca-file',required=True)
+    parser.add_argument('-o','--output-file',required=True)
 
-	return parser.parse_args()
+    return parser.parse_args()
 
 sign = lambda x:int(math.copysign(1.0,x))
 
 def main(args=None):
 
-	if args is None:
-		args = read_args_from_cmdline()
+    if args is None:
+        args = read_args_from_cmdline()
 
-	gopca_file = args.gopca_file
-	output_file = args.output_file
+    gopca_file = args.gopca_file
+    output_file = args.output_file
 
-	assert os.path.isfile(gopca_file)
+    assert os.path.isfile(gopca_file)
 
-	result = common.read_gopca_result(gopca_file)
-	signatures = result.signatures
+    result = common.read_gopca_result(gopca_file)
+    signatures = result.signatures
 
-	# sort signatures first by PC, then by fold enrichment
-	signatures = sorted(signatures,key=lambda sig:[abs(sig.pc),-sign(sig.pc),-sig.escore])
+    # sort signatures first by PC, then by fold enrichment
+    signatures = sorted(signatures,key=lambda sig:[abs(sig.pc),-sign(sig.pc),-sig.escore])
 
-	labels = signatures[0].get_ordered_dict().keys()
+    labels = signatures[0].get_ordered_dict().keys()
 
-	with open(output_file,'w') as ofh:
-		writer = csv.writer(ofh,dialect='excel-tab',lineterminator='\n',quoting=csv.QUOTE_NONE)
+    with open(output_file,'w') as ofh:
+        writer = csv.writer(ofh,dialect='excel-tab',lineterminator='\n',quoting=csv.QUOTE_NONE)
 
-		writer.writerow(labels)
+        writer.writerow(labels)
 
-		for i,sig in enumerate(signatures):
-			vals = sig.get_ordered_dict().values()
-			writer.writerow(vals)
+        for i,sig in enumerate(signatures):
+            vals = sig.get_ordered_dict().values()
+            writer.writerow(vals)
 
-	print 'Wrote %d signatures to "%s".' %(len(signatures),output_file)
-	return 0
+    print 'Wrote %d signatures to "%s".' %(len(signatures),output_file)
+    return 0
 
 if __name__ == '__main__':
-	return_code = main()
-	sys.exit(return_code)
+    return_code = main()
+    sys.exit(return_code)

@@ -25,35 +25,35 @@ from gopca import common
 
 def read_args_from_cmdline():
 
-	parser = argparse.ArgumentParser(description='')
+    parser = argparse.ArgumentParser(description='')
 
-	parser.add_argument('-b','--bootstrap-gopca-file',required=True)
-	parser.add_argument('-i','--result-index',type=int,required=True)
-	parser.add_argument('-o','--output_file',required=True)
+    parser.add_argument('-b','--bootstrap-gopca-file',required=True)
+    parser.add_argument('-i','--result-index',type=int,required=True)
+    parser.add_argument('-o','--output_file',required=True)
 
-	return parser.parse_args()
+    return parser.parse_args()
 
 def main(args=None):
 
-	if args is None:
-		args = read_args_from_cmdline()
+    if args is None:
+        args = read_args_from_cmdline()
 
 
-	bootstrap_gopca_file = args.bootstrap_gopca_file
-	result_index = args.result_index
-	output_file = args.output_file
+    bootstrap_gopca_file = args.bootstrap_gopca_file
+    result_index = args.result_index
+    output_file = args.output_file
 
-	assert os.path.isfile(bootstrap_gopca_file)
-	assert result_index >= 0
+    assert os.path.isfile(bootstrap_gopca_file)
+    assert result_index >= 0
 
-	bootstrap_result = common.read_gopca_result(bootstrap_gopca_file)
-	result = bootstrap_result.gopca_results[result_index]
+    bootstrap_result = common.read_gopca_result(bootstrap_gopca_file)
+    result = bootstrap_result.gopca_results[result_index]
 
-	print 'Saving to file...', ; sys.stdout.flush()
-	result.save(output_file)
-	print 'done!'; sys.stdout.flush()
-	return 0
+    print 'Saving to file...', ; sys.stdout.flush()
+    result.save(output_file)
+    print 'done!'; sys.stdout.flush()
+    return 0
 
 if __name__ == '__main__':
-	return_code = main()
-	sys.exit(return_code)
+    return_code = main()
+    sys.exit(return_code)

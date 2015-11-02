@@ -29,251 +29,251 @@ import xlmhg
 from gopca.printf import printf
 
 class mHGTermResult(object):
-	"""
-	Stores mHG result for one particular term.
-	"""
+    """
+    Stores mHG result for one particular term.
+    """
 
-	#Note: Change this so that it inherits from class mHGResult
-	#	  (only additional attributes: term, genes).
+    #Note: Change this so that it inherits from class mHGResult
+    #     (only additional attributes: term, genes).
 
-	def __init__(self,term,pval,genes,ranks,N,X,L,mHG_n=None,mHG_k_n=None,mHG_s=None):
+    def __init__(self,term,pval,genes,ranks,N,X,L,mHG_n=None,mHG_k_n=None,mHG_s=None):
 
-		ranks = np.int32(ranks)
-		ranks.flags.writeable=False # this makes ranks.data hashable
+        ranks = np.int32(ranks)
+        ranks.flags.writeable=False # this makes ranks.data hashable
 
-		self.term = term # 4-tuple (id,source,collection,name)
-		self.genes = tuple(genes) # genes corresponding to the "1's"
-		self.pval = pval # XL-mHG p-value
-		self.ranks = ranks # ranks of the genes in the list
-		self.N = N # total number of genes
-		self.X = X # XL-mHG "X" parameter
-		self.L = L # XL-mHG "L" parameter
+        self.term = term # 4-tuple (id,source,collection,name)
+        self.genes = tuple(genes) # genes corresponding to the "1's"
+        self.pval = pval # XL-mHG p-value
+        self.ranks = ranks # ranks of the genes in the list
+        self.N = N # total number of genes
+        self.X = X # XL-mHG "X" parameter
+        self.L = L # XL-mHG "L" parameter
 
-		# data related to the XL-mHG test statistic
-		self.mHG_n = mHG_n
-		self.mHG_k_n = mHG_k_n
-		self.mHG_s = mHG_s
+        # data related to the XL-mHG test statistic
+        self.mHG_n = mHG_n
+        self.mHG_k_n = mHG_k_n
+        self.mHG_s = mHG_s
 
-		# strength of enrichment
-		self.escore_pval_thresh = None
-		self.escore = None
+        # strength of enrichment
+        self.escore_pval_thresh = None
+        self.escore = None
 
-	def __repr__(self):
-		return "<mHGTermResult: %s (pval=%.1e; X=%d; L=%d; N=%d); genes hash=%d; positions hash=%d)>" \
-				%('/'.join(self.term),self.pval,self.X,self.L,self.N,hash(self.genes),hash(self.ranks.data))
+    def __repr__(self):
+        return "<mHGTermResult: %s (pval=%.1e; X=%d; L=%d; N=%d); genes hash=%d; positions hash=%d)>" \
+                %('/'.join(self.term),self.pval,self.X,self.L,self.N,hash(self.genes),hash(self.ranks.data))
 
-	def __str__(self):
-		return '<mHGTermResult of term "%s" (%s; %d genes) with p-value = %.1e (X=%d, L=%d, N=%d)>' \
-				%(str(self.term[3]),self.term[0],len(self.genes),self.pval,self.X,self.L,self.N)
+    def __str__(self):
+        return '<mHGTermResult of term "%s" (%s; %d genes) with p-value = %.1e (X=%d, L=%d, N=%d)>' \
+                %(str(self.term[3]),self.term[0],len(self.genes),self.pval,self.X,self.L,self.N)
 
-	def __hash__(self):
-		return hash(repr(self))
+    def __hash__(self):
+        return hash(repr(self))
 
-	def __eq__(self,other):
-		if type(self) != type(other):
-			return False
-		elif repr(self) == repr(other):
-			return True
-		else:
-			return False
+    def __eq__(self,other):
+        if type(self) != type(other):
+            return False
+        elif repr(self) == repr(other):
+            return True
+        else:
+            return False
 
-	@property
-	def k(self):
-		return self.mHG_k_n
+    @property
+    def k(self):
+        return self.mHG_k_n
 
-	@property
-	def K(self):
-		return self.ranks.size
+    @property
+    def K(self):
+        return self.ranks.size
 
-	@property
-	def n(self):
-		return self.mHG_n
+    @property
+    def n(self):
+        return self.mHG_n
 
-	@property
-	def fold_enrichment(self):
-		return self.k / (self.K * (self.n/float(self.N)))
+    @property
+    def fold_enrichment(self):
+        return self.k / (self.K * (self.n/float(self.N)))
 
-	def calculate_escore(self,pval_thresh=1.0):
-		""" Calculate XL-mHG enrichment score.  """
-		N = self.N
-		K = self.K
-		X = self.X
-		L = self.L
-		ranks = self.ranks
-		
-		if K == 0 or L == N or K < X:
-			return 0
+    def calculate_escore(self,pval_thresh=1.0):
+        """ Calculate XL-mHG enrichment score.  """
+        N = self.N
+        K = self.K
+        X = self.X
+        L = self.L
+        ranks = self.ranks
+        
+        if K == 0 or L == N or K < X:
+            return 0
 
-		k_max = 0
-		fe_max = 0.0
-		k = 1
-		pval = 1.0
+        k_max = 0
+        fe_max = 0.0
+        k = 1
+        pval = 1.0
 
-		while k <= K and ranks[k-1] < L:
-			if k >= X:
-				n = ranks[k-1] + 1
-				if pval_thresh == 1.0 or hypergeom.sf(k-1,N,K,n) <= pval_thresh:
-					fe = k / (K * (n / float(N)))
-					if fe >= fe_max:
-						fe_max = fe
-						k_max = k
-			k += 1
+        while k <= K and ranks[k-1] < L:
+            if k >= X:
+                n = ranks[k-1] + 1
+                if pval_thresh == 1.0 or hypergeom.sf(k-1,N,K,n) <= pval_thresh:
+                    fe = k / (K * (n / float(N)))
+                    if fe >= fe_max:
+                        fe_max = fe
+                        k_max = k
+            k += 1
 
-		self.escore_pval_thresh = pval_thresh
-		self.escore = fe_max
+        self.escore_pval_thresh = pval_thresh
+        self.escore = fe_max
 
-	def get_pretty_format(self,omit_param=True,max_name_length=0):
-		term_name = self.term[3]
-		if max_name_length > 0 and len(term_name) > max_name_length:
-			assert max_name_length >= 3
-			term_name = term_name[:(max_name_length-3)] + '...'
-		term_str = term_name + ' (%d)' %(len(self.genes))
-		param_str = ''
-		if not omit_param:
-			param_str = ' [X=%d,L=%d,N=%d]' %(self.X,self.L,self.N)
-		escore_str = ''
-		if self.escore is not None:
-			escore_str = ', e=%.1fx' %(self.escore)
-		details = ', p=%.1e%s%s' %(self.pval,escore_str,param_str)
-		return '%s%s' %(term_str,details)
-		
-	def get_pretty_GO_format(self,GO,omit_acc=False,omit_param=True,max_name_length=0):
-		# accepts a GOParser object ("GO")
-		term = GO.terms[self.term[0]]
-		term_name = term.get_pretty_format(omit_acc=omit_acc,max_name_length=max_name_length)
-		term_str = term_name + ' (%d)' %(len(self.genes))
-		param_str = ''
-		if not omit_param:
-			param_str = ' [X=%d,L=%d,N=%d]' %(self.X,self.L,self.N)
-		escore_str = ''
-		if self.escore is not None:
-			escore_str = ', e=%.1fx' %(self.escore)
-		details = ', p=%.1e%s%s' %(self.pval,escore_str,param_str)
-		return '%s%s' %(term_str,details)
+    def get_pretty_format(self,omit_param=True,max_name_length=0):
+        term_name = self.term[3]
+        if max_name_length > 0 and len(term_name) > max_name_length:
+            assert max_name_length >= 3
+            term_name = term_name[:(max_name_length-3)] + '...'
+        term_str = term_name + ' (%d)' %(len(self.genes))
+        param_str = ''
+        if not omit_param:
+            param_str = ' [X=%d,L=%d,N=%d]' %(self.X,self.L,self.N)
+        escore_str = ''
+        if self.escore is not None:
+            escore_str = ', e=%.1fx' %(self.escore)
+        details = ', p=%.1e%s%s' %(self.pval,escore_str,param_str)
+        return '%s%s' %(term_str,details)
+        
+    def get_pretty_GO_format(self,GO,omit_acc=False,omit_param=True,max_name_length=0):
+        # accepts a GOParser object ("GO")
+        term = GO.terms[self.term[0]]
+        term_name = term.get_pretty_format(omit_acc=omit_acc,max_name_length=max_name_length)
+        term_str = term_name + ' (%d)' %(len(self.genes))
+        param_str = ''
+        if not omit_param:
+            param_str = ' [X=%d,L=%d,N=%d]' %(self.X,self.L,self.N)
+        escore_str = ''
+        if self.escore is not None:
+            escore_str = ', e=%.1fx' %(self.escore)
+        details = ', p=%.1e%s%s' %(self.pval,escore_str,param_str)
+        return '%s%s' %(term_str,details)
 
 class GOEnrichment(object):
 
-	def __init__(self,genes,annotations,logger):
+    def __init__(self,genes,annotations,logger):
 
-		a = np.lexsort([genes])
-		self.genes = [genes[i] for i in a]
-		self.terms = sorted(annotations.keys(), key=lambda x:x[0])
-		self.logger = logger
-		#term_ids = [t[0] for t in self.terms] # self.term_ids?
-		#self.terms = [GO.terms[id_] for id_ in self.term_ids] # 4-tuples
-		p = len(genes)
-		m = len(annotations)
-		self.A = np.zeros((p,m),dtype=np.uint8)
-		for j,t in enumerate(self.terms):
-			for g in annotations[t]:
-				try:
-					idx = misc.bisect_index(self.genes,g)
-				except ValueError:
-					pass
-				else:
-					self.A[idx,j] = 1
+        a = np.lexsort([genes])
+        self.genes = [genes[i] for i in a]
+        self.terms = sorted(annotations.keys(), key=lambda x:x[0])
+        self.logger = logger
+        #term_ids = [t[0] for t in self.terms] # self.term_ids?
+        #self.terms = [GO.terms[id_] for id_ in self.term_ids] # 4-tuples
+        p = len(genes)
+        m = len(annotations)
+        self.A = np.zeros((p,m),dtype=np.uint8)
+        for j,t in enumerate(self.terms):
+            for g in annotations[t]:
+                try:
+                    idx = misc.bisect_index(self.genes,g)
+                except ValueError:
+                    pass
+                else:
+                    self.A[idx,j] = 1
 
-	def message(self,s,endline=True,flush=True):
-		self.logger.message(s,endline,flush)
+    def message(self,s,endline=True,flush=True):
+        self.logger.message(s,endline,flush)
 
-	def warning(self,s,endline=True,flush=True):
-		self.logger.warning(s,endline,flush)
+    def warning(self,s,endline=True,flush=True):
+        self.logger.warning(s,endline,flush)
 
-	def error(self,s,endline=True,flush=True):
-		self.logger.error(s,endline,flush)
+    def error(self,s,endline=True,flush=True):
+        self.logger.error(s,endline,flush)
 
-	def get_enriched_terms(self,ranked_genes,pval_thresh,X_frac,X_min,L,escore_pval_thresh=None,selected_term_ids=[],mat=None,verbosity=None):
-		"""
-		Tests GO term enrichment of either all terms or the terms specified by ``selected_term_ids''.
-		"""
+    def get_enriched_terms(self,ranked_genes,pval_thresh,X_frac,X_min,L,escore_pval_thresh=None,selected_term_ids=[],mat=None,verbosity=None):
+        """
+        Tests GO term enrichment of either all terms or the terms specified by ``selected_term_ids''.
+        """
 
-		original_verbosity = self.logger.verbosity
-		if verbosity is not None:
-			self.logger.verbosity = verbosity
+        original_verbosity = self.logger.verbosity
+        if verbosity is not None:
+            self.logger.verbosity = verbosity
 
-		genes = self.genes
-		terms = self.terms
-		A = self.A
+        genes = self.genes
+        terms = self.terms
+        A = self.A
 
-		if escore_pval_thresh is None:
-			escore_pval_thresh = pval_thresh
+        if escore_pval_thresh is None:
+            escore_pval_thresh = pval_thresh
 
-		# test only some terms?
-		if selected_term_ids:
-			term_ids = [t[0] for t in terms]
-			term_indices = np.int64([misc.bisect_index(term_ids,t) for t in selected_term_ids])
-			terms = [terms[i] for i in term_indices]
-			A = A[:,term_indices] # not a view!
+        # test only some terms?
+        if selected_term_ids:
+            term_ids = [t[0] for t in terms]
+            term_indices = np.int64([misc.bisect_index(term_ids,t) for t in selected_term_ids])
+            terms = [terms[i] for i in term_indices]
+            A = A[:,term_indices] # not a view!
 
-		# sort rows in annotation matrix (and exclude genes not in the ranking)
-		gene_indices = np.int64([misc.bisect_index(genes,g) for g in ranked_genes])
-		A = A[gene_indices,:] # not a view either!
+        # sort rows in annotation matrix (and exclude genes not in the ranking)
+        gene_indices = np.int64([misc.bisect_index(genes,g) for g in ranked_genes])
+        A = A[gene_indices,:] # not a view either!
 
-		# determine largest K
-		K_lim = np.sum(A[:L,:],axis=0,dtype=np.int64)
-		K_rem = np.sum(A[L:,:],axis=0,dtype=np.int64)
-		K = K_lim + K_rem
-		K_max = np.amax(K)
+        # determine largest K
+        K_lim = np.sum(A[:L,:],axis=0,dtype=np.int64)
+        K_rem = np.sum(A[L:,:],axis=0,dtype=np.int64)
+        K = K_lim + K_rem
+        K_max = np.amax(K)
 
-		# prepare matrix for XL-mHG p-value calculation
-		p,m = A.shape
-		if mat is None:
-			mat = np.empty((K_max+1,p+1),dtype=np.longdouble)
+        # prepare matrix for XL-mHG p-value calculation
+        p,m = A.shape
+        if mat is None:
+            mat = np.empty((K_max+1,p+1),dtype=np.longdouble)
 
-		# find enriched GO terms
-		self.message('Testing %d terms for enrichment...' %(m),flush=False)
-		self.message('(N = %d, X_frac = %.2f, X_min = %d, L = %d; K_max = %d)' \
-					%(len(ranked_genes),X_frac,X_min,L,K_max))
+        # find enriched GO terms
+        self.message('Testing %d terms for enrichment...' %(m),flush=False)
+        self.message('(N = %d, X_frac = %.2f, X_min = %d, L = %d; K_max = %d)' \
+                    %(len(ranked_genes),X_frac,X_min,L,K_max))
 
-		enriched_terms = []
-		tested = 0
-		tested_mHG = 0
-		for j in range(m):
-			v = np.ascontiguousarray(A[:,j]) # copy
+        enriched_terms = []
+        tested = 0
+        tested_mHG = 0
+        for j in range(m):
+            v = np.ascontiguousarray(A[:,j]) # copy
 
-			# determine significance of enrichment using XL-mHG test
-			# (only if there are at least X_min genes annotated with this term before the L'th threshold)
-			#if K_lim[j] >= X_min:
-			if K[j] >= X_min:
-				tested += 1
-				# determine term-specific X (based on K[j])
-				X = max(X_min,int(ceil(X_frac*float(K[j]))))
-				if K_lim[j] >= X:
-					mHG_n, mHG_s, pval = xlmhg.test(v,X,L,K=int(K[j]),mat=mat,pval_thresh=pval_thresh)
+            # determine significance of enrichment using XL-mHG test
+            # (only if there are at least X_min genes annotated with this term before the L'th threshold)
+            #if K_lim[j] >= X_min:
+            if K[j] >= X_min:
+                tested += 1
+                # determine term-specific X (based on K[j])
+                X = max(X_min,int(ceil(X_frac*float(K[j]))))
+                if K_lim[j] >= X:
+                    mHG_n, mHG_s, pval = xlmhg.test(v,X,L,K=int(K[j]),mat=mat,pval_thresh=pval_thresh)
 
-					# check if GO term is significantly enriched
-					if pval <= pval_thresh:
-						# generate mHGTermResult
-						sel = np.nonzero(A[:,j])[0] # ranks of all the 1's
-						mHG_k_n = np.sum(sel < mHG_n) 
-						sel_genes = [ranked_genes[i] for i in sel]
-					
-						#def __init__(self,term,genes,pval,ranks,N,X,L,mHG_n=None,mHG_k_n=None,mHG_s=None):
-						#print terms[j],pval,sel_genes,sel
-						enr = mHGTermResult(terms[j],pval,sel_genes,sel,p,X,L,mHG_n,mHG_k_n,mHG_s)
+                    # check if GO term is significantly enriched
+                    if pval <= pval_thresh:
+                        # generate mHGTermResult
+                        sel = np.nonzero(A[:,j])[0] # ranks of all the 1's
+                        mHG_k_n = np.sum(sel < mHG_n) 
+                        sel_genes = [ranked_genes[i] for i in sel]
+                    
+                        #def __init__(self,term,genes,pval,ranks,N,X,L,mHG_n=None,mHG_k_n=None,mHG_s=None):
+                        #print terms[j],pval,sel_genes,sel
+                        enr = mHGTermResult(terms[j],pval,sel_genes,sel,p,X,L,mHG_n,mHG_k_n,mHG_s)
 
-						enriched_terms.append(enr)
+                        enriched_terms.append(enr)
 
-		self.message('done!')
+        self.message('done!')
 
-		# calculate enrichment score
-		self.message('Calculating enrichment score (using p-value threshold psi=%.1e) for enriched terms...' \
-				%(escore_pval_thresh),endline=False)
-		for term in enriched_terms:
-			term.calculate_escore(escore_pval_thresh)
-		self.message('done!')
+        # calculate enrichment score
+        self.message('Calculating enrichment score (using p-value threshold psi=%.1e) for enriched terms...' \
+                %(escore_pval_thresh),endline=False)
+        for term in enriched_terms:
+            term.calculate_escore(escore_pval_thresh)
+        self.message('done!')
 
-		# report results
-		q = len(enriched_terms)
-		ignored = m - tested
-		if ignored > 0:
-			self.message('%d / %d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.' \
-						%(ignored,m,100*(ignored/float(m)),X_min),flush=False)
+        # report results
+        q = len(enriched_terms)
+        ignored = m - tested
+        if ignored > 0:
+            self.message('%d / %d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.' \
+                        %(ignored,m,100*(ignored/float(m)),X_min),flush=False)
 
-		self.message('%d / %d tested GO terms were found to be significantly enriched (p-value <= %.1e).' \
-				%(q,tested,pval_thresh))
+        self.message('%d / %d tested GO terms were found to be significantly enriched (p-value <= %.1e).' \
+                %(q,tested,pval_thresh))
 
-		if verbosity is not None:
-			self.logger.verbosity = original_verbosity
+        if verbosity is not None:
+            self.logger.verbosity = original_verbosity
 
-		return enriched_terms
+        return enriched_terms
