@@ -361,13 +361,12 @@ class GOPCA(object):
         self.samples = samples
         self.E = E
 
-    def estimate_n_components(self,quiet=False):
+    def estimate_n_components(self):
 
         assert isinstance(self.E,np.ndarray) # make sure expression data has already been read
 
         # perform PCA
-        if not quiet:
-            self.message('Estimating the number of principal components (seed = %d)...', self.seed)
+        self.message('Estimating the number of principal components (seed = %d)...', self.seed)
         p,n = self.E.shape
         d_max = min(p,n-1)
         M_pca = PCA(n_components = d_max)
@@ -378,9 +377,8 @@ class GOPCA(object):
         thresh = common.get_pc_explained_variance_threshold(self.E,self.pc_zscore_thresh,self.pc_permutations,self.seed)
         d_est = np.sum(d >= thresh)
 
-        if not quiet:
-            self.message('done!')
-            self.message('The estimated number of PCs is %d.', d_est)
+        self.message('done!')
+        self.message('The estimated number of PCs is %d.', d_est)
         self.config.n_components = d_est
 
     def print_signatures(self,signatures):

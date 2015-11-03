@@ -32,7 +32,7 @@ import networkx as nx
 
 from genometools import misc
 from goparser import GOParser
-from gopca import common
+#from gopca import common
 
 def read_args_from_cmdline():
     parser = argparse.ArgumentParser(description='')
@@ -53,7 +53,7 @@ def read_args_from_cmdline():
     parser.add_argument('--max-genes-per-term',type=int,required=True)
 
     # logging options
-    parser.add_argument('-l','--log-file')
+    parser.add_argument('-l','--log-file',default=None)
     parser.add_argument('-q','--quiet',action='store_true')
     parser.add_argument('-v','--verbose',action='store_true')
 
@@ -89,7 +89,7 @@ def main(args=None):
         log_level = logging.DEBUG
 
     # intialize logger
-    logger = common.get_logger(log_file,log_level)
+    logger = misc.get_logger(log_file,log_level)
 
     # checks
     assert os.path.isfile(gene_file)
@@ -104,7 +104,7 @@ def main(args=None):
     # Read GO term definitions and parse UniProtKB GO annotations
     if len(select_evidence) == 1 and (not select_evidence[0].strip(' ')):
         select_evidence = []
-    GO = GOParser()
+    GO = GOParser(logger=logger)
     GO.parse_ontology(go_ontology_file,part_of_cc_only=False)
     GO.parse_annotations(go_association_file,gene_file,select_evidence=select_evidence)
 

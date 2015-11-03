@@ -47,7 +47,8 @@ import logging
 
 import numpy as np
 
-from gopca import common
+from genometools import misc
+#from gopca import common
 from gopca.go_pca_objects import GOPCAArgumentParser,GOPCAConfig,GOPCA
 
 def main(args=None):
@@ -98,7 +99,7 @@ def main(args=None):
     pc_zscore_thresh = args.pc_zscore_thresh
 
     # intialize logger
-    logger = common.get_logger(log_file,log_level)
+    logger = misc.get_logger(log_file,log_level)
 
     ### checks
     assert n_components is None or (isinstance(n_components,int) and n_components >= 0)
