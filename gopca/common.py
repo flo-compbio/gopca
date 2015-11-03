@@ -19,6 +19,7 @@ import os
 import sys
 import csv
 import cPickle as pickle
+import logging
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
@@ -27,85 +28,12 @@ from sklearn.decomposition import RandomizedPCA
 
 from genometools import misc
 
-class Logger(object):
-
-    def __init__(self,verbosity=1,log_file=None):
-
-        # verbosity levels
-        # 0: output nothing
-        # 1: output only errors
-        # 2: output errors and warnings
-        # 3: output errors, warnings and messages
-
-        # When then specified verbosity level indicates that output should occur,
-        # messages and warnings will be directed to 'outbuf',
-        # while errors will be directed to 'errbuf'.
-
-        # All events will be reported in a logfile (if specified).
-
-        self.verbosity = verbosity
-        self.log = []
-        self.log_file = log_file
-
-        self.ofh = None
-        if log_file is not None:
-            self.ofh = open(log_file,'w')
-
-    def __del__(self):
-        sys.stdout.flush()
-        sys.stderr.flush()
-
-        if self.ofh is not None:
-            self.ofh.flush()
-            self.ofh.close()
-
-    def output(self,s,buf,endline,flush):
-        # mimics print
-        end = ' '
-        if endline:
-            end = '\n'
-        s = s + end
-
-        # store in variable
-        self.log.append(s)
-
-        # write to stdout/stderr
-        if buf is not None:
-            buf.write(s)
-            if flush: buf.flush()
-
-        # write to log file
-        if self.ofh is not None:
-            self.ofh.write(s)
-
-    def message(self,s,endline=True,flush=False):
-
-        s = 'Info: ' + s
-
-        buf = sys.stdout
-        if self.verbosity < 3:
-            buf = None
-
-        self.output(s,buf,endline,flush)
-
-    def warning(self,s,endline=True,flush=False):
-
-        s = 'Warning: ' + s
-        buf = sys.stdout
-        if self.verbosity < 2:
-            buf = None
-
-        self.output(s,buf,endline,flush)
-
-    def error(self,s,endline=True,flush=False):
-
-        s = 'Error: ' + s
-        buf = sys.stderr
-        if self.verbosity < 1:
-            buf = None
-
-        self.output(s,buf,endline,flush)
-
+def get_logger(log_file=None,log_level=logging.INFO):
+    log_format = '[%(asctime)s] %(levelname)s: %(message)s'
+    log_datefmt = '%Y-%m-%d %H:%M:%S'
+    logging.basicConfig(filename=log_file,stream=sys.stdout,level=log_level,format=log_format,datefmt=log_datefmt)
+    logger = logging.getLogger()
+    return logger
 
 def get_pc_explained_variance_threshold(E,z,t,seed):
 

@@ -26,6 +26,7 @@ import sys
 import os
 import argparse
 from argparse import RawTextHelpFormatter
+import logging
 import re
 import cPickle as pickle
 import hashlib
@@ -89,9 +90,11 @@ class GOPCAArgumentParser(argparse.ArgumentParser):
 
         # reporting
         repgroup.add_argument('-l','--log-file',default=None,
-                help='log file - by default, messages will be printed to stdout.')
-        repgroup.add_argument('-v','--verbosity',type=int,default=3,
-                help='output verbosity - 0=silent, 1=only errors, 2=errors + warnings, 3=full')
+                help='Log file - if not specified, print to stdout.')
+        repgroup.add_argument('-v','--verbose',action='store_true',
+                help='Verbose output. If --quiet is specified, this is parameter is ignored.')
+        repgroup.add_argument('-q','--quiet',action='store_true',
+                help='Only output errors and warnings. Takes precedence over --verbose.')
 
         iogroup.add_argument('-t','--ontology-file',default=None,
             help='OBO file containing the Gene Ontology.')
@@ -169,9 +172,8 @@ class GOPCAConfig(object):
     n_components: int
         Number of principal components to test.
     pval_thresh: float
-        
-        
-    
+        P-value threshold for determining significance of GO enrichment.
+
     """
 
     valid_params = set(['sel_var_genes','n_components',\
@@ -192,8 +194,8 @@ class GOPCAConfig(object):
 
         Parameters
         ----------
-        logger: Logger
-            Logger object (for reporting errors and warnings).
+        logger: logging.Logger
+            logger object
         params: dict
             Dictionary containing the parameter values.
         """
@@ -201,7 +203,7 @@ class GOPCAConfig(object):
         supplied_params = set(params.keys())
         unknown_params = supplied_params - GOPCAConfig.valid_params
         for param in sorted(unknown_params):
-            logger.warning('GO-PCA parameter "%s" is unknown and will be ignored.' %(param))
+            logger.warning('GO-PCA parameter "%s" is unknown and will be ignored.'. param)
 
         # require that all parameters are provided
         for k in list(GOPCAConfig.valid_params):
@@ -257,13 +259,10 @@ class GOPCA(object):
 
     def __init__(self,logger,config):
 
-        assert isinstance(logger,common.Logger)
+        assert isinstance(logger,logging.Logger)
         assert isinstance(config,GOPCAConfig)
         self.logger = logger
         self.config = config
-
-        #time_str = time.strftime('%Y-%m-%d_%H:%M:%S')
-        #print 'Current time:',time_str
 
         self.genes = None
         self.samples = None
@@ -334,25 +333,29 @@ class GOPCA(object):
     def escore_thresh(self):
         return self.config.escore_thresh
 
-    def message(self,s,endline=True,flush=True):
-        self.logger.message(s,endline,flush)
+    # logging convenience functions
+    def debug(self,s,*args):
+        self.logger.debug(s,*args)
 
-    def warning(self,s,endline=True,flush=True):
-        self.logger.warning(s,endline,flush)
+    def message(self,s,*args):
+        self.logger.info(s,*args)
 
-    def error(self,s,endline=True,flush=True):
-        self.logger.error(s,endline,flush)
+    def warning(self,s,*args):
+        self.logger.warning(s,*args)
+
+    def error(self,s,*args):
+        self.logger.error(s,*args)
 
     def read_expression(self,expression_file):
         self.message('Reading expression...')
 
         # calculate hash
         hashval = hashlib.md5(open(expression_file,'rb').read()).hexdigest()
-        self.message('MD5 hash: %s' %(hashval))
+        self.message('MD5 hash: %s', hashval)
 
         genes,samples,E = common.read_expression(expression_file)
         p,n = E.shape
-        self.message('Expression matrix size: p = %d genes x n = %d samples.' %(p,n))
+        self.message('Expression matrix size: p = %d genes x n = %d samples.', p,n)
 
         self.genes = genes
         self.samples = samples
@@ -364,7 +367,7 @@ class GOPCA(object):
 
         # perform PCA
         if not quiet:
-            self.message('Estimating the number of principal components (seed = %d)...' %(self.seed), endline=False)
+            self.message('Estimating the number of principal components (seed = %d)...', self.seed)
         p,n = self.E.shape
         d_max = min(p,n-1)
         M_pca = PCA(n_components = d_max)
@@ -377,7 +380,7 @@ class GOPCA(object):
 
         if not quiet:
             self.message('done!')
-            self.message('The estimated number of PCs is %d.' %(d_est))
+            self.message('The estimated number of PCs is %d.', d_est)
         self.config.n_components = d_est
 
     def print_signatures(self,signatures):
@@ -388,7 +391,6 @@ class GOPCA(object):
         for i in a:
             sig = signatures[i]
             self.message(sig.get_label(max_name_length=maxlength,include_pval=True))
-
 
     def filter_genes_by_variance(self,n_top):
 
@@ -409,17 +411,17 @@ class GOPCA(object):
         # output some information
         lost_p = p - sel.size
         lost_var = total_var - np.sum(np.var(self.E,axis=1))
-        self.message('Selected the %d most variable genes (excluded %.1f%% of genes, representing %.1f%% of total variance).' \
-                %(n_top,100*(lost_p/float(p)),100*(lost_var/total_var)),flush=False)
+        self.message('Selected the %d most variable genes (excluded %.1f%% of genes, representing %.1f%% of total variance).', \
+                n_top,100*(lost_p/float(p)),100*(lost_var/total_var))
         p,n = self.E.shape
-        self.message('New expression matrix dimensions: %d genes x %d samples.' %(p,n))
+        self.message('New expression matrix dimensions: %d genes x %d samples.', p,n)
 
     def read_ontology(self,ontology_file):
         self.message('Reading ontology...')
 
         # calculate hash
         hashval = hashlib.md5(open(ontology_file,'rb').read()).hexdigest()
-        self.message('(MD5 hash: %s)' %(hashval))
+        self.message('(MD5 hash: %s)', hashval)
 
         self.GO = GOParser()
         self.GO.parse_ontology(ontology_file,part_of_cc_only=self.config.go_part_of_cc_only)
@@ -430,16 +432,16 @@ class GOPCA(object):
         except AssertionError as e:
             self.error('Expression file not read yet!')
             raise e
-        self.message('Reading annotations...',endline=False)
+        self.message('Reading annotations...')
 
         # calculate hash
         hashval = hashlib.md5(open(annotation_file,'rb').read()).hexdigest()
-        self.message('(MD5 hash: %s)' %(hashval),endline=False)
+        self.message('(MD5 hash: %s)', hashval)
 
         self.annotations = common.read_annotations(annotation_file)
 
         n_assign = sum(len(v) for k,v in self.annotations.iteritems())
-        self.message('(%d annotations) done!' %(n_assign))
+        self.message('(%d annotations) done!', n_assign)
 
     def run(self):
         assert isinstance(self.E,np.ndarray)
@@ -450,22 +452,19 @@ class GOPCA(object):
         t0 = time.time()
 
         # create GOEnrichment object
-        self.message('Generating gene x GO term matrix...', endline=False)
+        self.message('Generating gene x GO term matrix...')
         M_enrich = GOEnrichment(self.genes,self.annotations,self.logger)
-        self.message('done!')
 
         # perform PCA
-        self.message('Performing PCA...', endline=False)
-        sys.stdout.flush()
+        self.message('Performing PCA...')
         M_pca = PCA(n_components = self.n_components)
         Y = M_pca.fit_transform(self.E.T)
-        self.message('done!')
 
         # output cumulative fraction explained for each PC
         frac = M_pca.explained_variance_ratio_
         cum_frac = np.cumsum(frac)
-        self.message('Cumulative fraction of variance explained by the first %d PCs: %.1f%%' \
-                %(self.n_components,100*cum_frac[-1]))
+        self.message('Cumulative fraction of variance explained by the first %d PCs: %.1f%%', \
+                self.n_components,100*cum_frac[-1])
 
         # generate signatures
         W = M_pca.components_.T
@@ -477,32 +476,31 @@ class GOPCA(object):
         for pc in range(self.n_components):
 
             total_var += frac[pc]
-            self.message('',flush=False)
-            self.message('-'*70,flush=False)
-            self.message('PC %d explains %.1f%% of the variance.' %(pc+1,100*frac[pc]),flush=False)
-            self.message('The new cumulative fraction of variance explained is %.1f%%.' %(100*total_var))
+            self.message('')
+            self.message('-'*70)
+            self.message('PC %d explains %.1f%% of the variance.', pc+1,100*frac[pc])
+            self.message('The new cumulative fraction of variance explained is %.1f%%.', 100*total_var)
 
-            #print "Testing for GO enrichment...", ; sys.stdout.flush()
             signatures_dsc = self.get_pc_signatures(M_enrich,W,pc+1)
             signatures_asc = self.get_pc_signatures(M_enrich,W,-pc-1)
             signatures = signatures_dsc + signatures_asc
 
-            self.message("# signatures:",len(signatures))
+            self.message('# signatures: %d',len(signatures))
             before = len(signatures)
 
             if not self.config.disable_global_filter:
                 signatures = self.global_filter(signatures,final_signatures,self.GO)
-                self.message("Global filter: kept %d / %d signatures." %(len(signatures),before))
+                self.message('Global filter: kept %d / %d signatures.', len(signatures),before)
         
             self.print_signatures(signatures)
             final_signatures.extend(signatures)
-            self.message("Total no. of signatures so far: %d" %(len(final_signatures)))
+            self.message('Total no. of signatures so far: %d', len(final_signatures))
 
             pc += 1
 
         self.message('')
         self.message('='*70)
-        self.message('GO-PCA generated %d signatures:' %(len(final_signatures)))
+        self.message('GO-PCA generated %d signatures:', len(final_signatures))
         self.print_signatures(final_signatures)
 
         S = np.float64([common.get_signature_expression(self.genes,self.E,sig.genes) for sig in final_signatures])
@@ -511,7 +509,7 @@ class GOPCA(object):
         result = GOPCAResult(deepcopy(self.config),self.genes,self.samples,W,Y,final_signatures,S)
 
         t1 = time.time()
-        self.message('GO-PCA runtime: %.2fs' %(t1-t0))
+        self.message('GO-PCA runtime: %.2fs', t1-t0)
 
         return result
 
@@ -557,7 +555,7 @@ class GOPCA(object):
             enr = M_enrich.get_enriched_terms(ranked_genes,self.pval_thresh,\
                     self.X_frac,self.X_min,L,\
                     escore_pval_thresh=self.escore_pval_thresh,selected_term_ids=[term_id],\
-                    mat=mat,verbosity=1)
+                    mat=mat,quiet=True)
             assert len(enr) in [0,1]
             if enr: # enr will be an empty list if GO term does not meet the p-value threshold
                 enr = enr[0]
@@ -588,8 +586,8 @@ class GOPCA(object):
             # next!
             todo = todo[1:]
 
-        self.message('Filtering: Kept %d / %d enriched terms.' \
-                %(len(kept_terms),len(enriched_terms)),flush=True)
+        self.message('Filtering: Kept %d / %d enriched terms.', \
+                len(kept_terms),len(enriched_terms))
         return kept_terms
 
     def global_filter(self,new_signatures,previous_signatures,GO):
@@ -636,22 +634,22 @@ class GOPCA(object):
             q_before = len(enriched_terms)
             enriched_terms = [t for t in enriched_terms if t.escore >= self.escore_thresh]
             q = len(enriched_terms)
-            self.message('Enrichment filter: Kept %d / %d enriched terms with enrichment score >= %.1fx.' \
-                    %(q,q_before,self.escore_thresh))
+            self.message('Enrichment filter: Kept %d / %d enriched terms with enrichment score >= %.1fx.', \
+                    q,q_before,self.escore_thresh)
 
         # filter enriched GO terms (local filter)
         if not self.config.disable_local_filter:
             q_before = len(enriched_terms)
             enriched_terms = self.local_filter(M,enriched_terms,ranked_genes)
             q = len(enriched_terms)
-            self.message('Local filter: Kept %d / %d enriched terms.' %(q,q_before))
+            self.message('Local filter: Kept %d / %d enriched terms.', q,q_before)
 
         # generate signatures
         signatures = []
         q = len(enriched_terms)
         for j,enr in enumerate(enriched_terms):
             signatures.append(self.get_signature(pc,enr))
-        self.message('Generated %d GO-PCA signatures based on the enriched GO terms.' %(q))
+        self.message('Generated %d GO-PCA signatures based on the enriched GO terms.', q)
 
         return signatures
 
@@ -885,10 +883,9 @@ class GOPCAResult(object):
         return self.config.escore_thresh
 
     def save(self,output_file):
-        #self.message('Saving GO-PCA result to file "%s"...' %(output_file),endline=False)
+        #iself.message('Saving GO-PCA result to file "%s"...', output_file)
         with open(output_file,'wb') as ofh:
             pickle.dump(self,ofh,pickle.HIGHEST_PROTOCOL)
-        #self.message("done!")
 
         #config = GOPCAConfig(**conf_dict)
         #result = GOPCAResult(config,genes,samples,W,final_signatures,S)

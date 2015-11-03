@@ -17,6 +17,7 @@
 import sys
 import os
 import csv
+import logging
 import gzip
 import cPickle as pickle
 from math import ceil
@@ -26,7 +27,6 @@ from scipy.stats import hypergeom
 
 from genometools import misc
 import xlmhg
-from gopca.printf import printf
 
 class mHGTermResult(object):
     """
@@ -59,7 +59,7 @@ class mHGTermResult(object):
         self.escore = None
 
     def __repr__(self):
-        return "<mHGTermResult: %s (pval=%.1e; X=%d; L=%d; N=%d); genes hash=%d; positions hash=%d)>" \
+        return '<mHGTermResult: %s (pval=%.1e; X=%d; L=%d; N=%d); genes hash=%d; positions hash=%d)>' \
                 %('/'.join(self.term),self.pval,self.X,self.L,self.N,hash(self.genes),hash(self.ranks.data))
 
     def __str__(self):
@@ -158,7 +158,8 @@ class GOEnrichment(object):
         a = np.lexsort([genes])
         self.genes = [genes[i] for i in a]
         self.terms = sorted(annotations.keys(), key=lambda x:x[0])
-        self.logger = logger
+        self.logger = logger.getChild('GOEnrich')
+        #self.logger.propagate = False
         #term_ids = [t[0] for t in self.terms] # self.term_ids?
         #self.terms = [GO.terms[id_] for id_ in self.term_ids] # 4-tuples
         p = len(genes)
@@ -173,23 +174,27 @@ class GOEnrichment(object):
                 else:
                     self.A[idx,j] = 1
 
-    def message(self,s,endline=True,flush=True):
-        self.logger.message(s,endline,flush)
+    # logging convenience functions
+    def message(self,s,*args):
+        self.logger.info(s,*args)
 
-    def warning(self,s,endline=True,flush=True):
-        self.logger.warning(s,endline,flush)
+    def warning(self,s,*args):
+        self.logger.warning(s,*args)
 
-    def error(self,s,endline=True,flush=True):
-        self.logger.error(s,endline,flush)
+    def error(self,s,*args):
+        self.logger.error(s,*args)
 
-    def get_enriched_terms(self,ranked_genes,pval_thresh,X_frac,X_min,L,escore_pval_thresh=None,selected_term_ids=[],mat=None,verbosity=None):
+    def get_enriched_terms(self,ranked_genes,pval_thresh,X_frac,X_min,L,escore_pval_thresh=None,selected_term_ids=[],mat=None,quiet=False,verbose=False):
         """
         Tests GO term enrichment of either all terms or the terms specified by ``selected_term_ids''.
         """
 
-        original_verbosity = self.logger.verbosity
-        if verbosity is not None:
-            self.logger.verbosity = verbosity
+        log_level = logging.INFO
+        if quiet:
+            log_level = logging.WARNING
+        elif verbose:
+            log_level = logging.ERROR
+        self.logger.setLevel(log_level)
 
         genes = self.genes
         terms = self.terms
@@ -221,9 +226,9 @@ class GOEnrichment(object):
             mat = np.empty((K_max+1,p+1),dtype=np.longdouble)
 
         # find enriched GO terms
-        self.message('Testing %d terms for enrichment...' %(m),flush=False)
-        self.message('(N = %d, X_frac = %.2f, X_min = %d, L = %d; K_max = %d)' \
-                    %(len(ranked_genes),X_frac,X_min,L,K_max))
+        self.message('Testing %d terms for enrichment...', m)
+        self.message('(N = %d, X_frac = %.2f, X_min = %d, L = %d; K_max = %d)', \
+                    len(ranked_genes),X_frac,X_min,L,K_max)
 
         enriched_terms = []
         tested = 0
@@ -257,23 +262,19 @@ class GOEnrichment(object):
         self.message('done!')
 
         # calculate enrichment score
-        self.message('Calculating enrichment score (using p-value threshold psi=%.1e) for enriched terms...' \
-                %(escore_pval_thresh),endline=False)
+        self.message('Calculating enrichment score (using p-value threshold psi=%.1e) for enriched terms...', \
+                escore_pval_thresh)
         for term in enriched_terms:
             term.calculate_escore(escore_pval_thresh)
-        self.message('done!')
 
         # report results
         q = len(enriched_terms)
         ignored = m - tested
         if ignored > 0:
-            self.message('%d / %d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.' \
-                        %(ignored,m,100*(ignored/float(m)),X_min),flush=False)
+            self.message('%d / %d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.', \
+                        ignored,m,100*(ignored/float(m)),X_min)
 
-        self.message('%d / %d tested GO terms were found to be significantly enriched (p-value <= %.1e).' \
-                %(q,tested,pval_thresh))
-
-        if verbosity is not None:
-            self.logger.verbosity = original_verbosity
+        self.message('%d / %d tested GO terms were found to be significantly enriched (p-value <= %.1e).', \
+                q,tested,pval_thresh)
 
         return enriched_terms

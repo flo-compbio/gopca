@@ -43,6 +43,7 @@ Example
 import sys
 import os
 import argparse
+import logging
 
 import numpy as np
 
@@ -67,6 +68,16 @@ def main(args=None):
     # log file
     log_file = args.log_file
 
+    # logging parameters
+    quiet = args.quiet
+    verbose = args.verbose
+
+    log_level = logging.INFO
+    if quiet:
+        log_level = logging.WARNING
+    elif verbose:
+        log_level = logging.DEBUG
+
     # GO-PCA parameters
     sel_var_genes = args.select_variable_genes
     n_components = args.principal_components
@@ -86,21 +97,19 @@ def main(args=None):
     pc_permutations = args.pc_permutations
     pc_zscore_thresh = args.pc_zscore_thresh
 
-    # verbosity
-    verbosity = args.verbosity
+    # intialize logger
+    logger = common.get_logger(log_file,log_level)
 
     ### checks
-    assert n_components is None or (isinstance(n_components,int) and n_components > 0)
-    assert isinstance(verbosity,int) and verbosity >= 0
+    assert n_components is None or (isinstance(n_components,int) and n_components >= 0)
+    assert isinstance(quiet,bool)
+    assert isinstance(verbose,bool)
 
     # make sure input files exist
     assert os.path.isfile(expression_file)
     assert os.path.isfile(annotation_file)
     if ontology_file is not None:
         assert os.path.isfile(ontology_file)
-
-    # intialize logger
-    logger = common.Logger(verbosity,log_file=log_file)
 
     # disable global filter if no ontology is provided
     if ontology_file is None:
@@ -126,7 +135,7 @@ def main(args=None):
         M.filter_genes_by_variance(sel_var_genes)
 
     # estimate the number of PCs (if n_components is set to zero)
-    if n_components is None:
+    if n_components is None or n_components == 0:
         M.estimate_n_components()
         if M.D == 0:
             logger.error('The estimated number of non-trivial principal components is zero!')
@@ -135,7 +144,7 @@ def main(args=None):
     # setting mHG_L to 0 will set the parameter to the default value (= the number of genes / 8)
     if mHG_L == 0:
         L = int(M.p/8.0)
-        logger.message('Setting mHG_L to %d.' %(L))
+        logger.info('Setting mHG_L to %d.', L)
         M.config.mHG_L = L
 
     # read ontology
@@ -149,9 +158,8 @@ def main(args=None):
     gopca_result = M.run()
 
     # save output to file
-    logger.message('Saving result to file "%s"...' %(output_file),endline=False)
+    logger.info('Saving result to file "%s"...', output_file)
     gopca_result.save(output_file)
-    logger.message('done!')
 
     return 0
 

@@ -31,7 +31,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='gopca',
 
-    version='1.1rc5',
+    version='1.1rc6',
 
     description=description,
     long_description=long_description,
@@ -63,11 +63,10 @@ setup(
 
     #libraries = [],
 
-    install_requires=['cython','numpy','scipy','scikit-learn','networkx','genometools','goparser','xlmhg','xlsxwriter'],
+    install_requires=['cython','numpy','scipy','scikit-learn','networkx','genometools','goparser','xlmhg','xlsxwriter','matplotlib'],
 
     # development dependencies
     extras_require={
-            'plotting': ['matplotlib'],
             'docs': ['sphinx','sphinx-rtd-theme','sphinx-argparse','mock']
     },
 
@@ -94,20 +93,20 @@ setup(
             'gopca_extract_matlab_file.py = gopca.scripts.extract_matlab_file:main',
 
             # plotting scripts
-            'gopca_plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main [plotting]',
-            'gopca_plot_signature_correlation_matrix.py = gopca.plotting.plot_signature_correlation_matrix:main [plotting]',
-            'gopca_plot_within_signature_correlations.py = gopca.plotting.plot_within_signature_correlations:main [plotting]',
-            'gopca_plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main [plotting]',
-            'gopca_plot_signature.py = gopca.plotting.plot_signature:main [plotting]',
-            'gopca_plot_pc_variance_explained.py = gopca.plotting.plot_pc_variance_explained:main [plotting]',
-            'gopca_plot_pc_scores.py = gopca.plotting.plot_pc_scores:main [plotting]',
+            'gopca_plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
+            'gopca_plot_signature_correlation_matrix.py = gopca.plotting.plot_signature_correlation_matrix:main',
+            'gopca_plot_within_signature_correlations.py = gopca.plotting.plot_within_signature_correlations:main',
+            'gopca_plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
+            'gopca_plot_signature.py = gopca.plotting.plot_signature:main',
+            'gopca_plot_pc_variance_explained.py = gopca.plotting.plot_pc_variance_explained:main',
+            'gopca_plot_pc_scores.py = gopca.plotting.plot_pc_scores:main',
 
             # bootstrapping scripts
             'gopca_extract_bootstrap_sample.py = gopca.scripts.extract_bootstrap_sample:main',
-            'gopca_plot_bootstrap_numbers.py = gopca.plotting.plot_bootstrap_numbers:main [plotting]',
-            'gopca_plot_bootstrap_sample_size_summary.py = gopca.plotting.plot_bootstrap_sample_size_summary:main [plotting]',
-            'gopca_plot_bootstrap_sample_size_matrix.py = gopca.plotting.plot_bootstrap_sample_size_matrix:main [plotting]',
-            'gopca_plot_bootstrap_pc_matrix.py = gopca.plotting.plot_bootstrap_pc_matrix:main [plotting]',
+            'gopca_plot_bootstrap_numbers.py = gopca.plotting.plot_bootstrap_numbers:main',
+            'gopca_plot_bootstrap_sample_size_summary.py = gopca.plotting.plot_bootstrap_sample_size_summary:main',
+            'gopca_plot_bootstrap_sample_size_matrix.py = gopca.plotting.plot_bootstrap_sample_size_matrix:main',
+            'gopca_plot_bootstrap_pc_matrix.py = gopca.plotting.plot_bootstrap_pc_matrix:main',
             'gopca_plot_bootstrap_signature_detection.py = gopca.plotting.plot_bootstrap_signature_detection:main',
 
             # misc scripts

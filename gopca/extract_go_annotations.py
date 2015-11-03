@@ -24,6 +24,7 @@ import os
 import argparse
 import csv
 import gzip
+import logging
 import cPickle as pickle
 
 import numpy as np
@@ -31,6 +32,7 @@ import networkx as nx
 
 from genometools import misc
 from goparser import GOParser
+from gopca import common
 
 def read_args_from_cmdline():
     parser = argparse.ArgumentParser(description='')
@@ -50,6 +52,11 @@ def read_args_from_cmdline():
     parser.add_argument('--min-genes-per-term',type=int,required=True)
     parser.add_argument('--max-genes-per-term',type=int,required=True)
 
+    # logging options
+    parser.add_argument('-l','--log-file')
+    parser.add_argument('-q','--quiet',action='store_true')
+    parser.add_argument('-v','--verbose',action='store_true')
+
     # legacy options
     parser.add_argument('--part-of-cc-only',action='store_true')
 
@@ -66,11 +73,23 @@ def main(args=None):
     output_file = args.output_file
 
     select_evidence = args.select_evidence
-    print select_evidence
     min_genes = args.min_genes_per_term
     max_genes = args.max_genes_per_term
 
     part_of_cc_only = args.part_of_cc_only
+
+    # log file
+    log_file = args.log_file
+
+    # logging parameters
+    log_level = logging.INFO
+    if args.quiet:
+        log_level = logging.WARNING
+    elif args.verbose:
+        log_level = logging.DEBUG
+
+    # intialize logger
+    logger = common.get_logger(log_file,log_level)
 
     # checks
     assert os.path.isfile(gene_file)
@@ -80,13 +99,12 @@ def main(args=None):
     # read genes and sort them
     genes = sorted(misc.read_single(args.gene_file))
     n = len(genes)
-    print "Read %d genes." %(n); sys.stdout.flush()
+    logger.info('Read %d genes.', n); sys.stdout.flush()
 
     # Read GO term definitions and parse UniProtKB GO annotations
     if len(select_evidence) == 1 and (not select_evidence[0].strip(' ')):
         select_evidence = []
     GO = GOParser()
-    print go_ontology_file
     GO.parse_ontology(go_ontology_file,part_of_cc_only=False)
     GO.parse_annotations(go_association_file,gene_file,select_evidence=select_evidence)
 
@@ -96,7 +114,7 @@ def main(args=None):
     # Get sorted list of GO term IDs
     all_term_ids = sorted(GO.terms.keys())
 
-    print 'Obtaining GO term associations...', ; sys.stdout.flush()
+    logger.info('Obtaining GO term associations...')
     n = len(all_term_ids)
     term_gene_counts = []
     term_ids = []
@@ -110,10 +128,9 @@ def main(args=None):
             term_ids.append(id_)
             term_genes.append(tg)
     term_gene_counts = np.int64(term_gene_counts)
-    print 'done.'; sys.stdout.flush()
 
     # remove GO terms that are perfectly redundant, keep descendant terms
-    print "Testing for perfect overlap...", ; sys.stdout.flush()
+    logger.info('Testing for perfect overlap...')
     m = len(term_ids)
     #genesets = [set(np.nonzero(A[:,j])[0]) for j in range(m)]
     #term_gene_count = np.sum(A,axis=0,dtype=np.int64)
@@ -127,7 +144,6 @@ def main(args=None):
             if j2 >= j1: break
             if c == term_gene_counts[j2] and tg == term_genes[j2]:
                 G.add_edge(j1,j2)
-    print "done!"; sys.stdout.flush()
 
     sel = np.ones(m,dtype=np.bool_)
     affected = 0
@@ -145,24 +161,23 @@ def main(args=None):
                     break
             if not keep:
                 sel[j1] = False
-    print "# affected terms:",affected ; sys.stdout.flush()
-    print "# perfectly redundant descendant terms:",np.sum(np.invert(sel)); sys.stdout.flush()
-    #print '\n'.join([GO.terms[goterm_ids[j]].get_pretty_format() for j in np.nonzero(np.invert(sel))[0]])
+    logger.info('# affected terms: %d', affected)
+    logger.info('# perfectly redundant descendant terms: %d', np.sum(np.invert(sel)))
 
     sel = np.nonzero(sel)[0]
     term_ids = [term_ids[j] for j in sel]
     term_genes = [term_genes[j] for j in sel]
-    print "Selected %d / %d non-redundant GO terms." %(sel.size,m)
+    logger.info('Selected %d / %d non-redundant GO terms.', sel.size,m)
 
     # write output file
-    print 'Writing output file...', ; sys.stdout.flush()
+    logger.info('Writing output file...')
     p = len(genes)
     with open(output_file,'w') as ofh:
         writer = csv.writer(ofh,dialect='excel-tab',lineterminator='\n',quoting=csv.QUOTE_NONE)
         for j,(id_,tg) in enumerate(zip(term_ids,term_genes)):
             term = list(GO.terms[id_].get_tuple())
             writer.writerow(term + [','.join(sorted(tg))])
-    print 'done!'; sys.stdout.flush()
+    logger.info('done!');
 
     return 0
 
