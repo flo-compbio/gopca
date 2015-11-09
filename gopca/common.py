@@ -30,7 +30,7 @@ import sklearn
 
 # RandomizedPCA does not work in Scikit-learn 0.14.1,
 # but it works in Scikit-learn 0.16.1
-if parse_version(sklearn.__version__) >= parse_version('0.16.1')
+if parse_version(sklearn.__version__) >= parse_version('0.16.1'):
     from sklearn.decomposition import RandomizedPCA as PCA
 else:
     from sklearn.decomposition import PCA
