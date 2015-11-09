@@ -198,6 +198,9 @@ def read_gopca_result(fn):
     result = None
     with open(fn) as fh:
         result = pickle.load(fh)
+    # numpy array flags are not serialized?
+    for sig in result.signatures:
+        sig.enr.ranks.flags.writeable = False
     return result
 
 def read_annotations(fn):

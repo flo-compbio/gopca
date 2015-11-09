@@ -239,10 +239,10 @@ class GOPCAConfig(object):
         raise NotImplemented
 
     def __repr__(self):
-        return '<GOPCAConfig object (%s)>' %('; '.join(['%s=%s' %(k,getattr(self,str(k))) for k in sorted(self.valid_attrs)]))
+        return '<GOPCAConfig object (%s)>' %('; '.join(['%s=%s' %(k,getattr(self,str(k))) for k in sorted(self.valid_params)]))
 
     def __str__(self):
-        return '<GOPCAConfig object with parameters: %s>' %(', '.join(['%s=%s' %(k,getattr(self,str(k))) for k in sorted(self.valid_attrs)]))
+        return '<GOPCAConfig object with parameters: %s>' %(', '.join(['%s=%s' %(k,getattr(self,str(k))) for k in sorted(self.valid_params)]))
 
     def __hash__(self):
         return hash(repr(self))
