@@ -63,7 +63,7 @@ setup(
 
     #libraries = [],
 
-    install_requires=['cython','numpy','scipy','scikit-learn','networkx','genometools','goparser','xlmhg','xlsxwriter','matplotlib'],
+    install_requires=['setuptools','cython','numpy','scipy','scikit-learn','networkx','genometools','goparser','xlmhg','xlsxwriter','matplotlib'],
 
     # development dependencies
     extras_require={
