@@ -25,8 +25,15 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
 
-#from sklearn.decomposition import RandomizedPCA as PCA
-from sklearn.decomposition import PCA
+from pkg_resources import parse_version
+import sklearn
+
+# RandomizedPCA does not work in Scikit-learn 0.14.1,
+# but it works in Scikit-learn 0.16.1
+if parse_version(sklearn.__version__) >= parse_version('0.16.1')
+    from sklearn.decomposition import RandomizedPCA as PCA
+else:
+    from sklearn.decomposition import PCA
 
 from genometools import misc
 
