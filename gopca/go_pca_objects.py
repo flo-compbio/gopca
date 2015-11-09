@@ -366,15 +366,18 @@ class GOPCA(object):
         assert isinstance(self.E,np.ndarray) # make sure expression data has already been read
 
         # perform PCA
-        self.message('Estimating the number of principal components (seed = %d)...', self.seed)
+        self.message('Estimating the number of principal components (seed = %d, # permutations = %d)...', self.seed,self.pc_permutations)
         p,n = self.E.shape
         d_max = min(p,n-1)
         M_pca = PCA(n_components = d_max)
         M_pca.fit(self.E.T)
 
         d = M_pca.explained_variance_ratio_
+        self.debug('Largest explained variance: %.2f', d[0])
 
         thresh = common.get_pc_explained_variance_threshold(self.E,self.pc_zscore_thresh,self.pc_permutations,self.seed)
+        self.debug('Z-score threshold: %.2f', self.pc_zscore_thresh)
+        self.debug('Explained variance threshold: %.2f', thresh)
         d_est = np.sum(d >= thresh)
 
         self.message('done!')

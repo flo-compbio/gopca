@@ -24,7 +24,9 @@ import logging
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
-from sklearn.decomposition import RandomizedPCA
+
+#from sklearn.decomposition import RandomizedPCA as PCA
+from sklearn.decomposition import PCA
 
 from genometools import misc
 
@@ -44,7 +46,7 @@ def get_pc_explained_variance_threshold(E,z,t,seed):
     p,n = E.shape
     d_max_null = np.empty(t,dtype=np.float64)
     E_perm = np.empty((p,n),dtype=np.float64)
-    M_null = RandomizedPCA(n_components = 1, random_state=seed)
+    M_null = PCA(n_components = 1)
     for j in xrange(t):
 
         for i in range(p):
