@@ -28,13 +28,6 @@ from scipy.cluster.hierarchy import linkage, dendrogram
 from pkg_resources import parse_version
 import sklearn
 
-# RandomizedPCA does not work in Scikit-learn 0.14.1,
-# but it works in Scikit-learn 0.16.1
-if parse_version(sklearn.__version__) >= parse_version('0.16.1'):
-    from sklearn.decomposition import RandomizedPCA as PCA
-else:
-    from sklearn.decomposition import PCA
-
 from genometools import misc
 
 def get_logger(log_file=None,log_level=logging.INFO):
@@ -45,6 +38,13 @@ def get_logger(log_file=None,log_level=logging.INFO):
     return logger
 
 def get_pc_explained_variance_threshold(E,z,t,seed):
+
+    # RandomizedPCA does not work in Scikit-learn 0.14.1,
+    # but it works in Scikit-learn 0.16.1
+    if parse_version(sklearn.__version__) >= parse_version('0.16.1'):
+        from sklearn.decomposition import RandomizedPCA as PCA
+    else:
+        from sklearn.decomposition import PCA
 
     # initialize random number generator
     np.random.seed(seed)
@@ -205,7 +205,7 @@ def variance_filter(genes,E,top):
 
 def read_gopca_result(fn):
     result = None
-    with open(fn) as fh:
+    with open(fn,'rb') as fh:
         result = pickle.load(fh)
     # numpy array flags are not serialized?
     for sig in result.signatures:

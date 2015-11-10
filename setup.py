@@ -89,7 +89,7 @@ setup(
             # processing scripts
             'gopca_extract_signatures.py = gopca.scripts.extract_signatures:main',
             'gopca_extract_signatures_excel.py = gopca.scripts.extract_signatures_excel:main',
-            'gopca_extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
+            #'gopca_extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
             'gopca_extract_matlab_file.py = gopca.scripts.extract_matlab_file:main',
 
             # plotting scripts
