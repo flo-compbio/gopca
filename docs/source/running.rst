@@ -3,11 +3,6 @@ Running GO-PCA
 
 This section explains the input file formats and shows the usage of the `go-pca.py` command line script.
 
-Demo
-----
-
-Check out a `demonstration of GO-PCA <http://nbviewer.ipython.org/github/flo-compbio/gopca/blob/master/notebooks/GO-PCA_Demo.ipynb>`_ based on the `DMAP dataset <http://dx.doi.org/10.1016/j.cell.2011.01.004>`_.
-
 Expression file format
 ----------------------
 
