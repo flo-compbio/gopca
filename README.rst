@@ -1,6 +1,8 @@
 GO-PCA
 ======
 
+|docs-latest| |docs-develop|
+
 GO-PCA is an unsupervised method to **explore gene expression data using prior
 knowledge**. The `GO-PCA paper`__ has recently been published in PLOS ONE.
 
@@ -9,9 +11,10 @@ __ go_pca_paper_
 GO-PCA combines `principal component analysis (PCA)`__  with
 `nonparametric GO enrichment analysis`__ in order to generate **signatures**,
 i.e., small sets of genes that are both strongly correlated and closely
-functionally related. It then produces a **signature matrix**, designed to
-serve as a systematic and easily interpretable representation of biologically
-relevant expression patterns.
+functionally related. It then visualizes the expression profiles of all
+signatures in a **signature matrix**, designed to serve as a systematic and
+easily interpretable representation of biologically relevant expression
+patterns.
 
 __ pca_
 __ go_enrich_
@@ -20,12 +23,12 @@ __ go_enrich_
 .. _pca: https://en.wikipedia.org/wiki/Principal_component_analysis
 .. _go_enrich: https://dx.doi.org/10.1186/1471-2105-10-48
 
-`Documentation <https://gopca.readthedocs.org/en/latest>`_
-----------------------------------------------------------
+Documentation
+-------------
 
-- `Demo <http://nbviewer.ipython.org/github/flo-compbio/gopca/blob/master/notebooks/GO-PCA_Demo.ipynb>`_
-- `Installation <https://gopca.readthedocs.org/en/latest/install.html>`_
-- `Running GO-PCA <https://gopca.readthedocs.org/en/latest/running.html>`_
+- `Homepage <https://gopca.readthedocs.org/en/latest>`_
+- `"DMAP" Demo <http://nbviewer.ipython.org/url/gopca.readthedocs.org/en/latest/_downloads/Demo_DMAP.ipynb>`_
+- `Getting Started <https://gopca.readthedocs.org/en/latest/getting_started.html>`_
 
 How to Cite GO-PCA
 ------------------
@@ -54,3 +57,14 @@ Copyright (c) 2015 Florian Wagner
   
   You should have received a copy of the GNU General Public License
   along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+.. |docs-latest| image:: https://readthedocs.org/projects/gopca/badge/?version=latest
+    :alt: Documentation Status (master branch)
+    :scale: 100%
+    :target: https://gopca.readthedocs.org/en/latest/?badge=latest
+
+.. |docs-develop| image:: https://readthedocs.org/projects/gopca/badge/?version=develop
+    :alt: Documentation Status (develop branch)
+    :scale: 100%
+    :target: https://gopca.readthedocs.org/en/develop/?badge=develop
+
