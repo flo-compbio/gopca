@@ -3,8 +3,9 @@ GO-PCA
 
 |docs-latest| |docs-develop|
 
-GO-PCA (`Wagner, 2015`__) is an unsupervised method to **explore gene expression data using prior
-knowledge**.
+GO-PCA (`Wagner, 2015`__) is an unsupervised method to **explore gene
+expression data using prior knowledge**. This is a free and open-source
+implementation of GO-PCA in Python.
 
 __ go_pca_paper_
 
