@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-
 import sys
 import os
 import argparse
@@ -28,7 +27,6 @@ from collections import OrderedDict,Counter
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
-#from scipy import stats 
 
 import matplotlib as mpl
 #from matplotlib.backends.backend_pdf import PdfPages

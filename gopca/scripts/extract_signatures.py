@@ -26,20 +26,20 @@ import numpy as np
 
 from gopca import common
 
-def read_args_from_cmdline():
-    parser = argparse.ArgumentParser(description='')
+sign = lambda x:int(math.copysign(1.0,x))
 
+def get_argument_parser():
+    description = 'Extract GO-PCA signatures as tab-delimited file'
+    parser = argparse.ArgumentParser(description = description)
     parser.add_argument('-g','--gopca-file',required=True)
     parser.add_argument('-o','--output-file',required=True)
-
-    return parser.parse_args()
-
-sign = lambda x:int(math.copysign(1.0,x))
+    return parser
 
 def main(args=None):
 
     if args is None:
-        args = read_args_from_cmdline()
+        parser = get_argument_parser()
+        args = parser.parse_args()
 
     gopca_file = args.gopca_file
     output_file = args.output_file

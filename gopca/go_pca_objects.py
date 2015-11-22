@@ -16,10 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""
-
-Module containing the main GO-PCA classes.
-
+"""Module containing the main GO-PCA classes.
 """
 
 import sys
@@ -44,7 +41,6 @@ from go_enrichment import GOEnrichment
 
 class GOPCAArgumentParser(argparse.ArgumentParser):
     """Class for handling the GO-PCA command line arguments.
-
     """
 
     def __init__(self,*args,**kwargs):
@@ -921,5 +917,3 @@ class GOPCAResult(object):
             return True
         else:
             return False
-
-

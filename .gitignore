@@ -1,3 +1,6 @@
+# project-specific
+xlmhg/*.c
+
 # sphinx
 docs/build/
 

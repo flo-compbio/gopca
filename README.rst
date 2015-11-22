@@ -1,25 +1,43 @@
 GO-PCA
 ======
 
-GO-PCA is an unsupervised method to explore gene expression data using prior knowledge. It combines `principal component analysis (PCA) <https://en.wikipedia.org/wiki/Principal_component_analysis>`_ with `nonparametric GO enrichment analysis <http://dx.doi.org/10.1186/1471-2105-10-48>`_, in order to generate *signatures*, i.e., small sets of genes that are both strongly correlated and closely functionally related. It then produces a *signature matrix*, which contains the expression profiles of all signatures across all samples, based on the untransformed data.
+|docs-latest| |docs-develop|
 
-Installation
-------------
+GO-PCA is an unsupervised method to **explore gene expression data using prior
+knowledge**. The `GO-PCA paper`__ has recently been published in PLOS ONE.
 
-Installation instructions can be found in the `"Installation" section <https://gopca.readthedocs.org/en/latest/install.html>`_ of the documentation.
+__ go_pca_paper_
 
-`Documentation <https://gopca.readthedocs.org/en/latest>`_
-----------------------------------------------------------
+GO-PCA combines `principal component analysis (PCA)`__  with
+`nonparametric GO enrichment analysis`__ in order to generate **signatures**,
+i.e., small sets of genes that are both strongly correlated and closely
+functionally related. It then visualizes the expression profiles of all
+signatures in a **signature matrix**, designed to serve as a systematic and
+easily interpretable representation of biologically relevant expression
+patterns.
 
-- `Demo <http://nbviewer.ipython.org/github/flo-compbio/gopca/blob/master/notebooks/GO-PCA_Demo.ipynb>`_
-- `Installation <https://gopca.readthedocs.org/en/latest/install.html>`_
-- `Running GO-PCA <https://gopca.readthedocs.org/en/latest/running.html>`_
+__ pca_
+__ go_enrich_
+
+.. _go_pca_paper: https://dx.doi.org/10.1371/journal.pone.0143196
+.. _pca: https://en.wikipedia.org/wiki/Principal_component_analysis
+.. _go_enrich: https://dx.doi.org/10.1186/1471-2105-10-48
+
+Documentation
+-------------
+
+- `Homepage <https://gopca.readthedocs.org/en/latest>`_
+- `"DMAP" Demo <http://nbviewer.ipython.org/url/gopca.readthedocs.org/en/latest/_downloads/Demo_DMAP.ipynb>`_
+- `Getting Started <https://gopca.readthedocs.org/en/latest/getting_started.html>`_
 
 How to Cite GO-PCA
 ------------------
 
-If you use GO-PCA in your research, please cite `Wagner (2015) <http://dx.doi.org/10.1101/018705>`_.
+If you use GO-PCA in your research, please cite `Wagner (PLOS ONE, 2015)`__
 
+__ wagner_pone_
+
+.. _wagner_pone: https://dx.doi.org/10.1371/journal.pone.0143196
 
 Copyright and License
 ---------------------
@@ -39,3 +57,14 @@ Copyright (c) 2015 Florian Wagner
   
   You should have received a copy of the GNU General Public License
   along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+.. |docs-latest| image:: https://readthedocs.org/projects/gopca/badge/?version=latest
+    :alt: Documentation Status (master branch)
+    :scale: 100%
+    :target: https://gopca.readthedocs.org/en/latest/?badge=latest
+
+.. |docs-develop| image:: https://readthedocs.org/projects/gopca/badge/?version=develop
+    :alt: Documentation Status (develop branch)
+    :scale: 100%
+    :target: https://gopca.readthedocs.org/en/develop/?badge=develop
+

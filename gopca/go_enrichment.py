@@ -185,8 +185,7 @@ class GOEnrichment(object):
         self.logger.error(s,*args)
 
     def get_enriched_terms(self,ranked_genes,pval_thresh,X_frac,X_min,L,escore_pval_thresh=None,selected_term_ids=[],mat=None,quiet=False,verbose=False):
-        """
-        Tests GO term enrichment of either all terms or the terms specified by ``selected_term_ids''.
+        """Tests GO term enrichment of either all terms or the terms specified by ``selected_term_ids``.
         """
 
         log_level = logging.INFO

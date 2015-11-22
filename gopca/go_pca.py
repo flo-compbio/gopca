@@ -17,19 +17,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""
+"""This script runs GO-PCA and stores the result in a Python "pickle".
 
-GO-PCA: An Unsupervised Method for Exploring Gene Expression Data \
-        Using Prior Knowledge
+`GO-PCA`__ is an unsupervised method for exploring gene expression data using prior
+knowledge.
 
-This script runs GO-PCA and stores the result in a Python "pickle".
+__ go_pca_
 
-Parameters
-----------
-module_level_variable1 : int
-    Module level variables may be documented in either the ``Attributes``
-    section of the module docstring, or in an inline docstring immediately
-    following the variable.
+.. _go_pca: https://github.com/flo-compbio/gopca
 
 Example
 -------
@@ -48,11 +43,23 @@ import logging
 import numpy as np
 
 from genometools import misc
-#from gopca import common
 from gopca.go_pca_objects import GOPCAArgumentParser,GOPCAConfig,GOPCA
 
 def main(args=None):
+    """Run GO-PCA and store the result in a Python "pickle".
 
+    Parameters
+    ----------
+    args: argparse.Namespace object, optional
+        The argument values. If not specified, the values will be obtained by
+        parsing the command line arguments using the `argparse` module.
+
+    Returns
+    -------
+    int
+        Exit code (0 if no error occurred).
+ 
+    """
     # read command line options
     if args is None:
         parser = GOPCAArgumentParser()
@@ -66,18 +73,10 @@ def main(args=None):
     # output file
     output_file = args.output_file
 
-    # log file
-    log_file = args.log_file
-
     # logging parameters
+    log_file = args.log_file
     quiet = args.quiet
     verbose = args.verbose
-
-    log_level = logging.INFO
-    if quiet:
-        log_level = logging.WARNING
-    elif verbose:
-        log_level = logging.DEBUG
 
     # GO-PCA parameters
     sel_var_genes = args.select_variable_genes
@@ -98,8 +97,15 @@ def main(args=None):
     pc_permutations = args.pc_permutations
     pc_zscore_thresh = args.pc_zscore_thresh
 
-    # intialize logger
-    logger = misc.get_logger(log_file,log_level)
+    # configure logger
+    log_level = logging.INFO
+    if quiet:
+        log_level = logging.WARNING
+    elif verbose:
+        log_level = logging.DEBUG
+
+    logger = misc.configure_logger(__name__, log_file = log_file,
+            log_level = log_level)
 
     ### checks
     assert n_components is None or (isinstance(n_components,int) and n_components >= 0)

@@ -19,12 +19,13 @@
 import sys
 import os
 import argparse
+import logging
 
 import numpy as np
 from sklearn.decomposition import PCA, RandomizedPCA
 
+from genometools import misc
 from gopca import common
-from gopca.printf import printf
 
 def read_args_from_cmdline():
     parser = argparse.ArgumentParser(description='')
@@ -49,15 +50,6 @@ def read_args_from_cmdline():
 
     return parser.parse_args()
 
-def message(m,quiet,flush=True,endline=True):
-    if not quiet:
-        end = ' '
-        if endline:
-            end = '\n'
-        printf(m,end=end)
-        if flush:
-            sys.stdout.flush()
-
 def main(args=None):
 
     if args is None:
@@ -73,7 +65,13 @@ def main(args=None):
     seed = args.seed
     quiet = args.quiet
 
-    # figure size
+    # configure logger
+    log_level = logging.INFO
+    if quiet:
+        log_level = logging.WARNING
+    logger = misc.configure_logger(__name__, log_level = log_level)
+
+   # figure size
     fig_size = args.figure_size
     fig_res = args.figure_resolution
 
@@ -87,7 +85,7 @@ def main(args=None):
     if seed is None:
         seed = np.random.randint(int(1e9))
     np.random.seed(seed)
-    message('Using seed: %d' %(seed),quiet)
+    logger.info('Using seed: %d', seed)
 
     # checks
     assert os.path.isfile(expression_file)
@@ -105,30 +103,28 @@ def main(args=None):
         genes = [genes[i] for i in a[:sel_var_genes]]
         E = E[a[:sel_var_genes]]
         
-    message('Expression matrix shape: ' + str(E.shape),quiet)
+    logger.info('Expression matrix shape: %s', str(E.shape))
     #E += (np.random.rand(*E.shape)*1e-4)
 
     # do PCA on unpermuted data
-    message('Performing PCA on unpermuted data...',quiet=quiet,endline=False)
+    logger.info('Performing PCA on unpermuted data...')
     p,n = E.shape
     n_comps = min(min(p,n-1),n_components)
     M = PCA(n_components = n_comps)
     M.fit(E.T)
     d = M.explained_variance_ratio_.copy()
-    message('done!',quiet=quiet)
 
     # do permutations
-    message('Performing permutations...',quiet=quiet,endline=False)
+    logger.info('Performing permutations...')
     thresh = common.get_pc_explained_variance_threshold(E,zscore_thresh,t,seed=seed)
-    message('done!',quiet=quiet)
 
     d_est = np.sum(d >= thresh)
     args.result = d_est
-    message('Number of principal components with z-score >= %.1f: %d' \
-            %(zscore_thresh,d_est),quiet)
+    logger.info('Number of principal components with z-score >= %.1f: %d',
+            zscore_thresh, d_est)
 
     # plotting
-    message('Plotting...',quiet=quiet,endline=False)
+    logger.info('Plotting...')
 
     import matplotlib as mpl
     if mpl_backend is not None:
@@ -175,11 +171,10 @@ def main(args=None):
     plt.gca().spines['top'].set_visible(False)
     #common.simpleaxis(plt.gca())
 
-
-    message('Saving to file...',quiet,endline=False)
+    logger.info('Saving to file...')
     #plt.gcf().set_size_inches(fig_dim[0],fig_dim[1])
     plt.savefig(output_file,bbox_inches='tight')
-    message('done!',quiet)
+    logger.info('Done!')
 
     return 0
 

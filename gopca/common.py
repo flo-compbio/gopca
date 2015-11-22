@@ -20,12 +20,11 @@ import sys
 import csv
 import cPickle as pickle
 import logging
+from pkg_resources import parse_version
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
-
-from pkg_resources import parse_version
 import sklearn
 
 from genometools import misc
