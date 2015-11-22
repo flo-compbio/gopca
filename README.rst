@@ -1,39 +1,40 @@
 GO-PCA
 ======
 
-GO-PCA is an unsupervised method for the exploratory analysis of heterogeneous transcriptomic data. It uses prior knowledge, in the form of `Gene Ontology (GO) <http://geneontology.org/>`_ anntoations, in combination with `principal component analysis (PCA) <https://en.wikipedia.org/wiki/Principal_component_analysis>`_, in order to generate *signatures*, i.e., small sets of genes that are both strongly correlated and closely functionally related. It then produces a *signature matrix*, which contains the expression profiles of all signatures across all samples, based on the untransformed data.
+GO-PCA is an unsupervised method to explore gene expression data using prior
+knowledge. The `GO-PCA paper`__ has recently been published in PLOS ONE.
 
-Installation
-------------
+__ go_pca_paper_
 
-GO-PCA is `available on PyPI <https://pypi.python.org/pypi/gopca>`_, the Python Package Index, and can be installed using ``pip``, the Python package manager:
+GO-PCA combines `principal component analysis (PCA)`__  with
+`nonparametric GO enrichment analysis`__ in order to generate *signatures*,
+i.e., small sets of genes that are both strongly correlated and closely
+functionally related. It then produces a *signature matrix*, designed to
+provide a systematic, easily interpretable view of biologically relevant
+expression patterns.
 
-.. code-block:: bash
+__ pca_
+__ go_enrich_
 
-	$ pip install gopca
+.. _go_pca_paper: https://dx.doi.org/10.1371/journal.pone.0143196
+.. _pca: https://en.wikipedia.org/wiki/Principal_component_analysis
+.. _go_enrich: https://dx.doi.org/10.1186/1471-2105-10-48
 
+`Documentation <https://gopca.readthedocs.org/en/latest>`_
+----------------------------------------------------------
 
-Installation of Prerequisites
------------------------------
-
-GO-PCA depends on the following third-party Python packages:
-
-- NumPy
-- SciPy
-- Scikit-Learn
-- Cython
-
-To-Do!
+- `Demo <http://nbviewer.ipython.org/github/flo-compbio/gopca/blob/master/notebooks/GO-PCA_Demo.ipynb>`_
+- `Installation <https://gopca.readthedocs.org/en/latest/install.html>`_
+- `Running GO-PCA <https://gopca.readthedocs.org/en/latest/running.html>`_
 
 How to Cite GO-PCA
 ------------------
 
-If you use GO-PCA in your research, please cite `Wagner (2015) <http://dx.doi.org/10.1101/018705>`_.
+If you use GO-PCA in your research, please cite `Wagner (PLOS ONE, 2015)`__
 
-Documentation
--------------
+__ wagner_pone_
 
-In the works!
+.. _wagner_pone: https://dx.doi.org/10.1371/journal.pone.0143196
 
 Copyright and License
 ---------------------

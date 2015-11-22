@@ -1,9 +1,13 @@
+# project-specific
 xlmhg/*.c
+
+# sphinx
+docs/build/
 
 # dropbox
 .dropbox
 
-# vim ignore
+# vim
 [._]*.s[a-w][a-z]
 [._]s[a-w][a-z]
 *.un~

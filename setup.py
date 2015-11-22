@@ -18,16 +18,12 @@ import sys
 import os
 
 from setuptools import setup, find_packages, Extension
-# To use a consistent encoding
 from codecs import open
 from os import path
 
-root = 'gopca'
-
 here = path.abspath(path.dirname(__file__))
-description = 'GO-PCA: An Unsupervised Method to Explore Biological Heterogeneity Based on Gene Expression and Prior Knowledge'
+description = 'GO-PCA: An Unsupervised Method to Explore Gene Expression Data Using Prior Knowledge'
 
-# Get the long description from the relevant file
 long_description = ''
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
@@ -43,87 +39,81 @@ setup(
     description=description,
     long_description=long_description,
 
-    # The project's main homepage.
     url='https://github.com/flo-compbio/gopca',
 
-    # Author details
     author='Florian Wagner',
     author_email='florian.wagner@duke.edu',
 
-    # Choose your license
     license='GPLv3',
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
-        # How mature is this project? Common values are
-        #   3 - Alpha
-        #   4 - Beta
-        #   5 - Production/Stable
         'Development Status :: 3 - Alpha',
 
-        # Indicate who your project is intended for
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Bio-Informatics',
 
-        # Pick your license as you wish (should match "license" above)
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
 
-        # Specify the Python versions you support here. In particular, ensure
-        # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 2.7',
     ],
 
-    # What does your project relate to?
     keywords='unsupervised analysis gene expression data transcriptomics prior knowledge',
 
-    # You can just specify the packages manually here if your project is
-    # simple. Or you can use find_packages().
-    packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
-    #packages=['gopca'],
+    #packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
+    packages=['gopca','gopca.scripts','gopca.plotting'],
 
-	#libraries = ['xlmHG_cython.so'],
+    #libraries = [],
 
-    # List run-time dependencies here.  These will be installed by pip when
-    # your project is installed. For an analysis of "install_requires" vs pip's
-    # requirements files see:
-    # https://packaging.python.org/en/latest/requirements.html
-    #install_requires=['peppercorn'],
-    install_requires=['numpy','scipy','cython','scikit-learn','networkx','genometools','goparser','xlmhg'],
+    install_requires=['setuptools','cython','numpy','scipy','scikit-learn','networkx','genometools','goparser','xlmhg','xlsxwriter','matplotlib'],
 
-    # List additional groups of dependencies here (e.g. development
-    # dependencies). You can install these using the following syntax,
-    # for example:
-    # $ pip install -e .[dev,test]
+    # development dependencies
     extras_require={
-        #'dev': ['check-manifest'],
-        #'test': ['coverage'],
+            'docs': ['sphinx','sphinx-rtd-theme','sphinx-argparse','mock']
     },
 
-    # If there are data files included in your packages that need to be
-    # installed, specify them here.  If using Python 2.6 or less, then these
-    # have to be included in MANIFEST.in as well.
-    package_data={
-        #'sample': ['package_data.dat'],
-    },
+    # data
+    #package_data={},
 
-    # Although 'package_data' is the preferred approach, in some case you may
-    # need to place data files outside of your packages. See:
-    # http://docs.python.org/3.4/distutils/setupscript.html#installing-additional-files # noqa
-    # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
-    #data_files=[('my_data', ['data/data_file'])],
+    # data outside package
+    #data_files=[],
 
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # pip to create the appropriate form of executable for the target platform.
+    # executable scripts
     entry_points={
         'console_scripts': [
-            'extract_go_annotations.py = gopca.extract_go_annotations:main',
-            'go_pca.py = gopca.go_pca:main',
-            'extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
-            'extract_matlab_file.py = gopca.scripts.extract_matlab_file:main',
-            'plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
-            'plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
+            # pre-processing scripts
+            'gopca_extract_go_annotations.py = gopca.extract_go_annotations:main',
+
+            # GO-PCA scripts
+            'go-pca.py = gopca.go_pca:main',
+            'bootstrap-go-pca.py = gopca.bootstrap_go_pca:main',
+
+            # processing scripts
+            'gopca_extract_signatures.py = gopca.scripts.extract_signatures:main',
+            'gopca_extract_signatures_excel.py = gopca.scripts.extract_signatures_excel:main',
+            #'gopca_extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
+            'gopca_extract_matlab_file.py = gopca.scripts.extract_matlab_file:main',
+
+            # plotting scripts
+            'gopca_plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
+            'gopca_plot_signature_correlation_matrix.py = gopca.plotting.plot_signature_correlation_matrix:main',
+            'gopca_plot_within_signature_correlations.py = gopca.plotting.plot_within_signature_correlations:main',
+            'gopca_plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
+            'gopca_plot_signature.py = gopca.plotting.plot_signature:main',
+            'gopca_plot_pc_variance_explained.py = gopca.plotting.plot_pc_variance_explained:main',
+            'gopca_plot_pc_scores.py = gopca.plotting.plot_pc_scores:main',
+
+            # bootstrapping scripts
+            'gopca_extract_bootstrap_sample.py = gopca.scripts.extract_bootstrap_sample:main',
+            'gopca_plot_bootstrap_numbers.py = gopca.plotting.plot_bootstrap_numbers:main',
+            'gopca_plot_bootstrap_sample_size_summary.py = gopca.plotting.plot_bootstrap_sample_size_summary:main',
+            'gopca_plot_bootstrap_sample_size_matrix.py = gopca.plotting.plot_bootstrap_sample_size_matrix:main',
+            'gopca_plot_bootstrap_pc_matrix.py = gopca.plotting.plot_bootstrap_pc_matrix:main',
+            'gopca_plot_bootstrap_signature_detection.py = gopca.plotting.plot_bootstrap_signature_detection:main',
+
+            # misc scripts
+            'gopca_test_components.py = gopca.test_components:main',
         ],
     },
 )

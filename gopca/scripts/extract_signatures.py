@@ -17,10 +17,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+import os
 import argparse
-import cPickle as pickle
+import csv
+import math
 
-from scipy.io import savemat
+import numpy as np
 
 from gopca import common
 
@@ -29,9 +31,10 @@ def read_args_from_cmdline():
 
     parser.add_argument('-g','--gopca-file',required=True)
     parser.add_argument('-o','--output-file',required=True)
-    parser.add_argument('--no-append-mat',action='store_true')
 
     return parser.parse_args()
+
+sign = lambda x:int(math.copysign(1.0,x))
 
 def main(args=None):
 
@@ -40,28 +43,27 @@ def main(args=None):
 
     gopca_file = args.gopca_file
     output_file = args.output_file
-    append_mat = not args.no_append_mat
 
-    result = None
-    with open(gopca_file,'rb') as fh:
-        result = pickle.load(fh)
-    
+    assert os.path.isfile(gopca_file)
+
+    result = common.read_gopca_result(gopca_file)
     signatures = result.signatures
-    labels = [sig.get_label() for sig in signatures]
-    sig_genes = dict([sig.term[0].replace(':','_'),sorted(sig.genes)] for sig in signatures)
-    #print sig_genes
-    samples = list(result.samples)
-    S = result.S
-    #common.write_expression(output_file,labels,samples,S)
 
-    mat = {}
-    mat['signature_labels'] = labels
-    mat['samples'] = samples
-    mat['S'] = S
-    mat['signature_genes'] = sig_genes
+    # sort signatures first by PC, then by fold enrichment
+    signatures = sorted(signatures,key=lambda sig:[abs(sig.pc),-sign(sig.pc),-sig.escore])
 
-    savemat(output_file,mat,appendmat=append_mat)
+    labels = signatures[0].get_ordered_dict().keys()
 
+    with open(output_file,'w') as ofh:
+        writer = csv.writer(ofh,dialect='excel-tab',lineterminator='\n',quoting=csv.QUOTE_NONE)
+
+        writer.writerow(labels)
+
+        for i,sig in enumerate(signatures):
+            vals = sig.get_ordered_dict().values()
+            writer.writerow(vals)
+
+    print 'Wrote %d signatures to "%s".' %(len(signatures),output_file)
     return 0
 
 if __name__ == '__main__':

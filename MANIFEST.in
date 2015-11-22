@@ -1,0 +1,3 @@
+recursive-include docs *
+prune docs/build
+include README.rst
