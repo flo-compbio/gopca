@@ -16,8 +16,66 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""
-Generate a "gene-by-GO term" association matrix and store it as a Python pickle.
+"""Script for determining all genes annotated with each GO term.
+
+This script (see `main` function) uses the :mod:`goparser` package to parse
+GO annotation data from the `UniProt-GOA database`__, extracting a list of all
+genes annotated with each GO term.
+
+The columns of the output file are:
+    1) GO term ID
+    2) "GO" (constant)
+    3) Abbreviated domain of the GO term (e.g., "BP" for biological_process)
+    4) GO term name
+    5) Comma-separated list of genes associated with the GO term
+
+
+__ uniprot_goa_
+
+.. _uniprot_goa: http://www.ebi.ac.uk/GOA
+
+Examples
+--------
+
+Example 1: Extract the GO annotations from UniProt-GOA release 149, for all
+human protein coding genes from `Ensembl`__ release 82, retaining only GO terms
+that have at least 5 and no more than 200 genes annotated with them.
+
+
+__ ensembl_
+
+In a first step, extract a list of all protein-coding genes from the
+`Ensembl GTF file`__, using the script `extract_protein_coding_genes.py` from
+the :mod:`genometools` package:
+
+
+__ gtf_file
+
+.. code-block:: bash
+
+    $ extract_protein_coding_genes.py \\
+        -a Homo_sapiens.GRCh38.82.gtf.gz \\
+        -o protein_coding_genes_human.tsv
+
+In the second step, extract the GO annotations, based on the human
+`gene association file `__ (in GAF format) from UniProt-GOA, and the
+corresponding version of the `gene ontology file`__ (in OBO format) from the
+Gene Ontology Consortium:
+
+__ gaf_file_
+
+.. code-block:: bash
+
+    $ gopca_extract_go_annotations.py -g protein_coding_genes_human.tsv \\
+        -t go-basic.obo -a gene_association.goa_human.149.gz \\
+        --min-genes-per-term 5 --max-genes-per-term 200 \\
+        -o go_annotations_human.tsv
+
+.. _ensembl: http://www.ensembl.org
+.. _gtf_file: ftp://ftp.ensembl.org/pub/release-82/gtf/homo_sapiens/Homo_sapiens.GRCh38.82.gtf.gz
+.. _gaf_file: ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/old/HUMAN/gene_association.goa_human.149.gz
+.. _obo_file: http://viewvc.geneontology.org/viewvc/GO-SVN/ontology-releases/2015-10-12/go-basic.obo?revision=29122
+
 """
 
 # we don't assume that gene names are sorted
@@ -44,7 +102,7 @@ def read_args_from_cmdline():
     # input files
     parser.add_argument('-g','--gene-file',required=True)
     parser.add_argument('-t','--go-ontology-file',required=True)
-    parser.add_argument('-a','--go-association-file',required=True)
+    parser.add_argument('-a','--go-annotation-file',required=True)
 
     # output file
     parser.add_argument('-o','--output-file',required=True)
@@ -53,8 +111,8 @@ def read_args_from_cmdline():
     parser.add_argument('-e','--select-evidence',nargs='+',default=[])
 
     # which GO terms to icnlude in final output?
-    parser.add_argument('--min-genes-per-term',type=int,required=True)
-    parser.add_argument('--max-genes-per-term',type=int,required=True)
+    parser.add_argument('--min-genes-per-term',type=int,default=0)
+    parser.add_argument('--max-genes-per-term',type=int,default=0)
 
     # logging options
     parser.add_argument('-l','--log-file',default=None)
@@ -73,7 +131,7 @@ def main(args=None):
 
     gene_file = args.gene_file
     go_ontology_file = args.go_ontology_file
-    go_association_file = args.go_association_file
+    go_annotation_file = args.go_annotation_file
     output_file = args.output_file
 
     select_evidence = args.select_evidence
@@ -93,12 +151,13 @@ def main(args=None):
         log_level = logging.DEBUG
 
     # intialize logger
-    logger = misc.get_logger(log_file,log_level)
+    logger = misc.configure_logger(__name__, log_file = log_file,
+            log_level = log_level)
 
     # checks
     assert os.path.isfile(gene_file)
     assert os.path.isfile(go_ontology_file)
-    assert os.path.isfile(go_association_file)
+    assert os.path.isfile(go_annotation_file)
 
     # read genes and sort them
     genes = sorted(misc.read_single(args.gene_file))
@@ -108,9 +167,12 @@ def main(args=None):
     # Read GO term definitions and parse UniProtKB GO annotations
     if len(select_evidence) == 1 and (not select_evidence[0].strip(' ')):
         select_evidence = []
-    GO = GOParser(logger=logger)
+
+    misc.configure_logger('goparser', log_file = log_file,
+            log_level = log_level)
+    GO = GOParser()
     GO.parse_ontology(go_ontology_file,part_of_cc_only=False)
-    GO.parse_annotations(go_association_file,gene_file,select_evidence=select_evidence)
+    GO.parse_annotations(go_annotation_file,gene_file,select_evidence=select_evidence)
 
     #with open(go_pickle_file) as fh:
     #   GO = pickle.load(fh)

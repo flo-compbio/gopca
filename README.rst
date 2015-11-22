@@ -1,17 +1,17 @@
 GO-PCA
 ======
 
-GO-PCA is an unsupervised method to explore gene expression data using prior
-knowledge. The `GO-PCA paper`__ has recently been published in PLOS ONE.
+GO-PCA is an unsupervised method to **explore gene expression data using prior
+knowledge**. The `GO-PCA paper`__ has recently been published in PLOS ONE.
 
 __ go_pca_paper_
 
 GO-PCA combines `principal component analysis (PCA)`__  with
-`nonparametric GO enrichment analysis`__ in order to generate *signatures*,
+`nonparametric GO enrichment analysis`__ in order to generate **signatures**,
 i.e., small sets of genes that are both strongly correlated and closely
-functionally related. It then produces a *signature matrix*, designed to
-provide a systematic, easily interpretable view of biologically relevant
-expression patterns.
+functionally related. It then produces a **signature matrix**, designed to
+serve as a systematic and easily interpretable representation of biologically
+relevant expression patterns.
 
 __ pca_
 __ go_enrich_

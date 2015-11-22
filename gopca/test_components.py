@@ -19,12 +19,13 @@
 import sys
 import os
 import argparse
+import logging
 
 import numpy as np
 from sklearn.decomposition import PCA, RandomizedPCA
 
+from genometools import misc
 from gopca import common
-from gopca.printf import printf
 
 def read_args_from_cmdline():
     parser = argparse.ArgumentParser(description='Principal Component Tester')
@@ -40,15 +41,6 @@ def read_args_from_cmdline():
 
     return parser.parse_args()
 
-def message(m,quiet,flush=True,endline=True):
-    if not quiet:
-        end = ' '
-        if endline:
-            end = '\n'
-        printf(m,end=end)
-        if flush:
-            sys.stdout.flush()
-
 def main(args=None):
 
     if args is None:
@@ -61,11 +53,17 @@ def main(args=None):
     seed = args.seed
     quiet = args.quiet
 
+    # configure logger
+    log_level = logging.INFO
+    if quiet:
+        log_level = logging.WARNING
+    logger = misc.configure_logger(__name__, log_level = log_level)
+
     # set seed for random number generator
     if seed is None:
         seed = np.random.randint(int(1e9))
     np.random.seed(seed)
-    message('Using seed: %d' %(seed),quiet)
+    logger.info('Using seed: %d', seed)
 
     # checks
     assert os.path.isfile(expression_file)
@@ -83,7 +81,7 @@ def main(args=None):
         genes = [genes[i] for i in a[:sel_var_genes]]
         E = E[a[:sel_var_genes]]
         
-    message('Expression matrix shape: ' + str(E.shape),quiet)
+    logger.info('Expression matrix shape: %s', str(E.shape))
     #E += (np.random.rand(*E.shape)*1e-4)
 
     # do PCA on unpermuted data
@@ -94,14 +92,13 @@ def main(args=None):
     d = M.explained_variance_ratio_.copy()
 
     # get permutation-based threshold
-    message('Performing permutations...',quiet=quiet,endline=False)
+    logger.info('Performing permutations...')
     thresh = common.get_pc_explained_variance_threshold(E,zscore_thresh,t,seed)
-    message('done!',quiet=quiet)
 
     significant = np.sum(d >= thresh)
     args.result = significant
-    message('Number of significant principal components with z-score >= %.1f: %d' \
-            %(zscore_thresh,significant),quiet)
+    logger.info('Number of significant principal components with z-score >= %.1f: %d',
+            zscore_thresh, significant)
 
     return 0
 
