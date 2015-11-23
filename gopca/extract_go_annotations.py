@@ -16,18 +16,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""Script for determining all genes annotated with each GO term.
+"""Script for determining the set of genes annotated with each GO term.
 
 This script (see `main` function) uses the :mod:`goparser` package to parse
 GO annotation data from the `UniProt-GOA database`__, extracting a list of all
-genes annotated with each GO term.
+genes annotated with each GO term, and stores the results in a tab-delimited
+text file.
 
-The columns of the output file are:
-    1) GO term ID
-    2) "GO" (constant)
-    3) Abbreviated domain of the GO term (e.g., "BP" for biological_process)
-    4) GO term name
-    5) Comma-separated list of genes associated with the GO term
+The five columns of the output file are:
+
+1. GO term ID (e.g., "GO\:0006260").
+2. "GO" (constant).
+3. Abbreviated domain of the GO term (e.g., "BP" for
+   ``biological_process``).
+4. GO term name (e.g., "DNA replication").
+5. Comma-separated list of genes (represented by their gene symbols) associated
+   with the GO term.
 
 
 __ uniprot_goa_
@@ -37,39 +41,38 @@ __ uniprot_goa_
 Examples
 --------
 
-Example 1: Extract the GO annotations from UniProt-GOA release 149, for all
-human protein coding genes from `Ensembl`__ release 82, retaining only GO terms
-that have at least 5 and no more than 200 genes annotated with them.
+-   Extract the GO annotations from UniProt-GOA release 149, for all
+    human protein coding genes from `Ensembl`__ release 82, retaining only GO terms
+    that have at least 5 and no more than 200 genes annotated with them.
+
+    __ ensembl_
+
+    In a first step, extract a list of all protein-coding genes from the
+    `Ensembl GTF file`__, using the script `extract_protein_coding_genes.py` from
+    the :mod:`genometools` package:
 
 
-__ ensembl_
+    __ gtf_file
 
-In a first step, extract a list of all protein-coding genes from the
-`Ensembl GTF file`__, using the script `extract_protein_coding_genes.py` from
-the :mod:`genometools` package:
+    .. code-block:: bash
 
+        $ extract_protein_coding_genes.py \\
+            -a Homo_sapiens.GRCh38.82.gtf.gz \\
+            -o protein_coding_genes_human.tsv
 
-__ gtf_file
+    In the second step, extract the GO annotations, based on the human
+    `gene association file `__ (in GAF format) from UniProt-GOA, and the
+    corresponding version of the `gene ontology file`__ (in OBO format) from the
+    Gene Ontology Consortium:
 
-.. code-block:: bash
+    __ gaf_file_
 
-    $ extract_protein_coding_genes.py \\
-        -a Homo_sapiens.GRCh38.82.gtf.gz \\
-        -o protein_coding_genes_human.tsv
+    .. code-block:: bash
 
-In the second step, extract the GO annotations, based on the human
-`gene association file `__ (in GAF format) from UniProt-GOA, and the
-corresponding version of the `gene ontology file`__ (in OBO format) from the
-Gene Ontology Consortium:
-
-__ gaf_file_
-
-.. code-block:: bash
-
-    $ gopca_extract_go_annotations.py -g protein_coding_genes_human.tsv \\
-        -t go-basic.obo -a gene_association.goa_human.149.gz \\
-        --min-genes-per-term 5 --max-genes-per-term 200 \\
-        -o go_annotations_human.tsv
+        $ gopca_extract_go_annotations.py -g protein_coding_genes_human.tsv \\
+            -t go-basic.obo -a gene_association.goa_human.149.gz \\
+            --min-genes-per-term 5 --max-genes-per-term 200 \\
+            -o go_annotations_human.tsv
 
 .. _ensembl: http://www.ensembl.org
 .. _gtf_file: ftp://ftp.ensembl.org/pub/release-82/gtf/homo_sapiens/Homo_sapiens.GRCh38.82.gtf.gz
@@ -96,38 +99,89 @@ from genometools import misc
 from goparser import GOParser
 #from gopca import common
 
-def read_args_from_cmdline():
-    parser = argparse.ArgumentParser(description='')
+def get_argument_parser():
+    """Function to obtain the argument parser.
+
+    Returns
+    -------
+    A fully configured `argparse.ArgumentParser` object.
+
+    Notes
+    -----
+    This function is used by the `sphinx-argparse` extension for sphinx.
+    """
+    
+    description = """Script for determining the set of genes annotated with \
+            each GO term."""
+
+    parser = argparse.ArgumentParser(description = description)
 
     # input files
-    parser.add_argument('-g','--gene-file',required=True)
-    parser.add_argument('-t','--go-ontology-file',required=True)
-    parser.add_argument('-a','--go-annotation-file',required=True)
+    parser.add_argument('-g','--gene-file',required=True,
+            help="""Path of tab-delimited file containing all "valid" gene
+                    symbols.""")
+
+    parser.add_argument('-t','--ontology-file',required=True,
+            help='Path of ontology file (in OBO format).')
+
+    parser.add_argument('-a','--gene-association-file',required=True,
+            help='Path of gene association file (in GAF format).')
 
     # output file
-    parser.add_argument('-o','--output-file',required=True)
+    parser.add_argument('-o','--output-file',required=True,
+            help='Path of output file.')
 
     # evidence
-    parser.add_argument('-e','--select-evidence',nargs='+',default=[])
+    parser.add_argument('-e','--select-evidence',nargs='+',default=[],
+            help="""List of three-letter evidence codes to include.
+                    If not specified, include all evidence types.""")
 
-    # which GO terms to icnlude in final output?
-    parser.add_argument('--min-genes-per-term',type=int,default=0)
-    parser.add_argument('--max-genes-per-term',type=int,default=0)
+    # which GO terms to include in final output?
+    parser.add_argument('--min-genes-per-term',type=int,default=0,
+            help="""Exclude GO terms that have fewer than the specified number
+                    of genes annotated with them. Disabled (0) by default.""")
+
+    parser.add_argument('--max-genes-per-term',type=int,default=0,
+            help="""Exclude GO terms that have more than the specified number
+                    of genes annotated with them. Disabled (0) by default.""")
 
     # logging options
-    parser.add_argument('-l','--log-file',default=None)
-    parser.add_argument('-q','--quiet',action='store_true')
-    parser.add_argument('-v','--verbose',action='store_true')
+    parser.add_argument('-l','--log-file',default=None,
+            help='Path of log file.')
+
+    parser.add_argument('-q','--quiet',action='store_true',
+            help='Suppress all output except warnings and errors.')
+
+    parser.add_argument('-v','--verbose',action='store_true',
+            help='Enable verbose output. Ignored if ``--quiet`` is specified.')
 
     # legacy options
-    parser.add_argument('--part-of-cc-only',action='store_true')
+    parser.add_argument('--part-of-cc-only',action='store_true',
+            help="""If enabled, ignore ``part_of`` relations outside the
+                    ``cellular_component`` (CC) domain.""")
 
-    return parser.parse_args()
+    return parser
 
 def main(args=None):
+    """Extract GO annotations and store in tab-delimited text file.
+
+    Parameters
+    ----------
+    args: argparse.Namespace object, optional
+        The argument values. If not specified, the values will be obtained by
+        parsing the command line arguments using the `argparse` module.
+
+    Returns
+    -------
+    int
+        Exit code (0 if no error occurred).
+ 
+    """
+
 
     if args is None:
-        args = read_args_from_cmdline()
+        parser = get_argument_parser()
+        args = parser.parse_args()
 
     gene_file = args.gene_file
     go_ontology_file = args.go_ontology_file
