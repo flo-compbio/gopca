@@ -4,7 +4,11 @@ Preparing GO annotations
 GO annotation file format
 -------------------------
 
-GO-PCA relies on GO annotations, consisting of associations of genes with specific GO terms. Therefore, one of the inputs to GO-PCA is a "GO annotation file", which is a tab-delimited text file that contains a list of of GO terms and the sets of genes annotated with them. An example snippet of a valid GO annootation file is shown below:
+GO-PCA relies on GO annotations, consisting of associations of genes with
+specific GO terms. Therefore, one of the inputs to GO-PCA is a "GO annotation
+file", which is a tab-delimited text file that contains a list of of GO terms
+and the sets of genes annotated with them. An example snippet of a valid GO
+annotation file is shown below:
 
 ::
     
@@ -15,12 +19,22 @@ GO-PCA relies on GO annotations, consisting of associations of genes with specif
     GO:0000813      GO      CC      ESCRT I complex MVB12A,MVB12B,TSG101,UBAP1,VPS28,VPS37A,VPS37B,VPS37C,VPS37D
     ...
 
-Each row corresponds to one GO term, where the first column contains the unique GO identifier. The second column is currently ignored by GO-PCA, and the third column contains the "domain" of the GO temr. Finally, the fourth column contains the name of the GO term, and the last column contains a comma-separated list of genes that are annotated with that term.
+Each row corresponds to one GO term, where the first column contains the unique
+GO identifier. The second column is currently ignored by GO-PCA, and the third
+column contains the "domain" of the GO term. Finally, the fourth column
+contains the name of the GO term, and the last column contains a
+comma-separated list of genes that are annotated with that term.
 
 Generating the GO annotation file
 ---------------------------------
 
-GO-PCA comes with an auxilliary script, named "`gopca_extract_go_annotations.py`", that can be used to generate GO annotation files as described above. The inputs to this script include the Gene Ontology (in "OBO" format), as well as species-specific GO annotation data from the UniProt-GOA database (in "GAF" format). The command-line parameters of this script are described below. For additional documentation, please see the `extract_go_annotations` module and the `demos`.
+GO-PCA comes with an auxilliary script, named
+"`gopca_extract_go_annotations.py`", that can be used to generate GO annotation
+files as described above. The inputs to this script include the Gene Ontology
+data (in "OBO" format), as well as species-specific GO annotation data from the
+UniProt-GOA database (in "GAF" format). The command-line parameters of this
+script are described below. For additional documentation, please see the
+`extract_go_annotations` module and the `demos`.
 
 .. _gopca_extract_go_annotations.py:
 
