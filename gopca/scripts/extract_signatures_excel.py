@@ -16,6 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""This script extracts GO-PCA signatures as an Excel spreadsheet.
+
+Example
+-------
+
+::
+
+    $ gopca_extract_signatures.py -g [gopca_result_file] -o [output_file]
+
+"""
+
 import sys
 import os
 import argparse
@@ -25,6 +36,7 @@ import math
 
 import numpy as np
 
+from genometools import misc
 from gopca import common
 
 def read_args_from_cmdline():
@@ -35,15 +47,9 @@ def read_args_from_cmdline():
 
     return parser.parse_args()
 
-sign = lambda x:int(math.copysign(1.0,x))
-
 def main(args=None):
 
-    try:
-        import xlsxwriter
-    except ImportError:
-        print >> sys.stdout, 'Error: You must have the Python package "xlsxwriter" installed!'
-        return 1
+    sign = lambda x:int(math.copysign(1.0,x))
 
     if args is None:
         args = read_args_from_cmdline()
@@ -52,6 +58,14 @@ def main(args=None):
     output_file = args.output_file
 
     assert os.path.isfile(gopca_file)
+
+    logger = misc.configure_logger(__name__)
+
+    try:
+        import xlsxwriter
+    except ImportError:
+        logger.error('Error: You must have the Python package "xlsxwriter" installed!')
+        return 1
 
     workbook = xlsxwriter.Workbook(output_file,{'strings_to_numbers': True, 'in_memory': True})
     workbook.set_properties({'title': 'GO-PCA Signatures'})
@@ -81,7 +95,8 @@ def main(args=None):
 
     workbook.close()
 
-    print 'Wrote %d signatures to "%s".' %(len(signatures),output_file)
+    logger.info('Wrote %d signatures to "%s".', len(signatures),output_file)
+
     return 0
 
 if __name__ == '__main__':

@@ -61,9 +61,9 @@ Examples
             -o protein_coding_genes_human.tsv
 
     In the second step, extract the GO annotations, based on the human
-    `gene association file `__ (in GAF format) from UniProt-GOA, and the
-    corresponding version of the `gene ontology file`__ (in OBO format) from the
-    Gene Ontology Consortium:
+    `gene association file `__ (in GAF 2.0 format) from UniProt-GOA, and the
+    corresponding version of the `gene ontology file`__ (in OBO 1.2 format)
+    from the Gene Ontology Consortium:
 
     __ gaf_file_
 
@@ -184,8 +184,8 @@ def main(args=None):
         args = parser.parse_args()
 
     gene_file = args.gene_file
-    go_ontology_file = args.go_ontology_file
-    go_annotation_file = args.go_annotation_file
+    ontology_file = args.ontology_file
+    gene_association_file = args.gene_association_file
     output_file = args.output_file
 
     select_evidence = args.select_evidence
@@ -210,8 +210,8 @@ def main(args=None):
 
     # checks
     assert os.path.isfile(gene_file)
-    assert os.path.isfile(go_ontology_file)
-    assert os.path.isfile(go_annotation_file)
+    assert os.path.isfile(ontology_file)
+    assert os.path.isfile(gene_association_file)
 
     # read genes and sort them
     genes = sorted(misc.read_single(args.gene_file))
@@ -225,8 +225,8 @@ def main(args=None):
     misc.configure_logger('goparser', log_file = log_file,
             log_level = log_level)
     GO = GOParser()
-    GO.parse_ontology(go_ontology_file,part_of_cc_only=False)
-    GO.parse_annotations(go_annotation_file,gene_file,select_evidence=select_evidence)
+    GO.parse_ontology(ontology_file,part_of_cc_only=False)
+    GO.parse_annotations(gene_association_file,gene_file,select_evidence=select_evidence)
 
     #with open(go_pickle_file) as fh:
     #   GO = pickle.load(fh)

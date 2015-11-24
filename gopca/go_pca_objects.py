@@ -801,12 +801,16 @@ class GOPCASignature(object):
 
         stats_str = ''
         if include_stats:
+
+            e_str = ''
+            p_str = ''
             if include_pval:
-                stats_str = ' [%d:%d/%d, p=%.1e]' \
-                        %(self.pc,self.k,self.K,self.pval)
-            else:
-                stats_str = ' [%d:%d/%d]' \
-                        %(self.pc,self.k,self.K)
+                p_str = ', p=%.1e' %(self.pval)
+                if self.escore is not None:
+                    e_str = ', e=%.1f' %(self.escore)
+
+            stats_str = ' [%d:%d/%d%s%s]' \
+                    %(self.pc,self.k,self.K,e_str,p_str)
 
         return term_str + stats_str
 

@@ -16,10 +16,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""This script plots the GO-PCA signature matrix as a heat map.
+
+Example
+-------
+
+::
+
+    $ gopca_plot_signature_matrix.py -g [gopca_result_file] -o [output_file]
+
+"""
+
 import sys
 import os
 import argparse
 import cPickle as pickle
+import logging
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
@@ -99,6 +111,9 @@ def main(args=None):
 
     sig_max_name_len = args.sig_max_name_len
 
+    # configure logger
+    logger = misc.configure_logger(__name__)
+
     # read GO-PCA result
     result = None
     with open(result_file,'rb') as fh:
@@ -117,17 +132,16 @@ def main(args=None):
 
     if not args.disable_sample_clustering:
         # clustering of columns (samples)
-        print 'Clustering of samples...', ; sys.stdout.flush()
+        logger.info('Clustering of samples...')
         #distxy = squareform(pdist(S.T, metric='euclidean'))
         distxy = squareform(pdist(S.T, metric=sample_cluster_metric))
         R = dendrogram(linkage(distxy, method='average'),no_plot=True)
         order_cols = np.int64([int(l) for l in R['ivl']])
         S = S[:,order_cols]
         samples = [samples[j] for j in order_cols]
-        print 'done!'; sys.stdout.flush()
 
     # plotting
-    print 'Plotting...', ; sys.stdout.flush()
+    logger.info('Plotting...')
 
     import matplotlib as mpl
     if mpl_backend is not None:
@@ -161,12 +175,11 @@ def main(args=None):
     plt.yticks(np.arange(q),labels,size='x-small')
     plt.xlabel('Samples (n=%d)' %(n))
     plt.ylabel('Signatures')
-    print 'done!'; sys.stdout.flush()
 
-    print 'Saving to file...', ; sys.stdout.flush()
+    logger.info('Saving to file...')
     #plt.gcf().set_size_inches(fig_dim[0],fig_dim[1])
     plt.savefig(output_file,bbox_inches='tight')
-    print 'done!'; sys.stdout.flush()
+    logger.info('Done!')
 
     return 0
 

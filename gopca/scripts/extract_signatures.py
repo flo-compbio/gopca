@@ -16,6 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""This script extracts GO-PCA signatures as a tab-delimited text file.
+
+Example
+-------
+
+::
+
+    $ gopca_extract_signatures.py -g [gopca_result_file] -o [output_file]
+
+"""
+
 import sys
 import os
 import argparse
@@ -24,12 +35,13 @@ import math
 
 import numpy as np
 
+from genometools import misc
 from gopca import common
 
 sign = lambda x:int(math.copysign(1.0,x))
 
 def get_argument_parser():
-    description = 'Extract GO-PCA signatures as tab-delimited file'
+    description = 'Extract GO-PCA signatures as tab-delimited text file'
     parser = argparse.ArgumentParser(description = description)
     parser.add_argument('-g','--gopca-file',required=True)
     parser.add_argument('-o','--output-file',required=True)
@@ -43,6 +55,8 @@ def main(args=None):
 
     gopca_file = args.gopca_file
     output_file = args.output_file
+
+    logger = misc.configure_logger(__name__)
 
     assert os.path.isfile(gopca_file)
 
@@ -63,7 +77,8 @@ def main(args=None):
             vals = sig.get_ordered_dict().values()
             writer.writerow(vals)
 
-    print 'Wrote %d signatures to "%s".' %(len(signatures),output_file)
+    logger.info('Wrote %d signatures to "%s".', len(signatures),output_file)
+
     return 0
 
 if __name__ == '__main__':
