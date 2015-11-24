@@ -16,6 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""This script plots the GO-PCA signature matrix as a heat map.
+
+Example
+-------
+
+::
+
+    $ gopca_plot_signature.py -g [gopca_result_file] -s [signature_name] -o [output_file]
+
+"""
+
 import sys
 import os
 import argparse
@@ -111,6 +122,9 @@ def main(args=None):
     mpl_backend = args.matplotlib_backend
     invert_gene_order = args.invert_gene_order
 
+    # configure logger
+    logger = misc.configure_logger(__name__)
+
     # read GO-PCA result
     result = None
     with open(result_file,'rb') as fh:
@@ -125,20 +139,19 @@ def main(args=None):
         assert len(sig) == 1
         sig = sig[0]
     else:
-        sig_name = sig_name.lower()
-        sig = [s for s in signatures if s.term[3].lower().startswith(sig_name)]
+        sig = [s for s in signatures if s.term[3].lower().startswith(sig_name.lower())]
         if len(sig) == 0:
-            print >> sys.stderr, 'Error: signature name not found.'
+            logger.error('Error: signature name "%s" not found.', sig_name)
             return 1
         elif len(sig) > 1:
-            print >> sys.stderr, 'Error: signature name not unique, matched: %s' %(', '.join([s.term[3] for s in sig]))
+            logger.error('Error: signature name not unique, matched: %s', ', '.join([s.term[3] for s in sig]))
             return 1
         sig = sig[0]
 
     # get signature gene expression matrix and cluster rows
     sig_genes = sig.genes
     E = sig.E
-    print E.shape
+    logger.debug('Expression matrix shape', str(E.shape))
     order_rows = common.cluster_rows(E,metric='correlation',method='average')
     if invert_gene_order:
         order_rows = order_rows[::-1]
@@ -205,9 +218,9 @@ def main(args=None):
 
     #plt.tight_layout()
 
-    print 'Saving to file...', ; sys.stdout.flush()
+    logger.info('Saving to file...')
     plt.savefig(output_file,bbox_inches='tight')
-    print 'done!'; sys.stdout.flush()
+    logger.info('Done!')
 
     return 0
 
