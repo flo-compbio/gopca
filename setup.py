@@ -86,34 +86,20 @@ setup(
             'gopca_extract_go_annotations.py = gopca.extract_go_annotations:main',
 
             # GO-PCA scripts
-            'go-pca.py = gopca.go_pca:main',
-            'bootstrap-go-pca.py = gopca.bootstrap_go_pca:main',
+            'go-pca.py = gopca.main:main',
 
             # processing scripts
             'gopca_extract_signatures.py = gopca.scripts.extract_signatures:main',
             'gopca_extract_signatures_excel.py = gopca.scripts.extract_signatures_excel:main',
-            #'gopca_extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
             'gopca_extract_matlab_file.py = gopca.scripts.extract_matlab_file:main',
+            'gopca_extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
 
             # plotting scripts
             'gopca_plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
-            'gopca_plot_signature_correlation_matrix.py = gopca.plotting.plot_signature_correlation_matrix:main',
-            'gopca_plot_within_signature_correlations.py = gopca.plotting.plot_within_signature_correlations:main',
-            'gopca_plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
             'gopca_plot_signature.py = gopca.plotting.plot_signature:main',
-            'gopca_plot_pc_variance_explained.py = gopca.plotting.plot_pc_variance_explained:main',
-            'gopca_plot_pc_scores.py = gopca.plotting.plot_pc_scores:main',
-
-            # bootstrapping scripts
-            'gopca_extract_bootstrap_sample.py = gopca.scripts.extract_bootstrap_sample:main',
-            'gopca_plot_bootstrap_numbers.py = gopca.plotting.plot_bootstrap_numbers:main',
-            'gopca_plot_bootstrap_sample_size_summary.py = gopca.plotting.plot_bootstrap_sample_size_summary:main',
-            'gopca_plot_bootstrap_sample_size_matrix.py = gopca.plotting.plot_bootstrap_sample_size_matrix:main',
-            'gopca_plot_bootstrap_pc_matrix.py = gopca.plotting.plot_bootstrap_pc_matrix:main',
-            'gopca_plot_bootstrap_signature_detection.py = gopca.plotting.plot_bootstrap_signature_detection:main',
 
             # misc scripts
-            'gopca_test_components.py = gopca.test_components:main',
+            #'gopca_test_components.py = gopca.test_components:main',
         ],
     },
 )

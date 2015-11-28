@@ -14,6 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Module for GO enrichment analysis using the XL-mHG test.
+
+The `GOEnrichmentAnalysis` class performs the tests, and the results are
+represented by `GOTermEnrichment` objects.
+"""
+
 import sys
 import os
 import csv
@@ -28,9 +34,11 @@ from scipy.stats import hypergeom
 from genometools import misc
 import xlmhg
 
-class mHGTermResult(object):
-    """
-    Stores mHG result for one particular term.
+class GOTermEnrichment(object):
+    """Result of a XL-mHG-based GO enrichment test for a particular GO term.
+
+    Parameters
+    ----------
     """
 
     #Note: Change this so that it inherits from class mHGResult
@@ -59,11 +67,11 @@ class mHGTermResult(object):
         self.escore = None
 
     def __repr__(self):
-        return '<mHGTermResult: %s (pval=%.1e; X=%d; L=%d; N=%d); genes hash=%d; positions hash=%d)>' \
+        return '<GOTermEnrichment: %s (pval=%.1e; X=%d; L=%d; N=%d); genes hash=%d; positions hash=%d)>' \
                 %('/'.join(self.term),self.pval,self.X,self.L,self.N,hash(self.genes),hash(self.ranks.data))
 
     def __str__(self):
-        return '<mHGTermResult of term "%s" (%s; %d genes) with p-value = %.1e (X=%d, L=%d, N=%d)>' \
+        return '<GOTermEnrichment of term "%s" (%s; %d genes) with p-value = %.1e (X=%d, L=%d, N=%d)>' \
                 %(str(self.term[3]),self.term[0],len(self.genes),self.pval,self.X,self.L,self.N)
 
     def __hash__(self):
@@ -151,22 +159,27 @@ class mHGTermResult(object):
         details = ', p=%.1e%s%s' %(self.pval,escore_str,param_str)
         return '%s%s' %(term_str,details)
 
-class GOEnrichment(object):
+class GOEnrichmentAnalysis(object):
 
-    def __init__(self,genes,annotations,logger):
+    def __init__(self,genes,go_annotations):
 
+        # get logger
+        self.logger = logging.getLogger(__name__)
+
+        # sort genes alphabetically
         a = np.lexsort([genes])
         self.genes = [genes[i] for i in a]
-        self.terms = sorted(annotations.keys(), key=lambda x:x[0])
-        self.logger = logger.getChild('GOEnrich')
-        #self.logger.propagate = False
-        #term_ids = [t[0] for t in self.terms] # self.term_ids?
-        #self.terms = [GO.terms[id_] for id_ in self.term_ids] # 4-tuples
+
+        # sort GO terms alphabetically by ID
+        self.terms = sorted(go_annotations.keys(), key=lambda x:x[0])
+
+        # generate annotation matrix
+        self._info('Generating gene x GO term matrix...')
         p = len(genes)
-        m = len(annotations)
+        m = len(go_annotations)
         self.A = np.zeros((p,m),dtype=np.uint8)
         for j,t in enumerate(self.terms):
-            for g in annotations[t]:
+            for g in go_annotations[t]:
                 try:
                     idx = misc.bisect_index(self.genes,g)
                 except ValueError:
@@ -175,13 +188,13 @@ class GOEnrichment(object):
                     self.A[idx,j] = 1
 
     # logging convenience functions
-    def message(self,s,*args):
+    def _info(self,s,*args):
         self.logger.info(s,*args)
 
-    def warning(self,s,*args):
+    def _warning(self,s,*args):
         self.logger.warning(s,*args)
 
-    def error(self,s,*args):
+    def _error(self,s,*args):
         self.logger.error(s,*args)
 
     def get_enriched_terms(self,ranked_genes,pval_thresh,X_frac,X_min,L,escore_pval_thresh=None,selected_term_ids=[],mat=None,quiet=False,verbose=False):
@@ -247,14 +260,14 @@ class GOEnrichment(object):
 
                     # check if GO term is significantly enriched
                     if pval <= pval_thresh:
-                        # generate mHGTermResult
+                        # generate GOTermEnrichment
                         sel = np.nonzero(A[:,j])[0] # ranks of all the 1's
                         mHG_k_n = np.sum(sel < mHG_n) 
                         sel_genes = [ranked_genes[i] for i in sel]
                     
                         #def __init__(self,term,genes,pval,ranks,N,X,L,mHG_n=None,mHG_k_n=None,mHG_s=None):
                         #print terms[j],pval,sel_genes,sel
-                        enr = mHGTermResult(terms[j],pval,sel_genes,sel,p,X,L,mHG_n,mHG_k_n,mHG_s)
+                        enr = GOTermEnrichment(terms[j],pval,sel_genes,sel,p,X,L,mHG_n,mHG_k_n,mHG_s)
 
                         enriched_terms.append(enr)
 

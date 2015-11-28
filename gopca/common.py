@@ -211,7 +211,7 @@ def read_gopca_result(fn):
         sig.enr.ranks.flags.writeable = False
     return result
 
-def read_annotations(fn):
+def read_go_annotations(fn):
     ann = {}
     with open(fn) as fh:
         reader = csv.reader(fh,dialect='excel-tab')
