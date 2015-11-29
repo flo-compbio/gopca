@@ -377,6 +377,12 @@ class GOPCAInput(object):
         """Returns a set of all GO-PCA parameter names."""
         return self.__param_names
 
+    def get_param_strings(self):
+        d = []
+        for k in sorted(self.__params.keys()):
+            d.append('%s: %s' %(k,str(self.__params[k])))
+        return d
+
     def get_default_param(self,name):
         """Return the default value of a GO-PCA parameter.
 

@@ -233,6 +233,11 @@ class GOPCA(object):
                         'principal components is zero!')
                 raise ValueError
 
+        self._debug('-'*70)
+        self._debug('GO-PCA parameters:')
+        for d in self.__input.get_param_strings():
+            self._debug(d)
+        self._debug('-'*70)
 
         # create GOEnrichment object
         M_enrich = GOEnrichmentAnalysis(genes,go_annotations)
