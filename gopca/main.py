@@ -173,14 +173,14 @@ def main(args=None):
     pc_permutations = args.pc_permutations
     pc_zscore_thresh = args.pc_zscore_thresh
 
-    # configure logger
+    # configure root logger
     log_level = logging.INFO
     if quiet:
         log_level = logging.WARNING
     elif verbose:
         log_level = logging.DEBUG
 
-    logger = misc.configure_logger('gopca', log_file = log_file,
+    logger = misc.configure_logger('', log_file = log_file,
             log_level = log_level)
 
     # generate random seed (if not provided)

@@ -14,15 +14,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import re
+
+import numpy as np
+
 class GOPCASignature(object):
 
     abbrev = [('positive ','pos. '),('negative ','neg. '),('interferon-','IFN-'),('proliferation','prolif.'),('signaling','signal.')]
 
-    def __init__(self,genes,E,pc,xlmhg_result,label=None):
+    def __init__(self,genes,E,pc,enr,label=None):
         self.genes = tuple(genes) # genes in the signature (NOT equal to self.enr.genes, which contains the gene names corresponding to all the 1's)
         self.E = E # expression of the genes in the signture, with ordering matching that of self.genes
         self.pc = pc # principal component (sign indicates whether ordering was ascending or descending)
-        self.xlmhg_result = xlmhg_result # GO enrichment this signature is based on
+        self.enr = enr # GO enrichment this signature is based on
 
     def __repr__(self):
         return '<GOPCASignature: label="%s", pc=%d, es=%.1f; %s>' \
@@ -42,10 +46,6 @@ class GOPCASignature(object):
             return True
         else:
             return False
-
-    @property
-    def enr(self):
-        return self.xlmhg_result
 
     @property
     def term(self):

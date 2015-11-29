@@ -18,8 +18,8 @@ import logging
 from copy import deepcopy
 import cPickle as pickle
 
-import gopca
-print dir(gopca)
+import numpy as np
+
 from gopca import GOPCAInput, GOPCASignature
 
 class GOPCAOutput(object):
@@ -50,7 +50,7 @@ class GOPCAOutput(object):
         # S = GO-PCA signature matrix
 
         # get logger
-        self.logger = logging.getLogger(__name__)
+        self._logger = logging.getLogger(__name__)
 
         # make sure input is valid
         if not input_.valid:
@@ -60,7 +60,7 @@ class GOPCAOutput(object):
             input_.calculate_hash()
 
         # checks
-        assert isinstance(config,GOPCAInput)
+        assert isinstance(input_,GOPCAInput)
         assert isinstance(genes,list) or isinstance(genes,tuple)
         assert isinstance(samples,list) or isinstance(samples,tuple)
         assert isinstance(W,np.ndarray)
@@ -88,11 +88,6 @@ class GOPCAOutput(object):
 
     ### magic functions
     def __repr__(self):
-        conf_hash = hash(self.config)
-        gene_hash = hash(self.genes)
-        sample_hash = hash(self.samples)
-        sig_hash = hash((hash(sig) for sig in self.signatures))
-
         param_str = '%d genes; %d samples; %d PCs; %d signatures' \
                 %(self.p, self.n, self.D, self.q)
         return '<GOPCAOutput object (%s); hash = %s>' \
@@ -112,6 +107,25 @@ class GOPCAOutput(object):
 
     def __hash__(self):
         return hash(self.__get_hash())
+
+    def __getstate__(self):
+        """Called to obtain the data to be pickled.
+
+        We need to remove the logger object before pickling, since pickling
+        this object would result in an error.
+        """
+        d = self.__dict__.copy()
+        del d['_logger']
+        return d
+
+    def __setstate__(self,state):
+        """Called to unpickle the object.
+
+        We restore the logger object that was deleted before pickling.
+        """
+        state['_logger'] = logging.getLogger(__name__)
+        self.__dict__.update(state)
+    ### end magic functions
 
     ### private members
     def __get_hash(self):
@@ -134,6 +148,7 @@ class GOPCAOutput(object):
         hash_str = ','.join([str(h) for h in hashes])
         h = haslib.md5(hash_str).hexdigest()
         return h
+    ### end private members
   
     ### protected members
     def _hash_ndarray(self,a):
@@ -143,6 +158,20 @@ class GOPCAOutput(object):
         h = hash(a.data)
         a.flags.writable = before
         return a
+
+    # logging convenience functions
+    def _debug(self,s,*args):
+        self._logger.debug(s,*args)
+
+    def _info(self,s,*args):
+        self._logger.info(s,*args)
+
+    def _warning(self,s,*args):
+        self._logger.warning(s,*args)
+
+    def _error(self,s,*args):
+        self._logger.error(s,*args)
+
 
     ### public members
     @property

@@ -197,6 +197,24 @@ class GOPCAInput(object):
         cp.__input_hashes = copy.deepcopy(self.__input_hashes,memo)
         cp.__hash = self.__hash
         return cp
+
+    def __getstate__(self):
+        """Called to obtain the data to be pickled.
+
+        We need to remove the logger object before pickling, since pickling
+        this object would result in an error.
+        """
+        d = self.__dict__.copy()
+        del d['_logger']
+        return d
+
+    def __setstate__(self,state):
+        """Called to unpickle the object.
+
+        We restore the logger object that was deleted before pickling.
+        """
+        state['_logger'] = logging.getLogger(__name__)
+        self.__dict__.update(state)
     ### end magic functions
 
     ### private members
