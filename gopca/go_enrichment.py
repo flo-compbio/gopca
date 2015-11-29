@@ -14,6 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Module for GO enrichment analysis using the XL-mHG test.
+
+The `GOEnrichmentAnalysis` class performs the tests, and the results are
+represented by `GOTermEnrichment` objects.
+"""
+
 import sys
 import os
 import csv
@@ -28,9 +34,18 @@ from scipy.stats import hypergeom
 from genometools import misc
 import xlmhg
 
-class mHGTermResult(object):
-    """
-    Stores mHG result for one particular term.
+class GOTermEnrichment(object):
+    """Result of an XL-mHG-based test for enrichment of a particular GO term.
+
+    Parameters
+    ----------
+    term: 4-tuple of str
+        GO term data (ID, "GO", abbreviated domain, name)
+    pval: float
+        The p-value of the XL-mHG enrichment test.
+    ranks: list, tuple or ndarray of int
+        The ranks of the GO term genes in the ranked list (0-based).
+
     """
 
     #Note: Change this so that it inherits from class mHGResult
@@ -59,11 +74,11 @@ class mHGTermResult(object):
         self.escore = None
 
     def __repr__(self):
-        return '<mHGTermResult: %s (pval=%.1e; X=%d; L=%d; N=%d); genes hash=%d; positions hash=%d)>' \
+        return '<GOTermEnrichment: %s (pval=%.1e; X=%d; L=%d; N=%d); genes hash=%d; positions hash=%d)>' \
                 %('/'.join(self.term),self.pval,self.X,self.L,self.N,hash(self.genes),hash(self.ranks.data))
 
     def __str__(self):
-        return '<mHGTermResult of term "%s" (%s; %d genes) with p-value = %.1e (X=%d, L=%d, N=%d)>' \
+        return '<GOTermEnrichment of term "%s" (%s; %d genes) with p-value = %.1e (X=%d, L=%d, N=%d)>' \
                 %(str(self.term[3]),self.term[0],len(self.genes),self.pval,self.X,self.L,self.N)
 
     def __hash__(self):
@@ -151,22 +166,27 @@ class mHGTermResult(object):
         details = ', p=%.1e%s%s' %(self.pval,escore_str,param_str)
         return '%s%s' %(term_str,details)
 
-class GOEnrichment(object):
+class GOEnrichmentAnalysis(object):
 
-    def __init__(self,genes,annotations,logger):
+    def __init__(self,genes,go_annotations):
 
+        # get logger
+        self.logger = logging.getLogger(__name__)
+
+        # sort genes alphabetically
         a = np.lexsort([genes])
         self.genes = [genes[i] for i in a]
-        self.terms = sorted(annotations.keys(), key=lambda x:x[0])
-        self.logger = logger.getChild('GOEnrich')
-        #self.logger.propagate = False
-        #term_ids = [t[0] for t in self.terms] # self.term_ids?
-        #self.terms = [GO.terms[id_] for id_ in self.term_ids] # 4-tuples
+
+        # sort GO terms alphabetically by ID
+        self.terms = sorted(go_annotations.keys(), key=lambda x:x[0])
+
+        # generate annotation matrix
+        self._info('Generating gene x GO term matrix...')
         p = len(genes)
-        m = len(annotations)
+        m = len(go_annotations)
         self.A = np.zeros((p,m),dtype=np.uint8)
         for j,t in enumerate(self.terms):
-            for g in annotations[t]:
+            for g in go_annotations[t]:
                 try:
                     idx = misc.bisect_index(self.genes,g)
                 except ValueError:
@@ -175,25 +195,22 @@ class GOEnrichment(object):
                     self.A[idx,j] = 1
 
     # logging convenience functions
-    def message(self,s,*args):
+    def _debug(self,s,*args):
+        self.logger.debug(s,*args)
+
+    def _info(self,s,*args):
         self.logger.info(s,*args)
 
-    def warning(self,s,*args):
+    def _warning(self,s,*args):
         self.logger.warning(s,*args)
 
-    def error(self,s,*args):
+    def _error(self,s,*args):
         self.logger.error(s,*args)
 
-    def get_enriched_terms(self,ranked_genes,pval_thresh,X_frac,X_min,L,escore_pval_thresh=None,selected_term_ids=[],mat=None,quiet=False,verbose=False):
+    def get_enriched_terms(self, ranked_genes, pval_thresh, X_frac, X_min, L,
+            escore_pval_thresh = None, selected_term_ids = [], mat = None):
         """Tests GO term enrichment of either all terms or the terms specified by ``selected_term_ids``.
         """
-
-        log_level = logging.INFO
-        if quiet:
-            log_level = logging.WARNING
-        elif verbose:
-            log_level = logging.ERROR
-        self.logger.setLevel(log_level)
 
         genes = self.genes
         terms = self.terms
@@ -209,7 +226,8 @@ class GOEnrichment(object):
             terms = [terms[i] for i in term_indices]
             A = A[:,term_indices] # not a view!
 
-        # sort rows in annotation matrix (and exclude genes not in the ranking)
+        # reorder rows in annotation matrix to match the given gene ranking
+        # also exclude genes not in the ranking
         gene_indices = np.int64([misc.bisect_index(genes,g) for g in ranked_genes])
         A = A[gene_indices,:] # not a view either!
 
@@ -225,44 +243,43 @@ class GOEnrichment(object):
             mat = np.empty((K_max+1,p+1),dtype=np.longdouble)
 
         # find enriched GO terms
-        self.message('Testing %d terms for enrichment...', m)
-        self.message('(N = %d, X_frac = %.2f, X_min = %d, L = %d; K_max = %d)', \
+        self._info('Testing %d terms for enrichment...', m)
+        self._debug('(N = %d, X_frac = %.2f, X_min = %d, L = %d; K_max = %d)', \
                     len(ranked_genes),X_frac,X_min,L,K_max)
 
         enriched_terms = []
         tested = 0
         tested_mHG = 0
         for j in range(m):
-            v = np.ascontiguousarray(A[:,j]) # copy
 
             # determine significance of enrichment using XL-mHG test
-            # (only if there are at least X_min genes annotated with this term before the L'th threshold)
-            #if K_lim[j] >= X_min:
+            # (only if there are at least X genes annotated with this term
+            #  before the L'th threshold)
             if K[j] >= X_min:
                 tested += 1
                 # determine term-specific X (based on K[j])
                 X = max(X_min,int(ceil(X_frac*float(K[j]))))
                 if K_lim[j] >= X:
+                    v = np.ascontiguousarray(A[:,j]) # copy
                     mHG_n, mHG_s, pval = xlmhg.test(v,X,L,K=int(K[j]),mat=mat,pval_thresh=pval_thresh)
 
                     # check if GO term is significantly enriched
                     if pval <= pval_thresh:
-                        # generate mHGTermResult
+                        # generate GOTermEnrichment
                         sel = np.nonzero(A[:,j])[0] # ranks of all the 1's
                         mHG_k_n = np.sum(sel < mHG_n) 
                         sel_genes = [ranked_genes[i] for i in sel]
                     
                         #def __init__(self,term,genes,pval,ranks,N,X,L,mHG_n=None,mHG_k_n=None,mHG_s=None):
                         #print terms[j],pval,sel_genes,sel
-                        enr = mHGTermResult(terms[j],pval,sel_genes,sel,p,X,L,mHG_n,mHG_k_n,mHG_s)
+                        enr = GOTermEnrichment(terms[j],pval,sel_genes,sel,p,X,L,mHG_n,mHG_k_n,mHG_s)
 
                         enriched_terms.append(enr)
 
-        self.message('done!')
-
         # calculate enrichment score
-        self.message('Calculating enrichment score (using p-value threshold psi=%.1e) for enriched terms...', \
-                escore_pval_thresh)
+        self._info('Calculating enrichment score (using p-value threshold ' +
+                'psi=%.1e) for enriched terms...', escore_pval_thresh)
+
         for term in enriched_terms:
             term.calculate_escore(escore_pval_thresh)
 
@@ -270,10 +287,11 @@ class GOEnrichment(object):
         q = len(enriched_terms)
         ignored = m - tested
         if ignored > 0:
-            self.message('%d / %d GO terms (%.1f%%) had less than %d genes annotated with them and were ignored.', \
-                        ignored,m,100*(ignored/float(m)),X_min)
+            self._info('%d / %d GO terms (%.1f%%) had less than %d genes' +
+                    'annotated with them and were ignored.',
+                    ignored,m,100*(ignored/float(m)),X_min)
 
-        self.message('%d / %d tested GO terms were found to be significantly enriched (p-value <= %.1e).', \
-                q,tested,pval_thresh)
+        self._info('%d / %d tested GO terms were found to be significantly ' +
+                'enriched (p-value <= %.1e).', q, tested, pval_thresh)
 
         return enriched_terms
