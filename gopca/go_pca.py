@@ -350,7 +350,7 @@ class GOPCA(object):
             # test if GO term is still enriched after removing all previously
             # used genes
             enr = M_enrich.get_enriched_terms(ranked_genes, self._pval_thresh,
-                    self._mHG_X_frac, self._mHG_X_min, self._mHG_L,
+                    self._mHG_X_frac, self._mHG_X_min, L,
                     escore_pval_thresh = self._escore_pval_thresh,
                     selected_term_ids = [term_id], mat=mat)
             assert len(enr) in [0,1]
@@ -452,6 +452,12 @@ class GOPCA(object):
             q = len(enriched_terms)
             self._info('Kept %d / %d enriched terms with E-score >= %.1f',
                     q, q_before, self._escore_thresh)
+
+        #self._debug('-'*70)
+        #self._debug('All enriched terms:')
+        #for enr in enriched_terms:
+        #    self._debug(enr.get_pretty_format())
+        #self._debug('-'*70)
 
         # filter enriched GO terms (local filter)
         if not self._disable_local_filter:

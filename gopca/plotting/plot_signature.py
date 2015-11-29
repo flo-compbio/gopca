@@ -16,14 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""This script plots the GO-PCA signature matrix as a heat map.
+"""This script plots a particular GO-PCA signature and its genes.
 
 Example
 -------
 
 ::
 
-    $ gopca_plot_signature.py -g [gopca_result_file] -s [signature_name] -o [output_file]
+    $ gopca_plot_signature.py -g [gopca_output_file] -s [signature_name] -o [output_file]
 
 """
 
@@ -85,7 +85,7 @@ def main(args=None):
     if args is None:
         args = read_args_from_cmdline()
 
-    result_file = args.gopca_file
+    gopca_file = args.gopca_file
     sig_name = args.signature_name
     output_file = args.output_file
 
@@ -125,13 +125,13 @@ def main(args=None):
     # configure logger
     logger = misc.configure_logger(__name__)
 
-    # read GO-PCA result
-    result = None
-    with open(result_file,'rb') as fh:
-        result = pickle.load(fh)
+    # read GO-PCA output
+    output = None
+    with open(gopca_file,'rb') as fh:
+        output = pickle.load(fh)
 
     # find signature selected
-    signatures = result.signatures
+    signatures = output.signatures
     term_ids = set([sig.term[0] for sig in signatures])
     sig = None
     if sig_name in term_ids:
@@ -173,7 +173,7 @@ def main(args=None):
         E_std = E_std[:,a]
     elif not disable_sample_clustering:
         if cluster_global:
-            S = result.S
+            S = output.S
             order_cols = common.cluster_samples(S)
         else:
             order_cols = common.cluster_samples(E)
@@ -181,6 +181,8 @@ def main(args=None):
         E_std = E_std[:,order_cols]
 
     # plotting
+    logger.info('Plotting...')
+
     import matplotlib as mpl
     if mpl_backend is not None:
         mpl.use(mpl_backend)

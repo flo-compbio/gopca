@@ -195,14 +195,11 @@ def variance_filter(genes,E,top):
     E = E[sel,:]
     return genes,E
 
-def read_gopca_result(fn):
-    result = None
+def read_gopca_output(fn):
+    output = None
     with open(fn,'rb') as fh:
-        result = pickle.load(fh)
-    # numpy array flags are not serialized?
-    for sig in result.signatures:
-        sig.enr.ranks.flags.writeable = False
-    return result
+        output = pickle.load(fh)
+    return output
 
 def read_go_annotations(fn):
     ann = {}

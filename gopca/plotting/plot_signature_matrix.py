@@ -16,14 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""This script plots the GO-PCA signature matrix as a heat map.
+"""This script plots the GO-PCA signature matrix.
 
 Example
 -------
 
 ::
 
-    $ gopca_plot_signature_matrix.py -g [gopca_result_file] -o [output_file]
+    $ gopca_plot_signature_matrix.py -g [gopca_output_file] -o [output_file]
 
 """
 
@@ -81,7 +81,7 @@ def main(args=None):
     if args is None:
         args = read_args_from_cmdline()
 
-    result_file = args.gopca_file
+    gopca_file = args.gopca_file
     output_file = args.output_file
     #go_pickle_file = args.go_pickle_file
     sample_cluster_metric = args.sample_cluster_metric
@@ -114,16 +114,16 @@ def main(args=None):
     # configure logger
     logger = misc.configure_logger(__name__)
 
-    # read GO-PCA result
-    result = None
-    with open(result_file,'rb') as fh:
-        result = pickle.load(fh)
+    # read GO-PCA output
+    output = None
+    with open(gopca_file,'rb') as fh:
+        output = pickle.load(fh)
 
     # generate labels
-    signatures = result.signatures
+    signatures = output.signatures
     labels = [sig.get_label(include_id=False,max_name_length=sig_max_name_len) for sig in signatures]
-    samples = result.samples
-    S = result.S
+    samples = output.samples
+    S = output.S
 
     # clustering of rows (signatures)
     order_rows = common.cluster_signatures(S,invert=invert_signature_order)

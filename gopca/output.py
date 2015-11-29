@@ -71,10 +71,13 @@ class GOPCAOutput(object):
         assert isinstance(S,np.ndarray)
 
         assert W.shape[0] == len(genes)
-        assert W.shape[1] == input_.n_components
         assert Y.shape[0] == len(samples)
-        assert Y.shape[1] == input_.n_components
+        assert W.shape[1] == Y.shape[1]
         assert S.shape[0] == len(signatures)
+
+        # the following does not have to hold true
+        #assert W.shape[1] == input_.n_components
+        #assert Y.shape[1] == input_.n_components
         #assert S.shape[1] == len(samples)
 
         # initialization

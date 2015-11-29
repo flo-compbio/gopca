@@ -27,5 +27,5 @@ Running GO-PCA from the command line
     go-pca.py -g [gene_file] -a [annotation_file] -t [ontology_file] -e [expression_file] -o [output_file]
 
 .. argparse::
-   :ref: gopca.go_pca_objects.GOPCAArgumentParser
+   :ref: gopca.go_pca.get_argument_parser
    :prog: go-pca.py
