@@ -405,6 +405,10 @@ class GOPCA(object):
             novel = True
             for t in (set([term_id]) | term.ancestors | term.descendants):
                 if t in previous_terms:
+                    
+                    self._debug('GO term "%s" filtered out due to "%s".',
+                            go_parser.terms[term_id].name,
+                            go_parser.terms[t].name)
                     novel = False
                     break
             if novel:
