@@ -29,13 +29,6 @@ import sklearn
 
 from genometools import misc
 
-def get_logger(log_file=None,log_level=logging.INFO):
-    log_format = '[%(asctime)s] %(levelname)s: %(message)s'
-    log_datefmt = '%Y-%m-%d %H:%M:%S'
-    logging.basicConfig(filename=log_file,stream=sys.stdout,level=log_level,format=log_format,datefmt=log_datefmt)
-    logger = logging.getLogger()
-    return logger
-
 def get_pc_explained_variance_threshold(E,z,t,seed):
 
     # RandomizedPCA does not work in Scikit-learn 0.14.1,
@@ -202,16 +195,13 @@ def variance_filter(genes,E,top):
     E = E[sel,:]
     return genes,E
 
-def read_gopca_result(fn):
-    result = None
+def read_gopca_output(fn):
+    output = None
     with open(fn,'rb') as fh:
-        result = pickle.load(fh)
-    # numpy array flags are not serialized?
-    for sig in result.signatures:
-        sig.enr.ranks.flags.writeable = False
-    return result
+        output = pickle.load(fh)
+    return output
 
-def read_annotations(fn):
+def read_go_annotations(fn):
     ann = {}
     with open(fn) as fh:
         reader = csv.reader(fh,dialect='excel-tab')

@@ -22,7 +22,8 @@ from codecs import open
 from os import path
 
 here = path.abspath(path.dirname(__file__))
-description = 'GO-PCA: An Unsupervised Method to Explore Gene Expression Data Using Prior Knowledge'
+description = 'GO-PCA: An Unsupervised Method to Explore Gene Expression ' + \
+        'Data Using Prior Knowledge'
 
 long_description = ''
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
@@ -31,10 +32,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='gopca',
 
-    # Versions should comply with PEP440.  For a discussion on single-sourcing
-    # the version across setup.py and the project code, see
-    # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.1rc8',
+    version='1.1rc9',
 
     description=description,
     long_description=long_description,
@@ -46,7 +44,7 @@ setup(
 
     license='GPLv3',
 
-    # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
+    # see https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         'Development Status :: 3 - Alpha',
 
@@ -59,16 +57,18 @@ setup(
         'Programming Language :: Python :: 2.7',
     ],
 
-    keywords='unsupervised analysis gene expression data transcriptomics prior knowledge',
+    keywords='unsupervised analysis gene expression data transcriptomics ' + \
+        'prior knowledge',
 
     #packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     packages=['gopca','gopca.scripts','gopca.plotting'],
 
     #libraries = [],
 
-    install_requires=['setuptools','cython','numpy','scipy','scikit-learn','networkx','genometools','goparser','xlmhg','xlsxwriter','matplotlib'],
+    install_requires=['setuptools','cython','numpy','scipy','scikit-learn',
+            'networkx','genometools','goparser','xlmhg','xlsxwriter',
+            'matplotlib'],
 
-    # development dependencies
     extras_require={
             'docs': ['sphinx','sphinx-rtd-theme','sphinx-argparse','mock']
     },
@@ -86,34 +86,16 @@ setup(
             'gopca_extract_go_annotations.py = gopca.extract_go_annotations:main',
 
             # GO-PCA scripts
-            'go-pca.py = gopca.go_pca:main',
-            'bootstrap-go-pca.py = gopca.bootstrap_go_pca:main',
+            'go-pca.py = gopca.main:main',
 
             # processing scripts
             'gopca_extract_signatures.py = gopca.scripts.extract_signatures:main',
             'gopca_extract_signatures_excel.py = gopca.scripts.extract_signatures_excel:main',
-            #'gopca_extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
-            'gopca_extract_matlab_file.py = gopca.scripts.extract_matlab_file:main',
+            'gopca_extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
 
             # plotting scripts
             'gopca_plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
-            'gopca_plot_signature_correlation_matrix.py = gopca.plotting.plot_signature_correlation_matrix:main',
-            'gopca_plot_within_signature_correlations.py = gopca.plotting.plot_within_signature_correlations:main',
-            'gopca_plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
             'gopca_plot_signature.py = gopca.plotting.plot_signature:main',
-            'gopca_plot_pc_variance_explained.py = gopca.plotting.plot_pc_variance_explained:main',
-            'gopca_plot_pc_scores.py = gopca.plotting.plot_pc_scores:main',
-
-            # bootstrapping scripts
-            'gopca_extract_bootstrap_sample.py = gopca.scripts.extract_bootstrap_sample:main',
-            'gopca_plot_bootstrap_numbers.py = gopca.plotting.plot_bootstrap_numbers:main',
-            'gopca_plot_bootstrap_sample_size_summary.py = gopca.plotting.plot_bootstrap_sample_size_summary:main',
-            'gopca_plot_bootstrap_sample_size_matrix.py = gopca.plotting.plot_bootstrap_sample_size_matrix:main',
-            'gopca_plot_bootstrap_pc_matrix.py = gopca.plotting.plot_bootstrap_pc_matrix:main',
-            'gopca_plot_bootstrap_signature_detection.py = gopca.plotting.plot_bootstrap_signature_detection:main',
-
-            # misc scripts
-            'gopca_test_components.py = gopca.test_components:main',
         ],
     },
 )

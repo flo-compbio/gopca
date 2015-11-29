@@ -23,7 +23,7 @@ Example
 
 ::
 
-    $ gopca_extract_signatures.py -g [gopca_result_file] -o [output_file]
+    $ gopca_extract_signatures.py -g [gopca_output_file] -o [output_file]
 
 """
 
@@ -60,16 +60,18 @@ def main(args=None):
 
     assert os.path.isfile(gopca_file)
 
-    result = common.read_gopca_result(gopca_file)
-    signatures = result.signatures
+    output = common.read_gopca_output(gopca_file)
+    signatures = output.signatures
 
     # sort signatures first by PC, then by fold enrichment
-    signatures = sorted(signatures,key=lambda sig:[abs(sig.pc),-sign(sig.pc),-sig.escore])
+    signatures = sorted(signatures, 
+            key=lambda sig:[abs(sig.pc),-sign(sig.pc),-sig.escore])
 
     labels = signatures[0].get_ordered_dict().keys()
 
     with open(output_file,'w') as ofh:
-        writer = csv.writer(ofh,dialect='excel-tab',lineterminator='\n',quoting=csv.QUOTE_NONE)
+        writer = csv.writer(ofh,dialect='excel-tab',lineterminator='\n',
+                quoting=csv.QUOTE_NONE)
 
         writer.writerow(labels)
 
