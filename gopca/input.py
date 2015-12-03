@@ -327,11 +327,13 @@ class GOPCAInput(object):
         data = []
         for p in sorted(self.__input_file_params):
             # recalculate input file MD5 hashes, if necessary
-            if self.__input_hashes[p] is None:
+            if self.__params[p] is None:
+                self.__input_hashes[p] = ''
+            elif self.__input_hashes[p] is None:
                 fn = self.__params[p]
                 md5hash = GOPCAInput._get_file_md5sum(fn)
                 self.__input_hashes[p] = md5hash
-            self._info('MD5 hash for file "%s": %s', p, md5hash)
+                self._info('MD5 hash for file "%s": %s', p, md5hash)
             data.append(self.__input_hashes[p])
 
         param_keys = sorted(set(self.__params.keys()) -
