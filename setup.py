@@ -70,7 +70,7 @@ setup(
             'matplotlib'],
 
     extras_require={
-            'docs': ['sphinx','sphinx-rtd-theme','sphinx-argparse','mock']
+            'docs': ['sphinx','sphinx-bootstrap-theme','sphinx-argparse','mock']
     },
 
     # data

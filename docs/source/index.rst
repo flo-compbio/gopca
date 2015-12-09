@@ -3,14 +3,20 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-GO-PCA |version| Documentation
-==============================
+GO-PCA |version|
+================
 
 .. "**Exploring Gene Expression Data Using Prior Knowledge**
 
-.. image:: /_static/gopca.png
+.. "image:: /_static/gopca.png
     :width: 500 px
-    :align: center
+    :align: right
+
+.. figure:: /_static/gopca.png
+    :width: 500 px
+    :align: right
+    
+    Detail from a GO-PCA *signature plot*.
 
 GO-PCA (`Wagner, 2015`__) is an unsupervised method to **explore gene
 expression data using prior knowledge**. This is the documentation for

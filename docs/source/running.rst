@@ -12,7 +12,7 @@ GO-PCA expects the expression file to be a tab-delimited text file that contains
 
     ignored Sample1 Sample2 Sample3
     IGBP1   8.64947 8.01958 7.95444
-    MYC 7.61296 7.38281 7.58559
+    MYC     7.61296 7.38281 7.58559
     SMAD1   8.84338 8.41662 8.94365
     MDM1    6.17908 6.07470 5.59411
     CD44    7.64093 7.56293 7.58277
@@ -27,5 +27,5 @@ Running GO-PCA from the command line
     go-pca.py -g [gene_file] -a [annotation_file] -t [ontology_file] -e [expression_file] -o [output_file]
 
 .. argparse::
-   :ref: gopca.go_pca.get_argument_parser
+   :ref: gopca.main.get_argument_parser
    :prog: go-pca.py

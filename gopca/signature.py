@@ -83,7 +83,10 @@ class GOPCASignature(object):
         `GOTermEnrichment` class for details.
     """
 
-    _abbrev = [('positive ','pos. '),('negative ','neg. '),('interferon-','IFN-'),('proliferation','prolif.'),('signaling','signal.')]
+    _abbrev = [('positive ', 'pos. '), ('negative ', 'neg. '),
+            ('interferon-', 'IFN-'), ('proliferation', 'prolif.'),
+            ('signaling', 'signal.')]
+    """Abbreviations used in generating signature labels."""
 
     def __init__(self,genes,E,pc,enr,label=None):
         self.genes = tuple(genes) # genes in the signature (NOT equal to self.enr.genes, which contains the gene names corresponding to all the 1's)
