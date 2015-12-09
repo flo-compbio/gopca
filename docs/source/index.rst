@@ -44,21 +44,20 @@ __ go_pca_paper_
 .. _pca: https://en.wikipedia.org/wiki/Principal_component_analysis
 .. _go_enrich: https://dx.doi.org/10.1186/1471-2105-10-48
 
-.. "Table of Contents
-    -----------------
+Table of contents
+-----------------
 
 .. toctree::
     :maxdepth: 2
-    :hidden:
 
     Home <self>
-    Demo <demos>
+    GO-PCA Demos <demos>
     Getting Started <getting_started>
-    Modules <modules>
     License <license>
 
 ..  intro
     tutorial
+    Modules <modules>
     autodoc
 
 
