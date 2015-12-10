@@ -19,6 +19,11 @@
 Changelog
 =========
 
+Version 1.1rc10
+---------------
+
+- Fixed a bug that occurred when no ontology file is given.
+
 Version 1.1rc9
 --------------
 
