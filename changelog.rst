@@ -19,8 +19,8 @@
 Changelog
 =========
 
-Version 1.1rc10
----------------
+Version 1.1rc9
+--------------
 
 "Visible" changes:
 
