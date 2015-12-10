@@ -68,7 +68,7 @@ setup(
 
     install_requires=['setuptools', 'networkx', 'xlsxwriter',
             'numpy', 'scipy', 'matplotlib', 'cython', 'scikit-learn',
-            'genometools>=1.2rc1', 'goparser>=1.1', 'xlmhg>=1.1rc3'],
+            'genometools>=1.2rc2', 'goparser>=1.1', 'xlmhg>=1.1rc3'],
 
     extras_require={
             'docs': ['sphinx','sphinx-bootstrap-theme','sphinx-argparse','mock']
