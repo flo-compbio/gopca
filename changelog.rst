@@ -1,0 +1,44 @@
+..
+    Copyright (c) 2015 Florian Wagner
+    
+    This file is part of GO-PCA.
+    
+    GO-PCA is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License, Version 3,
+    as published by the Free Software Foundation.
+    
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
+Changelog
+=========
+
+Version 1.1rc10
+---------------
+
+"Visible" changes:
+
+- Changed the names of some command line arguments.
+- Added/improved documentation of command line parameters for all scripts.
+- Changed the sphinx html documentation theme to bootstrap
+  ("sphinx-bootstrap-theme").
+
+Internal changes:
+
+- Improved code documentation.
+- The GO-PCA parameters `disable_local_filter` and `disable_global_filter` are
+  now called `no_nocal_filter` and `no_global_filter`, respectively.
+- The expression matrix is now represented using the `ExpMatrix` class from the
+  `genometools` package.
+- Shared parameter for plotting scripts are now obtained using functions from
+  the `plotting.params` module (this greatly reduced code redundancy).
+- Loggers are no longer class members, and are instead defined as global
+  variables within each module. This is consistent with the recommended naming
+  scheme that uses `logging.getLogger(__name__)`, thus naming a logger after
+  the module. This helped to simplify the class structures.

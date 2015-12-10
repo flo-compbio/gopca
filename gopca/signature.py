@@ -14,14 +14,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Module containing the `GOPCASignature` class.
+
+"""
+
 import re
+import logging
 from collections import OrderedDict
 
 import numpy as np
 
-"""Module containing the `GOPCASignature` class.
-
-"""
+logger = logging.getLogger(__name__)
 
 class GOPCASignature(object):
     """Class representing a GO-PCA signature.
@@ -53,19 +56,19 @@ class GOPCASignature(object):
     ----------
     genes: list or tuple of str
         See :attr:`genes` attribute.
-    E: ndarray of floats
+    E: ndarray
         See :attr:`E` attribute.
     pc: int
         See :attr:`pc` attribute.
-    enr: GOTermEnrichment object
+    enr: `go_enrichment.GOTermEnrichment`
         See :attr:`enr` attribute.
 
     Attributes
     ----------
-    genes: list or tuple of str
+    genes: tuple of str
         The list of genes in the signatures. The ordering of the genes must
         correspond to the ordering of the rows in ``E``.
-    E: ndarray of floats
+    E: `numpy.ndarray`
         A matrix containing the expression profiles of the ``genes``. Each gene
         corresponds to one row in the matrix, so ``E.shape`` should be
         ``(p,n)``, where ``p`` is the number of genes, and ``n`` is the number
@@ -77,10 +80,9 @@ class GOPCASignature(object):
         positive, then the signature was derived based on an ascending order.
         Conversely, if the sign is negative, then the signature was dervied
         based on a descending ranking.
-    enr: GOTermEnrichment object
+    enr: `go_enrichment.GOTermEnrichment`
         The result of the XL-mHG test that was conducted after ranking the
-        genes based on their principal component loadings. See the
-        `GOTermEnrichment` class for details.
+        genes based on their principal component loadings.
     """
 
     _abbrev = [('positive ', 'pos. '), ('negative ', 'neg. '),

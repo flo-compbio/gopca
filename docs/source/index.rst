@@ -13,7 +13,7 @@ GO-PCA |version|
     :align: right
 
 .. figure:: /_static/gopca.png
-    :width: 500 px
+    :width: 400 px
     :align: right
     
     Detail from a GO-PCA *signature plot*.

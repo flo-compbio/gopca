@@ -14,9 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Functions used by various GO-PCA scripts.
+"""
 
 import os
 import sys
+import argparse
 import csv
 import cPickle as pickle
 import logging
@@ -27,7 +30,10 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
 import sklearn
 
+import gopca
 from genometools import misc
+
+logger = logging.getLogger(__name__)
 
 def get_pc_explained_variance_threshold(E,z,t,seed):
 
@@ -214,21 +220,22 @@ def get_signature_labels(signatures,omit_acc=False):
     for sig in signatures:
         return sig.enrichment
         
-def cluster_rows(S,metric='correlation',method='average',invert=False):
+def cluster_rows(S, metric='correlation', method='average', reverse=False):
     distxy = squareform(pdist(S, metric=metric))
-    R = dendrogram(linkage(distxy, method=method),no_plot=True)
+    R = dendrogram(linkage(distxy, method=method), no_plot=True)
     order_rows = np.int64([int(l) for l in R['ivl']])
-    if invert:
+    if reverse:
         order_rows = order_rows[::-1]
     return order_rows
 
-def cluster_signatures(S,metric='correlation',method='average',invert=False):
+def cluster_signatures(S, metric='correlation', method='average',
+        reverse=False):
     # hierarchical clustering of signatures
-    order_rows = cluster_rows(S,metric,method,invert)
+    order_rows = cluster_rows(S, metric, method, reverse)
     return order_rows
 
-def cluster_samples(S,metric='euclidean',method='average',invert=False):
-    order_cols = cluster_rows(S.T,metric,method,invert)
+def cluster_samples(S, metric='euclidean', method='average', reverse=False):
+    order_cols = cluster_rows(S.T, metric, method, reverse)
     return order_cols
 
 def get_qvalues(pvals,pi_zero=1.0):

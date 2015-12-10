@@ -37,22 +37,34 @@ import math
 import numpy as np
 
 from genometools import misc
-from gopca import common
+from gopca import util
+from gopca import params
 
-def read_args_from_cmdline():
-    parser = argparse.ArgumentParser(description='')
+def get_argument_parser():
 
-    parser.add_argument('-g','--gopca-file',required=True)
-    parser.add_argument('-o','--output-file',required=True)
+    prog = 'gopca_extract_signatures_excel.py'
+    description = 'Extract GO-PCA signatures as an Excel spreadsheet.'
+    parser = params.get_argument_parser(prog, description)
 
-    return parser.parse_args()
+    g = parser.add_argument_group('Input and output files (REQUIRED)')
+
+    g.add_argument('-g', '--gopca-file', required = True,
+            metavar = params.file_mv,
+            help = 'The GO-PCA output file.')
+
+    g.add_argument('-o', '--output-file', required=True,
+            metavar = params.file_mv,
+            help = 'The output file.')
+
+    return parser
 
 def main(args=None):
 
     sign = lambda x:int(math.copysign(1.0,x))
 
     if args is None:
-        args = read_args_from_cmdline()
+        parser = get_argument_parser()
+        args = parser.parse_args()
 
     gopca_file = args.gopca_file
     output_file = args.output_file
@@ -74,7 +86,7 @@ def main(args=None):
 
     ws = workbook.add_worksheet()
 
-    output = common.read_gopca_output(gopca_file)
+    output = util.read_gopca_output(gopca_file)
     signatures = output.signatures
 
     # sort signatures first by PC, then by fold enrichment

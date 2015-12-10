@@ -37,82 +37,81 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
 
-import gopca
-from gopca import common
 from genometools import misc
+
+import gopca
+from gopca import util
+from gopca import params
+from gopca.plotting import params as plot_params
+
+logger = logging.getLogger(__name__)
 
 def get_argument_parser():
 
-    parser = argparse.ArgumentParser(description='')
+    prog = 'plot_gopca_signature_matrix.py'
+    description = 'Plot the GO-PCA signature matrix.'
+    parser = params.get_argument_parser(prog, description)
 
-    parser.add_argument('-g','--gopca-file',required=True)
-    parser.add_argument('-o','--output-file',required=True)
+    g = parser.add_argument_group('Required parameters')
 
-    parser.add_argument('-d','--figure-dimensions',type=float,help='in inches',nargs=2,default=[18,18])
-    parser.add_argument('-r','--figure-resolution',type=float,help='in dpi',default=150)
-    parser.add_argument('-f','--figure-font-size',type=int,help='in pt',default=24)
-    parser.add_argument('-m','--figure-font-family',default='serif')
-    parser.add_argument('-c','--figure-colormap',default='RdBu_r')
-    parser.add_argument('-vn','--figure-vmin',type=float,default=-3.0)
-    parser.add_argument('-vx','--figure-vmax',type=float,default=3.0)
+    g.add_argument('-g', '--gopca-file', required=True,
+            metavar = params.file_mv,
+            help = 'The GO-PCA output file.')
 
-    parser.add_argument('-l','--sig-max-name-len',type=int,default=50)
-    parser.add_argument('-co','--figure-colorbar-orientation',default='horizontal')
-    parser.add_argument('-ca','--figure-colorbar-anchor',type=float,nargs=2,default=(0.96,1.0))
-    parser.add_argument('-cs','--figure-colorbar-shrink',type=float,default=0.3)
-    parser.add_argument('-cp','--figure-colorbar-pad',type=float,default=0.015)
+    g.add_argument('-o', '--output-file', required=True,
+            metavar = params.file_mv,
+            help = 'The output file.')
 
-    parser.add_argument('--sample-cluster-metric',default='euclidean')
-
-    parser.add_argument('-t','--use-tex',action='store_true')
-    parser.add_argument('-b','--matplotlib-backend',default=None)
-    parser.add_argument('--disable-sample-clustering',action='store_true')
-    parser.add_argument('-i','--invert-signature-order',action='store_true')
+    plot_params.add_fig_params(parser)
+    plot_params.add_heatmap_params(parser)
+    params.add_signature_params(parser)
+    params.add_sample_params(parser)
 
     return parser
-
-def read_args_from_cmdline():
-
-    parser = get_argument_parser()
-    return parser.parse_args()
 
 def main(args=None):
 
     if args is None:
-        args = read_args_from_cmdline()
+        parser = get_argument_parser()
+        args = parser.parse_args()
 
+    # input and output files
     gopca_file = args.gopca_file
     output_file = args.output_file
-    #go_pickle_file = args.go_pickle_file
-    sample_cluster_metric = args.sample_cluster_metric
+
+    # matplotlib backend
+    mpl_backend = args.fig_mpl_backend
 
     # figure size
-    fig_dim = args.figure_dimensions
-    fig_res = args.figure_resolution
+    fig_size = args.fig_size
+    fig_res = args.fig_resolution
 
     # figure text
-    use_tex = args.use_tex
-    fig_font_size = args.figure_font_size
-    fig_font_family = args.figure_font_family
+    use_tex = args.fig_use_tex
+    font_size = args.fig_font_size
+    font_family = args.fig_font_family
 
     # figure heatmap
-    fig_vmin = args.figure_vmin
-    fig_vmax = args.figure_vmax
-    fig_cmap = args.figure_colormap
+    cmap = args.colormap
+    vmin = args.val_coolest
+    vmax = args.val_hottest
 
     # figure colorbar
-    fig_cbar_orient = args.figure_colorbar_orientation
-    fig_cbar_anchor = args.figure_colorbar_anchor
-    fig_cbar_shrink = args.figure_colorbar_shrink
-    fig_cbar_pad = args.figure_colorbar_pad
+    cbar_orient = args.cbar_orient
+    cbar_anchor = args.cbar_anchor
+    cbar_scale = args.cbar_scale
+    cbar_pad = args.cbar_pad
 
-    mpl_backend = args.matplotlib_backend
-    invert_signature_order = args.invert_signature_order
+    # samples
+    sample_no_clustering = args.sample_no_clustering
+    sample_cluster_metric = args.sample_cluster_metric
 
-    sig_max_name_len = args.sig_max_name_len
+    # signatures
+    sig_reverse_order = args.sig_reverse_order
+    sig_max_len = args.sig_max_len
 
-    # configure logger
-    logger = misc.configure_logger(__name__)
+    # configure root logger
+    logger = misc.configure_logger('')
 
     # read GO-PCA output
     output = None
@@ -121,22 +120,19 @@ def main(args=None):
 
     # generate labels
     signatures = output.signatures
-    labels = [sig.get_label(include_id=False,max_name_length=sig_max_name_len) for sig in signatures]
+    labels = [sig.get_label(include_id=False,max_name_length=sig_max_len) for sig in signatures]
     samples = output.samples
     S = output.S
 
     # clustering of rows (signatures)
-    order_rows = common.cluster_signatures(S,invert=invert_signature_order)
+    order_rows = util.cluster_signatures(S, reverse=sig_reverse_order)
     S = S[order_rows,:]
     labels = [labels[idx] for idx in order_rows]
 
-    if not args.disable_sample_clustering:
+    if not sample_no_clustering:
         # clustering of columns (samples)
         logger.info('Clustering of samples...')
-        #distxy = squareform(pdist(S.T, metric='euclidean'))
-        distxy = squareform(pdist(S.T, metric=sample_cluster_metric))
-        R = dendrogram(linkage(distxy, method='average'),no_plot=True)
-        order_cols = np.int64([int(l) for l in R['ivl']])
+        order_cols = util.cluster_samples(S, metric = sample_cluster_metric)
         S = S[:,order_cols]
         samples = [samples[j] for j in order_cols]
 
@@ -154,22 +150,26 @@ def main(args=None):
     #   ipython = get_ipython()
     #   ipython.magic('matplotlib inline')
 
-    if use_tex: rc('text',usetex=True)
-    rc('font',family=fig_font_family,size=fig_font_size)
-    rc('figure',figsize=(fig_dim[0],fig_dim[1]))
-    rc('savefig',dpi=fig_res)
+    if use_tex:
+        rc('text', usetex=True)
+    rc('font', family = font_family, size=font_size)
+    rc('figure', figsize = (fig_size[0], fig_size[1]))
+    rc('savefig', dpi = fig_res)
 
     # plotting
-    plt.imshow(S,interpolation='none',aspect='auto',vmin=fig_vmin,vmax=fig_vmax,cmap=fig_cmap)
+    plt.imshow(S, interpolation='none', aspect='auto',
+            vmin=vmin, vmax=vmax, cmap=cmap)
 
     plt.xticks(())
 
-    minint = int(fig_vmin)
-    maxint = int(fig_vmax)
-    cbticks = np.arange(minint,maxint+0.01,1.0)
-    cb = plt.colorbar(orientation=fig_cbar_orient,shrink=fig_cbar_shrink,pad=fig_cbar_pad,ticks=cbticks,use_gridspec=False,anchor=fig_cbar_anchor)
-    cb.ax.tick_params(labelsize='small')
-    cb.set_label('Standardized Expression',size='small')
+    minint = int(vmin)
+    maxint = int(vmax)
+    cbticks = np.arange(minint, maxint+0.01, 1.0)
+    cb = plt.colorbar(orientation = cbar_orient, shrink = cbar_scale,
+            pad = cbar_pad, ticks=cbticks, use_gridspec=False,
+            anchor=cbar_anchor)
+    cb.ax.tick_params(labelsize = 'small')
+    cb.set_label('Standardized Expression', size='small')
 
     q,n = S.shape
     plt.yticks(np.arange(q),labels,size='x-small')
@@ -177,7 +177,6 @@ def main(args=None):
     plt.ylabel('Signatures')
 
     logger.info('Saving to file...')
-    #plt.gcf().set_size_inches(fig_dim[0],fig_dim[1])
     plt.savefig(output_file,bbox_inches='tight')
     logger.info('Done!')
 
