@@ -251,13 +251,14 @@ class GOPCA(object):
         # determine mHG_L, if 0 or None
         if self._mHG_L is None:
             # None = "default" value
-            self.set_param('mHG_L',int(len(genes)/8.0))
+            self.set_param('mHG_L',int(len(exp.genes)/8.0))
         elif self._mHG_L == 0:
             # 0 = "disabled"
-            self.set_param('mHG_L',len(genes))
+            self.set_param('mHG_L',len(exp.genes))
 
         # read ontology
-        go_parser = self.read_ontology()
+        if self._ontology_file is not None:
+            go_parser = self.read_ontology()
 
         # read GO annotations
         go_annotations = self.read_go_annotations()
