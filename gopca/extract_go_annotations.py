@@ -194,18 +194,19 @@ def main(args=None):
 
     part_of_cc_only = args.part_of_cc_only
 
-    # log file
-    log_file = args.log_file
-
     # logging parameters
+    log_file = args.log_file
+    quiet = args.quiet
+    verbose = args.verbose
+
+    # configure root logger
     log_level = logging.INFO
-    if args.quiet:
+    if quiet:
         log_level = logging.WARNING
     elif args.verbose:
         log_level = logging.DEBUG
 
-    # intialize logger
-    logger = misc.configure_logger(__name__, log_file = log_file,
+    logger = misc.configure_logger('', log_file = log_file,
             log_level = log_level)
 
     # checks

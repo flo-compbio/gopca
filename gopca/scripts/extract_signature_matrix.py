@@ -27,25 +27,29 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
 
 from genometools import misc
-from gopca import common
+from genometools.expression import ExpMatrix
+from gopca import util
+from gopca import params
 
 def get_argument_parser():
 
+    prog = 'gopca_extract_signature_matrix.py'
     description='Extract the GO-PCA signatures matrix as a tab-delimited ' + \
         'text file.'
-    parser = argparse.ArgumentParser(description=description)
+    parser = params.get_argument_parser(prog, description)
 
-    parser.add_argument('-g','--gopca-file',required=True,
-            help='The GO-PCA output file (in pickle format).')
-    parser.add_argument('-o','--output-file',required=True,
-            help='The output file.')
+    g = parser.add_argument_group('Input and output files (REQUIRED)')
 
-    parser.add_argument('-i','--invert-signature-order',action='store_true',
-            help = 'If set, invert the ordering of the signatures.')
-    parser.add_argument('--sample-cluster-metric', default='euclidean',
-            help = 'Metric used for clustering the samples')
-    parser.add_argument('--disable-sample-clustering', action='store_true',
-            help = 'Disable sample clustering.')
+    g.add_argument('-g', '--gopca-file', required = True,
+            metavar = params.file_mv,
+            help = 'The GO-PCA output file.')
+
+    g.add_argument('-o', '--output-file', required=True,
+            metavar = params.file_mv,
+            help = 'The output file.')
+
+    params.add_signature_params(parser)
+    params.add_sample_params(parser)
 
     return parser
 
@@ -57,13 +61,17 @@ def main(args=None):
 
     gopca_file = args.gopca_file
     output_file = args.output_file
-    invert_signature_order = args.invert_signature_order
+
+    sig_max_len = args.sig_max_len
+    sig_reverse_order = args.sig_reverse_order
+
     sample_cluster_metric = args.sample_cluster_metric
-    disable_sample_clustering = args.disable_sample_clustering
+    sample_no_clustering = args.sample_no_clustering
 
-    logger = misc.configure_logger(__name__)
+    # configure root logger
+    logger = misc.configure_logger('')
 
-    output = common.read_gopca_output(gopca_file)
+    output = util.read_gopca_output(gopca_file)
     
     signatures = output.signatures
     labels = [sig.get_label(include_id=False) for sig in signatures]
@@ -71,20 +79,21 @@ def main(args=None):
     S = output.S
 
     # clustering of rows (signatures)
-    order_rows = common.cluster_signatures(S,invert=invert_signature_order)
+    order_rows = util.cluster_signatures(S, reverse = sig_reverse_order)
     S = S[order_rows,:]
     labels = [labels[idx] for idx in order_rows]
 
-    if not disable_sample_clustering:
+    if not sample_no_clustering:
         # clustering of columns (samples)
         #distxy = squareform(pdist(S.T, metric='euclidean'))
-        distxy = squareform(pdist(S.T, metric=sample_cluster_metric))
-        R = dendrogram(linkage(distxy, method='average'),no_plot=True)
+        distxy = squareform(pdist(S.T, metric = sample_cluster_metric))
+        R = dendrogram(linkage(distxy, method='average'), no_plot=True)
         order_cols = np.int64([int(l) for l in R['ivl']])
         S = S[:,order_cols]
         samples = [samples[j] for j in order_cols]
 
-    common.write_expression(output_file,labels,samples,S)
+    exp = ExpMatrix(labels, samples, S, preserve_gene_order=True)
+    exp.write_tsv(output_file)
     logger.info('Wrote %d signatures to "%s".', len(signatures),output_file)
 
     return 0

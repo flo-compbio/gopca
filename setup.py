@@ -61,16 +61,17 @@ setup(
         'prior knowledge',
 
     #packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
-    packages=['gopca','gopca.scripts','gopca.plotting'],
+    packages= ['gopca', 'gopca.scripts', 'gopca.plotting'],
+    #packages = find_packages(exclude = ['docs']),
 
     #libraries = [],
 
-    install_requires=['setuptools','cython','numpy','scipy','scikit-learn',
-            'networkx','genometools','goparser','xlmhg','xlsxwriter',
-            'matplotlib'],
+    install_requires=['setuptools', 'networkx', 'xlsxwriter',
+            'numpy', 'scipy', 'matplotlib', 'cython', 'scikit-learn',
+            'genometools>=1.2rc2', 'goparser>=1.1', 'xlmhg>=1.1rc3'],
 
     extras_require={
-            'docs': ['sphinx','sphinx-rtd-theme','sphinx-argparse','mock']
+            'docs': ['sphinx','sphinx-bootstrap-theme','sphinx-argparse','mock']
     },
 
     # data

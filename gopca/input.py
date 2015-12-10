@@ -14,6 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Module containing the GOPCAInput class.
+
+"""
+
 import os
 import sys
 import hashlib
@@ -23,9 +27,7 @@ from ConfigParser import SafeConfigParser
 
 from genometools import misc
 
-"""Module containing the GOPCAInput class.
-
-"""
+logger = logging.getLogger(__name__)
 
 class GOPCAInput(object):
     """Class representing a complete set of GO-PCA input data.
@@ -92,8 +94,8 @@ class GOPCAInput(object):
         'mHG_L': None, # will be set to int(0.125*p), where p is the number of genes
         'escore_pval_thresh': 1e-4,
         'escore_thresh': 2.0,
-        'disable_local_filter': False,
-        'disable_global_filter': False,
+        'no_local_filter': False,
+        'no_global_filter': False,
         'seed': 0,
         'pc_permutations': 15, 
         'pc_zscore_thresh': 2.0,
@@ -138,9 +140,6 @@ class GOPCAInput(object):
 
     ### magic functions
     def __init__(self,params = {}):
-
-        # create logger (use parent logger)
-        self._logger = logging.getLogger(__name__)
 
         self.__params = {}
 
@@ -197,24 +196,6 @@ class GOPCAInput(object):
         cp.__input_hashes = copy.deepcopy(self.__input_hashes,memo)
         cp.__hash = self.__hash
         return cp
-
-    def __getstate__(self):
-        """Called to obtain the data to be pickled.
-
-        We need to remove the logger object before pickling, since pickling
-        this object would result in an error.
-        """
-        d = self.__dict__.copy()
-        del d['_logger']
-        return d
-
-    def __setstate__(self,state):
-        """Called to unpickle the object.
-
-        We restore the logger object that was deleted before pickling.
-        """
-        state['_logger'] = logging.getLogger(__name__)
-        self.__dict__.update(state)
     ### end magic functions
 
     ### private members
@@ -316,7 +297,7 @@ class GOPCAInput(object):
             try:
                 self.__validate() # raises ValueError if input data is invalid
             except ValueError:
-                self._error(invalid_error)
+                logger.error(invalid_error)
                 raise
         
         if not self.__valid:
@@ -327,11 +308,13 @@ class GOPCAInput(object):
         data = []
         for p in sorted(self.__input_file_params):
             # recalculate input file MD5 hashes, if necessary
-            if self.__input_hashes[p] is None:
+            if self.__params[p] is None:
+                self.__input_hashes[p] = ''
+            elif self.__input_hashes[p] is None:
                 fn = self.__params[p]
                 md5hash = GOPCAInput._get_file_md5sum(fn)
                 self.__input_hashes[p] = md5hash
-            self._info('MD5 hash for file "%s": %s', p, md5hash)
+                logger.info('MD5 hash for file "%s": %s', p, md5hash)
             data.append(self.__input_hashes[p])
 
         param_keys = sorted(set(self.__params.keys()) -
@@ -342,26 +325,9 @@ class GOPCAInput(object):
 
         data_str = ','.join(data)
         #self._logger.propagate = False
-        self._debug('Input data string: %s', data_str)
+        logger.debug('Input data string: %s', data_str)
         self.__hash = hashlib.md5(data_str).hexdigest()
     ### end private members
-
-    ### logging convenience functions
-    def _debug(self,*args):
-        self._logger.debug(*args)
-
-    def _info(self,*args):
-        """Convenience function for reporting messages."""
-        self._logger.info(*args)
-
-    def _warning(self,*args):
-        """Convenience function for reporting warnings."""
-        self._logger.warning(*args)
-
-    def _error(self,*args):
-        """Convenience function for reporting errors."""
-        self._logger.error(*args)
-    ### end logging convenience functions
 
     ### public members
     @property

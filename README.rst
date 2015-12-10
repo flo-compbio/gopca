@@ -1,3 +1,20 @@
+..
+    Copyright (c) 2015 Florian Wagner
+    
+    This file is part of GO-PCA.
+    
+    GO-PCA is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License, Version 3,
+    as published by the Free Software Foundation.
+    
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>.
+
 GO-PCA
 ======
 
@@ -30,6 +47,23 @@ Documentation
 - `Homepage <https://gopca.readthedocs.org/en/latest>`_
 - `"DMAP" Demo <http://nbviewer.ipython.org/url/gopca.readthedocs.org/en/latest/_downloads/Demo_DMAP.ipynb>`_
 - `Getting Started <https://gopca.readthedocs.org/en/latest/getting_started.html>`_
+
+Support and Development
+-----------------------
+
+- For feature requests and bug reports, please create an `issue`__ on GitHub.
+- For technical questions, please feel free to `email`__.
+- If you want to contribute code to GO-PCA, please `email`__ and/or create a
+  pull request on GitHub.
+- For a list of the latest changes, please see the
+  `changelog <changelog.rst>`_.
+
+__ github_issue_
+__ email_
+__ email_
+
+.. _github_issue: https://github.com/flo-compbio/gopca/issues
+.. _email: mailto:florian.wagner@duke.edu
 
 How to Cite GO-PCA
 ------------------

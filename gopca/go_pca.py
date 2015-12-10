@@ -14,7 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""Module containing the GOPCA class.
+"""Module containing the `GOPCA` class.
+
 """
 
 import sys
@@ -33,24 +34,31 @@ from scipy.stats import pearsonr
 import goparser
 from goparser import GOParser
 
-from gopca import common
+from genometools.expression import ExpMatrix
+
+from gopca import util
 from gopca import go_enrichment
 from gopca.go_enrichment import GOEnrichmentAnalysis
 from gopca import GOPCAInput,GOPCASignature,GOPCAOutput
 
+logger = logging.getLogger(__name__)
+
 class GOPCA(object):
     """Class for performing GO-PCA.
 
+    This class implements the GO-PCA algorithm, except for the GO enrichment
+    testing, which is implemented by the `go_enrichment.GOEnrichmentAnalyis`
+    class. The input data is provided as a `gopca.GOPCAInput` object during
+    instantiation, and GO-PCA is run from start to finish by calling the `run`
+    method.
+
     Parameters
     ----------
-    input_: GOPCAInput object
+    input_: `go_pca.GOPCAInput`
         GO-PCA input data.
     """
 
     def __init__(self,input_):
-
-        # configure logger
-        self._logger = logging.getLogger(__name__)
 
         # store input data
         assert isinstance(input_,GOPCAInput)
@@ -60,33 +68,41 @@ class GOPCA(object):
         self.__input = deepcopy(self.__raw_input)
 
     def __getattr__(self,name):
+        """Custom attribute lookup function.
+
+        We use this function to simplify access to GO-PCA parameters, which are
+        stored in the `GOPCAInput` object. Each (unknown) attribute name
+        starting with an underscore gets mapped to the `GOPCAInput` attribute
+        of the same name, with the underscore removed.
+
+        For example, this allows us to write, ``self._expression_file`` instead
+        of ``self.__input.expression_file``.
+        """
         # map attributes to parameters
         if name[0] == '_' and name[1:] in self.__input.param_names:
             return getattr(self.__input,name[1:])
         raise AttributeError
 
-    # logging convenience functions
-    def _debug(self,s,*args):
-        self._logger.debug(s,*args)
-
-    def _info(self,s,*args):
-        self._logger.info(s,*args)
-
-    def _warning(self,s,*args):
-        self._logger.warning(s,*args)
-
-    def _error(self,s,*args):
-        self._logger.error(s,*args)
+    @staticmethod
+    def print_signatures(signatures,maxlength=50):
+        """Print a list of signatures, sorted by their enrichment score."""
+        a = None
+        a = sorted(range(len(signatures)),key=lambda i: -signatures[i].escore)
+        for i in a:
+            sig = signatures[i]
+            logger.info(sig.get_label(max_name_length = maxlength,
+                    include_pval = True))
 
     def _read_expression_data(self):
         """Read expression data and perform variance filtering."""
 
-        self._info('Reading expression data...')
-        genes,samples,E = common.read_expression(self._expression_file)
+        logger.info('Reading expression data...')
+        exp = ExpMatrix.read_tsv(self._expression_file)
+        # ExpMatrix constructor automatically sorts genes alphabetically
 
-        p,n = E.shape
-        self._info('Expression matrix size: ' +
-                'p = %d genes x n = %d samples.', p,n)
+        p,n = exp.shape
+        logger.info('Expression matrix size: ' +
+                '(p = %d genes) x (n = %d samples).', p,n)
 
         sel_var_genes = self._sel_var_genes
         if sel_var_genes > 0:
@@ -95,9 +111,11 @@ class GOPCA(object):
             if sel_var_genes >= p:
                 # the number of genes to retain is equal or larger the number
                 # of genes in the expresison matrix
-                self._warning('Variance filtering has no effect ' +
+                logger.warning('Variance filtering has no effect ' +
                         '(sel_var_genes = %d, p = %d).', sel_var_genes, p)
-                return genes,samples,E
+                return exp
+
+            genes,samples,E = (exp.genes,exp.samples,exp.E)
 
             # rank genes by their variance
             var = np.var(E,axis=1,ddof=1)
@@ -106,7 +124,6 @@ class GOPCA(object):
             a = a[::-1]
 
             # select the genes with the largest variance
-            p,n = E.shape
             sel = np.zeros(p,dtype=np.bool_)
             sel[a[:sel_var_genes]] = True
             sel = np.nonzero(sel)[0]
@@ -114,7 +131,7 @@ class GOPCA(object):
             # report some information about the excluded genes
             lost_p = p - sel.size
             lost_var = total_var - np.sum(var[sel])
-            self._info('Selected the %d most variable genes ' +
+            logger.info('Selected the %d most variable genes ' +
                     '(excluded %.1f%% of genes, representing %.1f%% ' +
                     'of total variance).',
                     sel_var_genes, 100*(lost_p/float(p)),
@@ -125,17 +142,20 @@ class GOPCA(object):
             E = E[sel,:]
 
             p,n = E.shape
-            self._info('Expression matrix size, after variance filtering: ' +
+            logger.info('Expression matrix size, after variance filtering: ' +
                     'p = %d genes x n = %d samples.', p, n)
 
-        return genes,samples,E
+            exp = ExpMatrix(genes,samples,E)
+
+        return exp
 
     def _estimate_n_components(self,E):
+        """Estimate the number of non-trivial PCs using a permutation test."""
 
         assert isinstance(E,np.ndarray) 
-        self._info('Estimating the number of principal components ' +
+        logger.info('Estimating the number of principal components ' +
                 '(seed = %d)...', self._seed)
-        self._debug('(permutations = %d, z-score threshold = %.1f)...',
+        logger.debug('(permutations = %d, z-score threshold = %.1f)...',
                 self._pc_permutations, self._pc_zscore_thresh)
 
         # perform PCA
@@ -145,51 +165,69 @@ class GOPCA(object):
         M_pca.fit(E.T)
 
         d = M_pca.explained_variance_ratio_
-        self._debug('Largest explained variance: %.2f', d[0])
+        logger.debug('Largest explained variance: %.2f', d[0])
 
-        thresh = common.get_pc_explained_variance_threshold(E,
+        thresh = util.get_pc_explained_variance_threshold(E,
                 self._pc_zscore_thresh, self._pc_permutations, self._seed)
-        self._debug('Explained variance threshold: %.2f', thresh)
+        logger.debug('Explained variance threshold: %.2f', thresh)
         d_est = np.sum(d >= thresh)
 
-        self._info('The estimated number of PCs is %d.', d_est)
+        logger.info('The estimated number of PCs is %d.', d_est)
         self.set_param('n_components',d_est)
 
-    def print_signatures(self,signatures,maxlength=50):
-        a = None
-        a = sorted(range(len(signatures)),key=lambda i: -signatures[i].escore)
-
-        for i in a:
-            sig = signatures[i]
-            self._info(sig.get_label(max_name_length=maxlength,include_pval=True))
-
     def read_ontology(self):
+        """Read the Gene Ontology data."""
+        if self._ontology_file is None:
+            raise AttributeError('No ontology file provided!')
+
         go_parser = None
-        if self._ontology_file is not None:
-            self._info('Reading ontology...')
-            self._debug('part_of_cc_only: %s', str(self._go_part_of_cc_only))
-            go_parser = GOParser()
-            p_logger = logging.getLogger(goparser.__name__)
-            p_logger.setLevel(logging.ERROR)
-            go_parser.parse_ontology(self._ontology_file,
-                    part_of_cc_only = self._go_part_of_cc_only)
-            p_logger.setLevel(logging.NOTSET)
+        logger.info('Reading ontology...')
+        logger.debug('part_of_cc_only: %s', str(self._go_part_of_cc_only))
+        go_parser = GOParser()
+        p_logger = logging.getLogger(goparser.__name__)
+        p_logger.setLevel(logging.ERROR)
+        go_parser.parse_ontology(self._ontology_file,
+                part_of_cc_only = self._go_part_of_cc_only)
+        p_logger.setLevel(logging.NOTSET)
         return go_parser
 
     def read_go_annotations(self):
-        self._info('Reading GO annotations...')
-        go_annotations = common.read_go_annotations(self._go_annotation_file)
+        """Read the GO annotations."""
+        logger.info('Reading GO annotations...')
+        go_annotations = util.read_go_annotations(self._go_annotation_file)
         return go_annotations
 
         #n_assign = sum(len(v) for k,v in self.annotations.iteritems())
         #self.message('(%d annotations) done!', n_assign)
 
     def set_param(self,name,value):
+        """Set a GO-PCA parameter.
+
+        Parameters
+        ----------
+        name: str
+            The name of the parameter.
+        value: ?
+            The value of the parameter
+
+        Returns
+        -------
+        None
+        """
         setattr(self.__input,name,value)
 
     def run(self):
-        """Run GO-PCA."""
+        """Run GO-PCA.
 
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        `gopca.GOPCAOutput`
+            The GO-PCA output.
+        """
         t0 = time.time()
 
         # make sure the input data is valid
@@ -197,18 +235,18 @@ class GOPCA(object):
 
         # calculate and report input hash
         self.__raw_input.calculate_hash()
-        self._info('GO-PCA input hash: %s', self.__raw_input.hash)
+        logger.info('GO-PCA input hash: %s', self.__raw_input.hash)
 
         # make a copy of the input data before changing anything
         self.__input = deepcopy(self.__raw_input)
 
-        if self._ontology_file is None and (not self._disable_global_filter):
+        if self._ontology_file is None and (not self._no_global_filter):
             # no ontology file => disable global filter
-            self._warning('Disabling global filter, since no ontology file was provided.')
-            self.set_param('disable_global_filter',True)
+            logger.warning('Disabling global filter, since no ontology file was provided.')
+            self.set_param('no_global_filter',True)
 
         # read expression
-        genes, samples, E = self._read_expression_data()
+        exp = self._read_expression_data()
 
         # determine mHG_L, if 0 or None
         if self._mHG_L is None:
@@ -226,82 +264,82 @@ class GOPCA(object):
 
         if self._n_components == 0:
             # estimate the number of non-trivial PCs using a permutation test
-            self._estimate_n_components(E)
+            self._estimate_n_components(exp.E)
             if self._n_components == 0:
                 # no non-trivial PCs => abort
                 self._logger.error('The estimated number of non-trivial ' +
                         'principal components is zero!')
                 raise ValueError
 
-        self._debug('-'*70)
-        self._debug('GO-PCA parameters:')
+        logger.debug('-'*70)
+        logger.debug('GO-PCA parameters:')
         for d in self.__input.get_param_strings():
-            self._debug(d)
-        self._debug('-'*70)
+            logger.debug(d)
+        logger.debug('-'*70)
 
         # create GOEnrichment object
-        M_enrich = GOEnrichmentAnalysis(genes,go_annotations)
+        M_enrich = GOEnrichmentAnalysis(exp.genes,go_annotations)
 
         # perform PCA
-        self._info('Performing PCA...')
+        logger.info('Performing PCA...')
         M_pca = PCA(n_components = self._n_components)
-        Y = M_pca.fit_transform(E.T)
+        Y = M_pca.fit_transform(exp.E.T)
 
         # output cumulative fraction explained for each PC
         frac = M_pca.explained_variance_ratio_
         cum_frac = np.cumsum(frac)
-        self._info('Cumulative fraction of variance explained by the first %d PCs: %.1f%%', \
+        logger.info('Cumulative fraction of variance explained by the first %d PCs: %.1f%%', \
                 self._n_components,100*cum_frac[-1])
 
         # generate signatures
         W = M_pca.components_.T
         final_signatures = []
-        p = len(genes)
+        p = exp.p
         var_expl = 0.0
         res_var = None
         for pc in range(self._n_components):
 
             var_expl += frac[pc]
-            self._info('')
-            self._info('-'*70)
-            self._info('PC %d explains %.1f%% of the variance.',
+            logger.info('')
+            logger.info('-'*70)
+            logger.info('PC %d explains %.1f%% of the variance.',
                     pc+1, 100*frac[pc])
-            self._info('The new cumulative fraction of variance explained ' +
+            logger.info('The new cumulative fraction of variance explained ' +
                     'is %.1f%%.', 100*var_expl)
 
             signatures = []
-            signatures_dsc = self.generate_pc_signatures(genes,E,M_enrich,W,pc+1)
-            signatures_asc = self.generate_pc_signatures(genes,E,M_enrich,W,-pc-1)
+            signatures_dsc = self.generate_pc_signatures(exp.genes,exp.E,M_enrich,W,pc+1)
+            signatures_asc = self.generate_pc_signatures(exp.genes,exp.E,M_enrich,W,-pc-1)
             signatures = signatures_dsc + signatures_asc
 
-            self._info('# signatures: %d',len(signatures))
+            logger.info('# signatures: %d',len(signatures))
             before = len(signatures)
 
-            if not self._disable_global_filter:
+            if not self._no_global_filter:
                 signatures = self.global_filter(signatures,final_signatures,go_parser)
-                self._info('Global filter: kept %d / %d signatures.',
+                logger.info('Global filter: kept %d / %d signatures.',
                         len(signatures),before)
         
             self.print_signatures(signatures)
             final_signatures.extend(signatures)
-            self._info('Total no. of signatures so far: %d',
+            logger.info('Total no. of signatures so far: %d',
                     len(final_signatures))
 
             pc += 1
 
-        self._info('')
-        self._info('='*70)
-        self._info('GO-PCA generated %d signatures:', len(final_signatures))
+        logger.info('')
+        logger.info('='*70)
+        logger.info('GO-PCA generated %d signatures:', len(final_signatures))
         self.print_signatures(final_signatures)
 
-        S = np.float64([common.get_signature_expression(genes,E,sig.genes) for sig in final_signatures])
+        S = np.float64([util.get_signature_expression(exp.genes, exp.E, sig.genes) for sig in final_signatures])
 
         # include the input data in the output data
-        output = GOPCAOutput(self.__raw_input, genes, samples, W, Y,
+        output = GOPCAOutput(self.__raw_input, exp.genes, exp.samples, W, Y,
                 final_signatures, S)
 
         t1 = time.time()
-        self._info('Total GO-PCA runtime: %.2fs', t1-t0)
+        logger.info('Total GO-PCA runtime: %.2fs', t1-t0)
 
         return output
 
@@ -388,7 +426,7 @@ class GOPCA(object):
             todo = todo[1:]
 
         enr_logger.setLevel(logging.NOTSET)
-        self._info('Local filter: Kept %d / %d enriched terms.', \
+        logger.info('Local filter: Kept %d / %d enriched terms.', \
                 len(kept_terms),len(enriched_terms))
         return kept_terms
 
@@ -406,7 +444,7 @@ class GOPCA(object):
             for t in (set([term_id]) | term.ancestors | term.descendants):
                 if t in previous_terms:
                     
-                    self._debug('GO term "%s" filtered out due to "%s".',
+                    logger.debug('GO term "%s" filtered out due to "%s".',
                             go_parser.terms[term_id].name,
                             go_parser.terms[t].name)
                     novel = False
@@ -450,17 +488,17 @@ class GOPCA(object):
             enriched_terms = [t for t in enriched_terms
                     if t.escore >= self._escore_thresh]
             q = len(enriched_terms)
-            self._info('Kept %d / %d enriched terms with E-score >= %.1f',
+            logger.info('Kept %d / %d enriched terms with E-score >= %.1f',
                     q, q_before, self._escore_thresh)
 
-        #self._debug('-'*70)
-        #self._debug('All enriched terms:')
+        #logger.debug('-'*70)
+        #logger.debug('All enriched terms:')
         #for enr in enriched_terms:
-        #    self._debug(enr.get_pretty_format())
-        #self._debug('-'*70)
+        #    logger.debug(enr.get_pretty_format())
+        #logger.debug('-'*70)
 
         # filter enriched GO terms (local filter)
-        if not self._disable_local_filter:
+        if not self._no_local_filter:
             enriched_terms = self.local_filter(M, enriched_terms, ranked_genes)
 
         # generate signatures
@@ -468,7 +506,7 @@ class GOPCA(object):
         q = len(enriched_terms)
         for j,enr in enumerate(enriched_terms):
             signatures.append(self.generate_signature(genes,E,pc,enr))
-        self._info('Generated %d signatures based on the enriched GO terms.',
+        logger.info('Generated %d signatures based on the enriched GO terms.',
                 q)
 
         return signatures
@@ -483,13 +521,13 @@ class GOPCA(object):
         # calculate average expression
         indices = np.int64([genes.index(g) for g in enr_genes])
         E_enr = E[indices,:]
-        mean = np.mean(common.get_standardized_matrix(E_enr),axis=0)
+        mean = np.mean(util.get_standardized_matrix(E_enr),axis=0)
 
         # calculate seed based on the X genes most strongly correlated with the average
         corr = np.float64([pearsonr(mean,e)[0] for e in E_enr])
         a = np.argsort(corr)
         a = a[::-1]
-        seed = np.mean(common.get_standardized_matrix(E_enr[a[:enr.X],:]),0)
+        seed = np.mean(util.get_standardized_matrix(E_enr[a[:enr.X],:]),0)
 
         # select all other genes with correlation of at least sig_corr_thresh
         additional_indices = np.int64([i for i in a[enr.X:] if pearsonr(seed,E_enr[i,:])[0] >= self._sig_corr_thresh])

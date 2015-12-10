@@ -1,5 +1,9 @@
-GO-PCA Demo Notebooks
-=====================
+GO-PCA Demos
+============
+
+.. note:: Under construction! Additional demo notebooks will be available here shortly.
+
+This page contains a list of Juypter (IPython) notebooks demonstrating the application of GO-PCA to various datasets.
 
 DMAP - Human hematopoeitic lineages
 -----------------------------------
@@ -14,6 +18,5 @@ __ dmap_paper_
 .. _demo_DMAP: http://nbviewer.ipython.org/url/gopca.readthedocs.org/en/latest/_downloads/Demo_DMAP.ipynb
 .. _dmap_paper: http://www.ncbi.nlm.nih.gov/pubmed/21241896
 
-Additional demo notebooks will be available here shortly.
 
 

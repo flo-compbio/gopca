@@ -14,14 +14,81 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Module containing the `GOPCASignature` class.
+
+"""
+
 import re
+import logging
 from collections import OrderedDict
 
 import numpy as np
 
-class GOPCASignature(object):
+logger = logging.getLogger(__name__)
 
-    abbrev = [('positive ','pos. '),('negative ','neg. '),('interferon-','IFN-'),('proliferation','prolif.'),('signaling','signal.')]
+class GOPCASignature(object):
+    """Class representing a GO-PCA signature.
+
+    The goal of the GO-PCA algorithm is to define gene "signatures" that are
+    likely to represent biologically relevant similarities and differences
+    among the samples.
+
+    Given an gene expression matrix ``E``, a GO-PCA signature consists of a set
+    of genes and their expression profiles. The genes in a signature have been
+    found by GO-PCA to be related to each other in two ways:
+    
+    First, all genes in the signature were found to be annotated with the same
+    GO term. In other words, there existed at least one GO term ``T`` such that
+    all genes in the signature were annotated with T. (The set of genes that is
+    considered annotated with a particular term can be determined based on
+    data from the `UniProt-GOA`__ database.)
+    
+    __ uniprot_goa_
+    
+    Secondly, the genes in the signature were found to all contribute to the
+    same principal component (PC) of ``E``, albeit to various extents. As a
+    consequence, their expression profiles exhibit a certain degree of
+    correlation.
+
+    .. _uniprot_goa: http://www.ebi.ac.uk/GOA
+
+    Parameters
+    ----------
+    genes: list or tuple of str
+        See :attr:`genes` attribute.
+    E: ndarray
+        See :attr:`E` attribute.
+    pc: int
+        See :attr:`pc` attribute.
+    enr: `go_enrichment.GOTermEnrichment`
+        See :attr:`enr` attribute.
+
+    Attributes
+    ----------
+    genes: tuple of str
+        The list of genes in the signatures. The ordering of the genes must
+        correspond to the ordering of the rows in ``E``.
+    E: `numpy.ndarray`
+        A matrix containing the expression profiles of the ``genes``. Each gene
+        corresponds to one row in the matrix, so ``E.shape`` should be
+        ``(p,n)``, where ``p`` is the number of genes, and ``n`` is the number
+        of samples.
+    pc: int
+        The principal component (PC) that the signature was derived from
+        (starting at 1), with the sign of the integer indicating the way in
+        which genes were ranked based on their PC loadings. If the sign is
+        positive, then the signature was derived based on an ascending order.
+        Conversely, if the sign is negative, then the signature was dervied
+        based on a descending ranking.
+    enr: `go_enrichment.GOTermEnrichment`
+        The result of the XL-mHG test that was conducted after ranking the
+        genes based on their principal component loadings.
+    """
+
+    _abbrev = [('positive ', 'pos. '), ('negative ', 'neg. '),
+            ('interferon-', 'IFN-'), ('proliferation', 'prolif.'),
+            ('signaling', 'signal.')]
+    """Abbreviations used in generating signature labels."""
 
     def __init__(self,genes,E,pc,enr,label=None):
         self.genes = tuple(genes) # genes in the signature (NOT equal to self.enr.genes, which contains the gene names corresponding to all the 1's)
@@ -127,7 +194,7 @@ class GOPCASignature(object):
 
         term = enr.term
         term_name = term[3]
-        for abb in self.abbrev:
+        for abb in self._abbrev:
             term_name = re.sub(abb[0],abb[1],term_name)
         if max_name_length > 0 and len(term_name) > max_name_length:
             term_name = term_name[:(max_name_length-3)] + '...'

@@ -36,15 +36,28 @@ import math
 import numpy as np
 
 from genometools import misc
-from gopca import common
+from gopca import util
+from gopca import params
+#from gopca.scripts import params as script_params
 
 sign = lambda x:int(math.copysign(1.0,x))
 
 def get_argument_parser():
-    description = 'Extract GO-PCA signatures as tab-delimited text file'
-    parser = argparse.ArgumentParser(description = description)
-    parser.add_argument('-g','--gopca-file',required=True)
-    parser.add_argument('-o','--output-file',required=True)
+
+    prog = 'gopca_extract_signatures.py'
+    description = 'Extract GO-PCA signatures as tab-delimited text file.'
+    parser = params.get_argument_parser(prog, description)
+
+    g = parser.add_argument_group('Input and output files (REQUIRED)')
+
+    g.add_argument('-g', '--gopca-file', required = True,
+            metavar = params.file_mv,
+            help = 'The GO-PCA output file.')
+
+    g.add_argument('-o', '--output-file', required=True,
+            metavar = params.file_mv,
+            help = 'The output file.')
+
     return parser
 
 def main(args=None):
@@ -60,7 +73,7 @@ def main(args=None):
 
     assert os.path.isfile(gopca_file)
 
-    output = common.read_gopca_output(gopca_file)
+    output = util.read_gopca_output(gopca_file)
     signatures = output.signatures
 
     # sort signatures first by PC, then by fold enrichment
@@ -79,7 +92,8 @@ def main(args=None):
             vals = sig.get_ordered_dict().values()
             writer.writerow(vals)
 
-    logger.info('Wrote %d signatures to "%s".', len(signatures),output_file)
+    logger.info('Wrote %d signatures to "%s".',
+            len(signatures), output_file)
 
     return 0
 

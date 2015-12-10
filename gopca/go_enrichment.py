@@ -34,6 +34,8 @@ from scipy.stats import hypergeom
 from genometools import misc
 import xlmhg
 
+logger = logging.getLogger(__name__)
+
 class GOTermEnrichment(object):
     """Result of an XL-mHG-based test for enrichment of a particular GO term.
 
@@ -170,9 +172,6 @@ class GOEnrichmentAnalysis(object):
 
     def __init__(self,genes,go_annotations):
 
-        # get logger
-        self.logger = logging.getLogger(__name__)
-
         # sort genes alphabetically
         a = np.lexsort([genes])
         self.genes = [genes[i] for i in a]
@@ -181,7 +180,7 @@ class GOEnrichmentAnalysis(object):
         self.terms = sorted(go_annotations.keys(), key=lambda x:x[0])
 
         # generate annotation matrix
-        self._info('Generating gene x GO term matrix...')
+        logger.info('Generating gene x GO term matrix...')
         p = len(genes)
         m = len(go_annotations)
         self.A = np.zeros((p,m),dtype=np.uint8)
@@ -193,19 +192,6 @@ class GOEnrichmentAnalysis(object):
                     pass
                 else:
                     self.A[idx,j] = 1
-
-    # logging convenience functions
-    def _debug(self,s,*args):
-        self.logger.debug(s,*args)
-
-    def _info(self,s,*args):
-        self.logger.info(s,*args)
-
-    def _warning(self,s,*args):
-        self.logger.warning(s,*args)
-
-    def _error(self,s,*args):
-        self.logger.error(s,*args)
 
     def get_enriched_terms(self, ranked_genes, pval_thresh, X_frac, X_min, L,
             escore_pval_thresh = None, selected_term_ids = [], mat = None):
@@ -243,8 +229,8 @@ class GOEnrichmentAnalysis(object):
             mat = np.empty((K_max+1,p+1),dtype=np.longdouble)
 
         # find enriched GO terms
-        self._info('Testing %d terms for enrichment...', m)
-        self._debug('(N = %d, X_frac = %.2f, X_min = %d, L = %d; K_max = %d)', \
+        logger.info('Testing %d terms for enrichment...', m)
+        logger.debug('(N = %d, X_frac = %.2f, X_min = %d, L = %d; K_max = %d)', \
                     len(ranked_genes),X_frac,X_min,L,K_max)
 
         enriched_terms = []
@@ -277,7 +263,7 @@ class GOEnrichmentAnalysis(object):
                         enriched_terms.append(enr)
 
         # calculate enrichment score
-        self._info('Calculating enrichment score (using p-value threshold ' +
+        logger.info('Calculating enrichment score (using p-value threshold ' +
                 'psi=%.1e) for enriched terms...', escore_pval_thresh)
 
         for term in enriched_terms:
@@ -287,11 +273,11 @@ class GOEnrichmentAnalysis(object):
         q = len(enriched_terms)
         ignored = m - tested
         if ignored > 0:
-            self._info('%d / %d GO terms (%.1f%%) had less than %d genes' +
+            logger.info('%d / %d GO terms (%.1f%%) had less than %d genes' +
                     'annotated with them and were ignored.',
                     ignored,m,100*(ignored/float(m)),X_min)
 
-        self._info('%d / %d tested GO terms were found to be significantly ' +
+        logger.info('%d / %d tested GO terms were found to be significantly ' +
                 'enriched (p-value <= %.1e).', q, tested, pval_thresh)
 
         return enriched_terms

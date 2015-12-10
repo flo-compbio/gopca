@@ -3,14 +3,20 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-GO-PCA |version| Documentation
-==============================
+GO-PCA |version|
+================
 
 .. "**Exploring Gene Expression Data Using Prior Knowledge**
 
-.. image:: /_static/gopca.png
+.. "image:: /_static/gopca.png
     :width: 500 px
-    :align: center
+    :align: right
+
+.. figure:: /_static/gopca.png
+    :width: 400 px
+    :align: right
+    
+    Detail from a GO-PCA *signature plot*.
 
 GO-PCA (`Wagner, 2015`__) is an unsupervised method to **explore gene
 expression data using prior knowledge**. This is the documentation for
@@ -38,21 +44,20 @@ __ go_pca_paper_
 .. _pca: https://en.wikipedia.org/wiki/Principal_component_analysis
 .. _go_enrich: https://dx.doi.org/10.1186/1471-2105-10-48
 
-.. "Table of Contents
-    -----------------
+Table of contents
+-----------------
 
 .. toctree::
     :maxdepth: 2
-    :hidden:
 
     Home <self>
-    Demo <demos>
+    GO-PCA Demos <demos>
     Getting Started <getting_started>
-    Modules <modules>
     License <license>
 
 ..  intro
     tutorial
+    Modules <modules>
     autodoc
 
 

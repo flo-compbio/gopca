@@ -14,6 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Module containing the `GOPCAOutput` class.
+"""
+
 import logging
 from copy import deepcopy
 import cPickle as pickle
@@ -22,24 +25,26 @@ import numpy as np
 
 from gopca import GOPCAInput, GOPCASignature
 
+logger = logging.getLogger(__name__)
+
 class GOPCAOutput(object):
     """Class representing a complete set of GO-PCA output data.
 
     Parameters
     ----------
-    input_: GOPCAInput object
+    input_: `go_pca.GOPCAInput`
         The GO-PCA input data.
     genes: tuple or list
         The list of genes (gene symbols) in the analysis.
     samples: tuple or list
         The list of samples (sample names) in the analysis.
-    W: ndarray
+    W: `numpy.ndarray`
         The PCA loading matrix; shape = (len(genes) x # PCs).
-    Y: ndarray
+    Y: `numpy.ndarray`
         The PC score matrix; shape = (len(samples) x # PCs).
-    signatures: list or tuple of GOPCASignature objects
+    signatures: list or tuple of `go_pca.GOPCASignature`
         The GO-PCA signatures.
-    S: ndarray
+    S: `numpy.ndarray`
         The GO-PCA signature matrix; shape = (len(signatures) x len(samples)).
     """
 
