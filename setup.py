@@ -61,7 +61,8 @@ setup(
         'prior knowledge',
 
     #packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
-    packages=['gopca','gopca.scripts','gopca.plotting'],
+    packages= ['gopca', 'gopca.scripts', 'gopca.plotting'],
+    #packages = find_packages(exclude = ['docs']),
 
     #libraries = [],
 
