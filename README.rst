@@ -55,7 +55,8 @@ Support and Development
 - For technical questions, please feel free to `email`__.
 - If you want to contribute code to GO-PCA, please `email`__ and/or create a
   pull request on GitHub.
-- For a list of the latest changes, please see the `changelog <changelog.rst>`.
+- For a list of the latest changes, please see the
+  `changelog <changelog.rst>`_.
 
 __ github_issue_
 __ email_
