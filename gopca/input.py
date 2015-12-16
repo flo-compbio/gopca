@@ -119,7 +119,7 @@ class GOPCAInput(object):
     __param_names = set(__param_defaults.keys())
 
     @staticmethod
-    def _get_file_md5sum(path,mode='r'):
+    def _get_file_md5sum(path, mode='r'):
         """Get MD5 hash of file content.
 
         Parameters
@@ -139,7 +139,7 @@ class GOPCAInput(object):
     ### end static members
 
     ### magic functions
-    def __init__(self,params = {}):
+    def __init__(self, params = {}):
 
         self.__params = {}
 
@@ -151,7 +151,7 @@ class GOPCAInput(object):
         self.__params = copy.deepcopy(self.__param_defaults)
         self.set_params(params)
 
-    def __getattr__(self,name):
+    def __getattr__(self, name):
         """Redirect lookup to `__params` if ``name`` is a GO-PCA parameter."""
         if name in GOPCAInput.__param_defaults:
             return self.__params[name]
@@ -161,7 +161,7 @@ class GOPCAInput(object):
             raise AttributeError('There is no GO-PCA parameter called "%s"!' \
                     %(name))
 
-    def __setattr__(self,name,value):
+    def __setattr__(self, name, value):
         """Store value in `__params` if ``name`` is a GO-PCA parameter."""
         if name in GOPCAInput.__param_defaults:
             self.set_param(name,value)
@@ -189,7 +189,7 @@ class GOPCAInput(object):
         else:
             return False
 
-    def __deepcopy__(self,memo):
+    def __deepcopy__(self, memo):
         cp = GOPCAInput()
         cp.update_params(self.__params)
         cp.__valid = self.__valid
@@ -200,7 +200,7 @@ class GOPCAInput(object):
 
     ### private members
 
-    def __set_param(self,name,value):
+    def __set_param(self, name, value):
         if name not in self.__param_names:
             raise ValueError('No GO-PCA parameter named "%s"!' %(param))
         before = self.__params[name]
@@ -349,7 +349,7 @@ class GOPCAInput(object):
             d.append('%s: %s' %(k,str(self.__params[k])))
         return d
 
-    def get_default_param(self,name):
+    def get_default_param(self, name):
         """Return the default value of a GO-PCA parameter.
 
         Parameters
@@ -364,10 +364,10 @@ class GOPCAInput(object):
         """
         return self.__param_defaults[name]
 
-    def set_param(self,param,value):
-        self.__set_param(param,value)
+    def set_param(self, param, value):
+        self.__set_param(param, value)
 
-    def set_params(self,params):
+    def set_params(self, params):
         """Set GO-PCA parameters.
 
         This function will set unspecified parameters (i.e., parameters not
@@ -395,7 +395,7 @@ class GOPCAInput(object):
         # call self.update_params to set new parameters
         self.update_params(params)
 
-    def update_params(self,params):
+    def update_params(self, params):
         for k,v in params.iteritems():
             self.__set_param(k,v)
 
@@ -407,9 +407,9 @@ class GOPCAInput(object):
         """Calls `__calculate_hash`."""
         self.__calculate_hash()
 
-    def read_config_file(self,path):
+    def read_config_file(self, path):
         raise NotImplemented
 
-    def write_config_file(self,output_file):
+    def write_config_file(self, output_file):
         raise NotImplemented
     ### end public members

@@ -54,9 +54,6 @@ class GOPCAOutput(object):
         # Y = PCA score matrix
         # S = GO-PCA signature matrix
 
-        # get logger
-        self._logger = logging.getLogger(__name__)
-
         # make sure input is valid
         if not input_.valid:
             input_.validate()
@@ -116,23 +113,13 @@ class GOPCAOutput(object):
     def __hash__(self):
         return hash(self.__get_hash())
 
-    def __getstate__(self):
-        """Called to obtain the data to be pickled.
+    def __getattr__(self, name):
+        """Redirect lookup of unknown attributes to `input`."""
+        # check if we have the input attribute
+        if 'input' not in self.__dict__:
+            raise AttributeError('Not present!')
 
-        We need to remove the logger object before pickling, since pickling
-        this object would result in an error.
-        """
-        d = self.__dict__.copy()
-        del d['_logger']
-        return d
-
-    def __setstate__(self,state):
-        """Called to unpickle the object.
-
-        We restore the logger object that was deleted before pickling.
-        """
-        state['_logger'] = logging.getLogger(__name__)
-        self.__dict__.update(state)
+        return getattr(self.input,name)
     ### end magic functions
 
     ### private members
@@ -167,20 +154,6 @@ class GOPCAOutput(object):
         a.flags.writable = before
         return a
 
-    # logging convenience functions
-    def _debug(self,s,*args):
-        self._logger.debug(s,*args)
-
-    def _info(self,s,*args):
-        self._logger.info(s,*args)
-
-    def _warning(self,s,*args):
-        self._logger.warning(s,*args)
-
-    def _error(self,s,*args):
-        self._logger.error(s,*args)
-
-
     ### public members
     @property
     def p(self):
@@ -202,6 +175,10 @@ class GOPCAOutput(object):
         """The number of signatures generated."""
         return len(self.signatures)
 
+    @property
+    def get_param(self, name):
+        return getattr(self.input, name)
+
     def get_hash(self):
         """ Calculates a MD5 hash based on GO-PCA input and output data.
         
@@ -221,7 +198,7 @@ class GOPCAOutput(object):
         -------
         None
         """
-        self._info('Saving GO-PCA output to file "%s"...', path)
+        logger.info('Saving GO-PCA output to file "%s"...', path)
         with open(path,'wb') as ofh:
             pickle.dump(self,ofh,pickle.HIGHEST_PROTOCOL)
 
@@ -239,7 +216,7 @@ class GOPCAOutput(object):
         GOPCAOutput
             The GOPCAOutput object.
         """
-        self._info('Reading GO-PCA output from file "%s"...', path)
+        logger.info('Reading GO-PCA output from file "%s"...', path)
         output = None
         with open(path,'rb') as fh:
             output = pickle.load(fh)

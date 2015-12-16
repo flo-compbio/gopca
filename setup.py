@@ -97,6 +97,7 @@ setup(
             # plotting scripts
             'gopca_plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
             'gopca_plot_signature.py = gopca.plotting.plot_signature:main',
+            'gopca_plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
         ],
     },
 )

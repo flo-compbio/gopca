@@ -35,6 +35,21 @@ from genometools import misc
 
 logger = logging.getLogger(__name__)
 
+def get_logger(name = '', log_file = None, quiet = False,
+    verbose = False):
+
+    # configure root logger
+    log_level = logging.INFO
+    if quiet:
+        log_level = logging.WARNING
+    elif verbose:
+        log_level = logging.DEBUG
+
+    new_logger = misc.configure_logger(name, log_file = log_file,
+            log_level = log_level)
+
+    return new_logger
+
 def get_pc_explained_variance_threshold(E,z,t,seed):
 
     # RandomizedPCA does not work in Scikit-learn 0.14.1,
@@ -228,17 +243,18 @@ def cluster_rows(S, metric='correlation', method='average', reverse=False):
         order_rows = order_rows[::-1]
     return order_rows
 
-def cluster_signatures(S, metric='correlation', method='average',
-        reverse=False):
+def cluster_signatures(S, metric = 'correlation', method = 'average',
+        reverse = False):
     # hierarchical clustering of signatures
     order_rows = cluster_rows(S, metric, method, reverse)
     return order_rows
 
-def cluster_samples(S, metric='euclidean', method='average', reverse=False):
+def cluster_samples(S, metric = 'euclidean', method = 'average',
+        reverse = False):
     order_cols = cluster_rows(S.T, metric, method, reverse)
     return order_cols
 
-def get_qvalues(pvals,pi_zero=1.0):
+def get_qvalues(pvals, pi_zero = 1.0):
     # implements storey-tibshirani procedure for calculating q-values
     n = pvals.size
     qvals = np.empty(n,dtype=np.float64)

@@ -44,6 +44,43 @@ def get_argument_parser(prog, description, formatter_class = None):
 
     return parser
 
+def add_reporting_params(parser):
+    # reporting options
+    g = parser.add_argument_group('Reporting options')
+
+    g.add_argument('-l', '--log-file', default=None,
+            metavar = file_mv,
+            help = 'Path of log file (if specified, report to stdout AND ' +
+            'file.')
+
+    g.add_argument('-q', '--quiet', action='store_true',
+            help = 'Only output errors and warnings.')
+
+    g.add_argument('-v', '--verbose', action='store_true',
+            help = 'Enable verbose output. Ignored if --quiet is specified.')
+
+    return parser
+
+def add_go_term_params(parser):
+    """Add shared go term parameters.
+
+    Parameters
+    ----------
+    parser: `argparse.ArgumentParser`
+
+    Returns
+    -------
+    None
+    """
+    g = parser.add_argument_group('GO term options')
+
+    g.add_argument('--term-reverse-order', action='store_true',
+            help='Reverse the order of the GO terms.')
+
+    g.add_argument('--term-max-len', type=int, default=50,
+            metavar = int_mv,
+            help='The maximal length of GO term labels.')
+
 def add_signature_params(parser):
     """Add shared signature parameters.
 
@@ -60,7 +97,7 @@ def add_signature_params(parser):
     g.add_argument('--sig-reverse-order', action='store_true',
             help='Reverse the order of the signatures.')
 
-    g.add_argument('-l', '--sig-max-len', type=int, default=50,
+    g.add_argument('--sig-max-len', type=int, default=50,
             metavar = int_mv,
             help='The maximal length of signature labels.')
 

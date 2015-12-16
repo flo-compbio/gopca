@@ -189,7 +189,9 @@ class GOPCASignature(object):
         od = OrderedDict([v[0],v[1] % (getattr(self,k))] for k,v in elements.iteritems())
         return od
 
-    def get_label(self,max_name_length=0,include_stats=True,include_id=True,include_pval=False,include_collection=True):
+    def get_label(self, max_name_length = 0, include_stats = True,
+            include_id = True, include_pval = False,
+            include_domain = True):
         enr = self.enr
 
         term = enr.term
@@ -200,7 +202,7 @@ class GOPCASignature(object):
             term_name = term_name[:(max_name_length-3)] + '...'
 
         term_str = term_name
-        if include_collection:
+        if include_domain:
             term_str = '%s: %s' %(term[2],term_str)
 
         if include_id:

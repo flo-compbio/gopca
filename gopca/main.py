@@ -74,18 +74,7 @@ def get_argument_parser():
             metavar = file_mv,
             help = 'Output pickle file (extension ".pickle" is recommended).')
 
-    # reporting options
-    g = parser.add_argument_group('Reporting options')
-
-    g.add_argument('-l', '--log-file', default=None,
-            metavar = file_mv,
-            help = 'Path of log file (if specified, report to stdout AND ' +
-            'file.')
-
-    g.add_argument('-q', '--quiet', action='store_true',
-            help = 'Only output errors and warnings.')
-    g.add_argument('-v', '--verbose', action='store_true',
-            help = 'Enable verbose output. Ignored if --quiet is specified.')
+    params.add_reporting_params(parser)
 
     # GO-PCA parameters
     g = parser.add_argument_group('GO-PCA parameters')
@@ -204,15 +193,8 @@ def main(args=None):
     pc_permutations = args.pc_permutations
     pc_zscore_thresh = args.pc_zscore_thresh
 
-    # configure root logger
-    log_level = logging.INFO
-    if quiet:
-        log_level = logging.WARNING
-    elif verbose:
-        log_level = logging.DEBUG
-
-    logger = misc.configure_logger('', log_file = log_file,
-            log_level = log_level)
+    logger = util.get_logger(log_file = log_file, quiet = quiet,
+            verbose = verbose)
 
     if n_components > 0:
         # seed will be ignored

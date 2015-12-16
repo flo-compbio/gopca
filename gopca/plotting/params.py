@@ -71,33 +71,35 @@ def add_heatmap_params(parser):
     """
     g = parser.add_argument_group('Heat map color and colorbar options')
 
-    g.add_argument('-cm', '--colormap', default='RdBu_r',
+    g.add_argument('-cm', '--colormap', default = 'RdBu_r',
             metavar = name_mv,
-            help='The colormap used.')
+            help = 'The colormap used.')
 
-    g.add_argument('-vc', '--val-coolest', type=float, default=-3.0,
+    g.add_argument('-vc', '--val-coolest', type = float, default = -3.0,
             metavar = float_mv,
-            help='The value corresponding to the "coolest" color.')
+            help = 'The value corresponding to the "coolest" color.')
 
-    g.add_argument('-vh', '--val-hottest', type=float, default=3.0,
+    g.add_argument('-vh', '--val-hottest', type = float, default = 3.0,
             metavar = float_mv,
-            help='The value corresponding to the "hottest" color.')
+            help = 'The value corresponding to the "hottest" color.')
 
-    g.add_argument('-co', '--cbar-orient',  default='horizontal',
+    g.add_argument('-co', '--cbar-orient',  default = 'horizontal',
             metavar = name_mv,
-            help='The orientation of the colorbar.')
+            help = 'The orientation of the colorbar.')
 
-    g.add_argument('-ca', '--cbar-anchor', type=float, nargs=2,
-            default=(0.96,1.0),
+    g.add_argument('-ca', '--cbar-anchor', type = float, nargs = 2,
+            default= (0.96, 1.0),
             metavar = (float_mv, float_mv),
-            help='The colorbar anchoring position (x and y).')
+            help = 'The colorbar anchoring position (x and y).')
 
-    g.add_argument('-cs', '--cbar-scale', type=float, default=0.3,
+    g.add_argument('-cs', '--cbar-scale', type=float, default = 0.3,
             metavar = float_mv,
             help = 'Scaling factor to adjust the size of the colorbar.')
 
-    g.add_argument('-cp', '--cbar-pad', type=float, default=0.015,
+    g.add_argument('-cp', '--cbar-pad', type = float, default = 0.015,
             metavar = float_mv,
             help = 'The colorbar padding.')
 
-
+    g.add_argument('-ct', '--cbar-ticks', nargs='*', default = None,
+            metavar = '<[float, ...]>',
+            help = 'The colorbar ticks.')

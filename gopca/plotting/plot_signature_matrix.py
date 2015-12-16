@@ -44,11 +44,9 @@ from gopca import util
 from gopca import params
 from gopca.plotting import params as plot_params
 
-logger = logging.getLogger(__name__)
-
 def get_argument_parser():
 
-    prog = 'plot_gopca_signature_matrix.py'
+    prog = 'gopca_plot_signature_matrix.py'
     description = 'Plot the GO-PCA signature matrix.'
     parser = params.get_argument_parser(prog, description)
 
@@ -61,6 +59,8 @@ def get_argument_parser():
     g.add_argument('-o', '--output-file', required=True,
             metavar = params.file_mv,
             help = 'The output file.')
+
+    params.add_reporting_params(parser)
 
     plot_params.add_fig_params(parser)
     plot_params.add_heatmap_params(parser)
@@ -110,8 +110,14 @@ def main(args=None):
     sig_reverse_order = args.sig_reverse_order
     sig_max_len = args.sig_max_len
 
+    # reporting parameters
+    log_file = args.log_file
+    quiet = args.quiet
+    verbose = args.verbose
+
     # configure root logger
-    logger = misc.configure_logger('')
+    logger = util.get_logger(log_file = log_file, quiet = quiet,
+            verbose = verbose)
 
     # read GO-PCA output
     output = None
