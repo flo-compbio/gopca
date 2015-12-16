@@ -23,7 +23,7 @@ import cPickle as pickle
 
 import numpy as np
 
-from gopca import GOPCAInput, GOPCASignature
+from gopca import GOPCAConfig, GOPCASignature
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,10 @@ class GOPCAOutput(object):
 
     Parameters
     ----------
-    input_: `go_pca.GOPCAInput`
-        The GO-PCA input data.
+    input_hash: str
+        The GO-PCA input hash.
+    config: `go_pca.GOPCAConfig`
+        The GO-PCA configuration.
     genes: tuple or list
         The list of genes (gene symbols) in the analysis.
     samples: tuple or list
@@ -48,42 +50,35 @@ class GOPCAOutput(object):
         The GO-PCA signature matrix; shape = (len(signatures) x len(samples)).
     """
 
-    def __init__(self,input_,genes,samples,W,Y,signatures,S):
+    def __init__(self, input_hash, config,
+                genes, samples,
+                W, Y,
+                signatures, S):
 
         # W = PCA loading matrix
         # Y = PCA score matrix
         # S = GO-PCA signature matrix
 
-        # make sure input is valid
-        if not input_.valid:
-            input_.validate()
-
-        if input_.hash is None:
-            input_.calculate_hash()
-
         # checks
-        assert isinstance(input_,GOPCAInput)
-        assert isinstance(genes,list) or isinstance(genes,tuple)
-        assert isinstance(samples,list) or isinstance(samples,tuple)
-        assert isinstance(W,np.ndarray)
-        assert isinstance(Y,np.ndarray)
-        assert isinstance(signatures,list) or isinstance(signatures,tuple)
+        assert isinstance(input_hash, str)
+        assert isinstance(config, GOPCAConfig)
+        assert isinstance(genes, (list,tuple))
+        assert isinstance(samples, (list,tuple))
+        assert isinstance(W, np.ndarray)
+        assert isinstance(Y, np.ndarray)
+        assert isinstance(signatures, (list,tuple))
         for s in signatures:
-            assert isinstance(s,GOPCASignature)
-        assert isinstance(S,np.ndarray)
+            assert isinstance(s, GOPCASignature)
+        assert isinstance(S, np.ndarray)
 
         assert W.shape[0] == len(genes)
         assert Y.shape[0] == len(samples)
         assert W.shape[1] == Y.shape[1]
         assert S.shape[0] == len(signatures)
 
-        # the following does not have to hold true
-        #assert W.shape[1] == input_.n_components
-        #assert Y.shape[1] == input_.n_components
-        #assert S.shape[1] == len(samples)
-
         # initialization
-        self.input = deepcopy(input_)
+        self.input_hash = input_hash
+        self.config = deepcopy(config)
         self.genes = tuple(genes)
         self.samples = tuple(samples)
         self.W = W.copy()
@@ -95,8 +90,8 @@ class GOPCAOutput(object):
     def __repr__(self):
         param_str = '%d genes; %d samples; %d PCs; %d signatures' \
                 %(self.p, self.n, self.D, self.q)
-        return '<GOPCAOutput object (%s); hash = %s>' \
-                %(param_str, self.__get_hash())
+        return '<GOPCAOutput object (%s); GO-PCA input hash = %s>' \
+                %(param_str, self.input_hash())
 
     def __str__(self):
         return '<GOPCAOutput object (%d signatures, %d samples)>' \

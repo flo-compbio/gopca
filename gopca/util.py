@@ -22,6 +22,7 @@ import sys
 import argparse
 import csv
 import cPickle as pickle
+import hashlib
 import logging
 from pkg_resources import parse_version
 
@@ -81,7 +82,25 @@ def get_pc_explained_variance_threshold(E,z,t,seed):
     thresh = mean_null + z * std_null
 
     return thresh
-        
+
+def get_file_md5sum(path, mode = 'r'):
+    """Get MD5 hash of file content.
+
+    Parameters
+    ----------
+    path: str
+        Path of file.
+    
+    Returns
+    -------
+    str
+        MD5 hash of file content, represented as a 32-digit hex string.
+    """
+    digest = None
+    with misc.open_plain_or_gzip(path, mode=mode) as fh:
+        digest = hashlib.md5(fh.read()).hexdigest()
+    return digest
+    
 def simpleaxis(ax):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -218,7 +237,7 @@ def variance_filter(genes,E,top):
 
 def read_gopca_output(fn):
     output = None
-    with open(fn,'rb') as fh:
+    with open(fn, 'rb') as fh:
         output = pickle.load(fh)
     return output
 

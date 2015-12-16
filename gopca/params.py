@@ -61,6 +61,27 @@ def add_reporting_params(parser):
 
     return parser
 
+def add_io_params(parser):
+    """Add shared input/output parameters to an argument parser.
+
+    Parameters
+    ----------
+    parser: `argparse.ArgumentParser`
+
+    Returns
+    -------
+    None
+    """
+    g = parser.add_argument_group('Input and output files (required)')
+
+    g.add_argument('-g', '--gopca-file', required=True,
+            metavar = file_mv,
+            help = 'The GO-PCA output file.')
+
+    g.add_argument('-o', '--output-file', required=True,
+            metavar = file_mv,
+            help = 'The output file.')
+
 def add_go_term_params(parser):
     """Add shared go term parameters.
 

@@ -104,7 +104,7 @@ class GOPCAInput(object):
     """Default values for all GO-PCA parameters, including input/output files.
     """
 
-    __input_file_params = set([
+    __file_params = set([
         'expression_file',
         'go_annotation_file',
         'ontology_file',
@@ -118,24 +118,6 @@ class GOPCAInput(object):
 
     __param_names = set(__param_defaults.keys())
 
-    @staticmethod
-    def _get_file_md5sum(path, mode='r'):
-        """Get MD5 hash of file content.
-
-        Parameters
-        ----------
-        path: str
-            Path of file.
-        
-        Returns
-        -------
-        str
-            MD5 hash of file content, represented as a 32-digit hex string.
-        """
-        digest = None
-        with misc.smart_open(path,mode=mode,try_gzip=True) as fh:
-            digest = hashlib.md5(fh.read()).hexdigest()
-        return digest
     ### end static members
 
     ### magic functions
@@ -144,7 +126,7 @@ class GOPCAInput(object):
         self.__params = {}
 
         self.__valid = None
-        self.__input_hashes = dict([p,None] for p in self.__input_file_params)
+        self.__file_hashes = dict([p,None] for p in self.__file_params)
         self.__hash = None
 
         # set parameters (if params is empty, copy the default values)
@@ -193,13 +175,12 @@ class GOPCAInput(object):
         cp = GOPCAInput()
         cp.update_params(self.__params)
         cp.__valid = self.__valid
-        cp.__input_hashes = copy.deepcopy(self.__input_hashes,memo)
+        cp.__file_hashes = copy.deepcopy(self.__fil_hashes,memo)
         cp.__hash = self.__hash
         return cp
     ### end magic functions
 
     ### private members
-
     def __set_param(self, name, value):
         if name not in self.__param_names:
             raise ValueError('No GO-PCA parameter named "%s"!' %(param))
@@ -210,9 +191,9 @@ class GOPCAInput(object):
             self.__valid = False
             self.__hash = None
 
-            if name in self.__input_file_params:
+            if name in self.__file_params:
                 # if name of an input file was changed, reset hash
-                self.__input_hashes[name] = None
+                self.__file_hashes[name] = None
 
     def __validate(self):
         """Test if current input data is valid.
@@ -306,25 +287,24 @@ class GOPCAInput(object):
 
         # input data is valid, calculate hash
         data = []
-        for p in sorted(self.__input_file_params):
+        for p in sorted(self.__file_params):
             # recalculate input file MD5 hashes, if necessary
-            if self.__params[p] is None:
-                self.__input_hashes[p] = ''
-            elif self.__input_hashes[p] is None:
+            if self.__params[p] is None: # ontology file can be None
+                self.__file_hashes[p] = ''
+            elif self.__file_hashes[p] is None:
                 fn = self.__params[p]
                 md5hash = GOPCAInput._get_file_md5sum(fn)
-                self.__input_hashes[p] = md5hash
+                self.__file_hashes[p] = md5hash
                 logger.info('MD5 hash for file "%s": %s', p, md5hash)
-            data.append(self.__input_hashes[p])
+            data.append(self.__file_hashes[p])
 
         param_keys = sorted(set(self.__params.keys()) -
-            (self.__input_file_params | self.__output_file_params))
+            (self.__file_params | self.__output_file_params))
 
         for k in param_keys:
            data.append(str(self.__params[k]))
 
         data_str = ','.join(data)
-        #self._logger.propagate = False
         logger.debug('Input data string: %s', data_str)
         self.__hash = hashlib.md5(data_str).hexdigest()
     ### end private members
@@ -342,6 +322,35 @@ class GOPCAInput(object):
     def param_names(self):
         """Returns a set of all GO-PCA parameter names."""
         return self.__param_names
+
+    def get_dict(self):
+        """Returns the input data as a dictionary.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        dict
+            The input data.
+        """
+        d = {}
+
+        # add all parameters
+        for k,v in self.__params.iteritems():
+            d[k] = v
+
+        # add file hashes
+        for f in self.__file_params:
+            k = f + '_hash'
+            v = self.__file_hashes[f]
+            d[k] = v
+
+        # add global hash
+        d['hash'] = self.__hash
+
+        return d
 
     def get_param_strings(self):
         d = []
@@ -407,9 +416,4 @@ class GOPCAInput(object):
         """Calls `__calculate_hash`."""
         self.__calculate_hash()
 
-    def read_config_file(self, path):
-        raise NotImplemented
-
-    def write_config_file(self, output_file):
-        raise NotImplemented
     ### end public members

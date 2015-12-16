@@ -24,6 +24,7 @@ import logging
 import re
 import cPickle as pickle
 import time
+import hashlib
 from copy import deepcopy
 from collections import OrderedDict
 
@@ -39,7 +40,7 @@ from genometools.expression import ExpMatrix
 from gopca import util
 from gopca import go_enrichment
 from gopca.go_enrichment import GOEnrichmentAnalysis
-from gopca import GOPCAInput,GOPCASignature,GOPCAOutput
+from gopca import GOPCAConfig, GOPCASignature, GOPCAOutput
 
 logger = logging.getLogger(__name__)
 
@@ -48,43 +49,39 @@ class GOPCA(object):
 
     This class implements the GO-PCA algorithm, except for the GO enrichment
     testing, which is implemented by the `go_enrichment.GOEnrichmentAnalyis`
-    class. The input data is provided as a `gopca.GOPCAInput` object during
+    class. The input data is provided as a `gopca.GOPCAConfig` object during
     instantiation, and GO-PCA is run from start to finish by calling the `run`
     method.
 
     Parameters
     ----------
-    input_: `go_pca.GOPCAInput`
-        GO-PCA input data.
+    config: `go_pca.GOPCAConfig`
+        GO-PCA configuration data.
     """
 
-    def __init__(self,input_):
-
-        # store input data
-        assert isinstance(input_,GOPCAInput)
-        self.__raw_input = deepcopy(input_)
-
-        # this is the "working copy"
-        self.__input = deepcopy(self.__raw_input)
+    def __init__(self,config):
+        # store configuration
+        assert isinstance(config, GOPCAConfig)
+        self.__config = deepcopy(config)
 
     def __getattr__(self,name):
         """Custom attribute lookup function.
 
         We use this function to simplify access to GO-PCA parameters, which are
-        stored in the `GOPCAInput` object. Each (unknown) attribute name
-        starting with an underscore gets mapped to the `GOPCAInput` attribute
+        stored in a `GOPCAConfig` object. Each (unknown) attribute name
+        starting with an underscore gets mapped to the `GOPCAConfig` attribute
         of the same name, with the underscore removed.
 
         For example, this allows us to write, ``self._expression_file`` instead
-        of ``self.__input.expression_file``.
+        of ``self.__config.expression_file``.
         """
         # map attributes to parameters
-        if name[0] == '_' and name[1:] in self.__input.param_names:
-            return getattr(self.__input,name[1:])
+        if name[0] == '_' and self.has_param(name[1:]):
+            return getattr(self.__config,name[1:])
         raise AttributeError
 
     @staticmethod
-    def print_signatures(signatures,maxlength=50):
+    def print_signatures(signatures, maxlength = 50):
         """Print a list of signatures, sorted by their enrichment score."""
         a = None
         a = sorted(range(len(signatures)),key=lambda i: -signatures[i].escore)
@@ -93,6 +90,7 @@ class GOPCA(object):
             logger.info(sig.get_label(max_name_length = maxlength,
                     include_pval = True))
 
+    ### protected methods
     def _read_expression_data(self):
         """Read expression data and perform variance filtering."""
 
@@ -145,16 +143,16 @@ class GOPCA(object):
             logger.info('Expression matrix size, after variance filtering: ' +
                     'p = %d genes x n = %d samples.', p, n)
 
-            exp = ExpMatrix(genes,samples,E)
+            exp = ExpMatrix(genes, samples, E)
 
         return exp
 
-    def _estimate_n_components(self,E):
+    def _estimate_n_components(self, E):
         """Estimate the number of non-trivial PCs using a permutation test."""
 
         assert isinstance(E,np.ndarray) 
         logger.info('Estimating the number of principal components ' +
-                '(seed = %d)...', self._seed)
+                '(seed = %d)...', self._pc_seed)
         logger.debug('(permutations = %d, z-score threshold = %.1f)...',
                 self._pc_permutations, self._pc_zscore_thresh)
 
@@ -168,14 +166,14 @@ class GOPCA(object):
         logger.debug('Largest explained variance: %.2f', d[0])
 
         thresh = util.get_pc_explained_variance_threshold(E,
-                self._pc_zscore_thresh, self._pc_permutations, self._seed)
+                self._pc_zscore_thresh, self._pc_permutations, self._pc_seed)
         logger.debug('Explained variance threshold: %.2f', thresh)
         d_est = np.sum(d >= thresh)
 
         logger.info('The estimated number of PCs is %d.', d_est)
         self.set_param('n_components',d_est)
 
-    def read_ontology(self):
+    def _read_ontology(self):
         """Read the Gene Ontology data."""
         if self._ontology_file is None:
             raise AttributeError('No ontology file provided!')
@@ -191,7 +189,7 @@ class GOPCA(object):
         p_logger.setLevel(logging.NOTSET)
         return go_parser
 
-    def read_go_annotations(self):
+    def _read_go_annotations(self):
         """Read the GO annotations."""
         logger.info('Reading GO annotations...')
         go_annotations = util.read_go_annotations(self._go_annotation_file)
@@ -200,7 +198,46 @@ class GOPCA(object):
         #n_assign = sum(len(v) for k,v in self.annotations.iteritems())
         #self.message('(%d annotations) done!', n_assign)
 
-    def set_param(self,name,value):
+    def _get_config_dict(self):
+        return self.__config.get_dict()
+
+    def _get_input_hash(self):
+        """Calculate the GO-PCA input hash."""
+        data = []
+
+        config_hash = self.__config.hash
+        expression_hash = util.get_file_md5sum(self._expression_file)
+        go_annotation_hash = util.get_file_md5sum(self._go_annotation_file)
+        ontology_hash = ''
+        if self._ontology_file is not None:
+            ontology_hash = util.get_file_md5sum(self._ontology_file)
+
+        # reporting
+        logger.info('Config hash: %s', config_hash)
+        logger.info('Expression file hash: %s', expression_hash)
+        logger.info('GO annotation file hash: %s', go_annotation_hash)
+        if self._ontology_file is not None:
+            logger.info('Ontology file hash: %s', ontology_hash)
+
+        data = (config_hash, expression_hash, go_annotation_hash,
+            ontology_hash)
+        data_str = ','.join(data)
+        input_hash = hashlib.md5(data_str).hexdigest()
+        logger.info('')
+        logger.info('====> GO-PCA input hash: %s' , input_hash)
+        logger.info('')
+
+        return input_hash
+    ### end protected functions
+
+    ### public functions
+    def has_param(self, name):
+        return self.__config.has_param(name)
+
+    def get_param(self, name):
+        return self.__config.get_param(name)
+
+    def set_param(self, name, value):
         """Set a GO-PCA parameter.
 
         Parameters
@@ -208,13 +245,13 @@ class GOPCA(object):
         name: str
             The name of the parameter.
         value: ?
-            The value of the parameter
+            The value of the parameter.
 
         Returns
         -------
         None
         """
-        setattr(self.__input,name,value)
+        self.__config.set_param(name, value)
 
     def run(self):
         """Run GO-PCA.
@@ -230,15 +267,14 @@ class GOPCA(object):
         """
         t0 = time.time()
 
-        # make sure the input data is valid
-        self.__raw_input.validate()
+        # check the user-provided configuration
+        self.__config.check()
 
-        # calculate and report input hash
-        self.__raw_input.calculate_hash()
-        logger.info('GO-PCA input hash: %s', self.__raw_input.hash)
+        # calculate GO-PCA input hash
+        input_hash = self._get_input_hash()
 
         # make a copy of the input data before changing anything
-        self.__input = deepcopy(self.__raw_input)
+        config = deepcopy(self.__config)
 
         if self._ontology_file is None and (not self._no_global_filter):
             # no ontology file => disable global filter
@@ -258,10 +294,10 @@ class GOPCA(object):
 
         # read ontology
         if self._ontology_file is not None:
-            go_parser = self.read_ontology()
+            go_parser = self._read_ontology()
 
         # read GO annotations
-        go_annotations = self.read_go_annotations()
+        go_annotations = self._read_go_annotations()
 
         if self._n_components == 0:
             # estimate the number of non-trivial PCs using a permutation test
@@ -274,7 +310,7 @@ class GOPCA(object):
 
         logger.debug('-'*70)
         logger.debug('GO-PCA parameters:')
-        for d in self.__input.get_param_strings():
+        for d in self.__config.get_param_strings():
             logger.debug(d)
         logger.debug('-'*70)
 
@@ -333,10 +369,11 @@ class GOPCA(object):
         logger.info('GO-PCA generated %d signatures:', len(final_signatures))
         self.print_signatures(final_signatures)
 
-        S = np.float64([util.get_signature_expression(exp.genes, exp.E, sig.genes) for sig in final_signatures])
+        S = np.float64([util.get_signature_expression(exp.genes, exp.E, sig.genes)
+                for sig in final_signatures])
 
         # include the input data in the output data
-        output = GOPCAOutput(self.__raw_input, exp.genes, exp.samples, W, Y,
+        output = GOPCAOutput(input_hash, self.__config, exp.genes, exp.samples, W, Y,
                 final_signatures, S)
 
         t1 = time.time()
@@ -454,7 +491,7 @@ class GOPCA(object):
                 kept_signatures.append(sig)
         return kept_signatures
 
-    def generate_pc_signatures(self,genes,E,M,W,pc):
+    def generate_pc_signatures(self, genes, E, M, W, pc):
         """Generate signatures for a specific principal component and ordering.
 
         The absolute value of ``pc`` determines the principal component (PC).
@@ -512,7 +549,7 @@ class GOPCA(object):
 
         return signatures
 
-    def generate_signature(self,genes,E,pc,enr):
+    def generate_signature(self, genes, E, pc, enr):
         """Algorithm for generating a signature based on an enriched GO term.
         """
 
@@ -536,7 +573,4 @@ class GOPCA(object):
         sig_genes = [enr_genes[i] for i in sel]
         sig_E = E_enr[sel,:]
 
-        return GOPCASignature(sig_genes,sig_E,pc,enr)
-
-
-
+        return GOPCASignature(sig_genes, sig_E, pc, enr)
