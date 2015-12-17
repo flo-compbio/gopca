@@ -22,7 +22,7 @@ float_mv = '<float>'
 file_mv = '<file>'
 name_mv = '<name>'
 
-def add_fig_params(parser):
+def add_fig_args(parser):
     """Add shared figure parameters.
 
     Parameters
@@ -31,7 +31,8 @@ def add_fig_params(parser):
 
     Returns
     -------
-    None
+    `argparse.ArgumentGroup`
+        The argument group created.
     """
     g = parser.add_argument_group('Figure options')
 
@@ -58,7 +59,9 @@ def add_fig_params(parser):
             metavar = name_mv,
             help='Matplotlib backend.')
 
-def add_heatmap_params(parser):
+    return g
+
+def add_heatmap_args(parser):
     """Add shared heat map parameters.
 
     Parameters
@@ -67,7 +70,8 @@ def add_heatmap_params(parser):
 
     Returns
     -------
-    None
+    `argparse.ArgumentGroup`
+        The argument group created.
     """
     g = parser.add_argument_group('Heat map color and colorbar options')
 
@@ -103,3 +107,5 @@ def add_heatmap_params(parser):
     g.add_argument('-ct', '--cbar-ticks', nargs='*', default = None,
             metavar = '<[float, ...]>',
             help = 'The colorbar ticks.')
+
+    return g

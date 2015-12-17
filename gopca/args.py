@@ -25,9 +25,23 @@ file_mv = '<file>'
 int_mv = '<int>'
 float_mv = '<float>'
 name_mv = '<name>'
+str_mv = '<str>'
 
 def get_argument_parser(prog, description, formatter_class = None):
+    """Create an argument parser.
 
+    Parameters
+    ----------
+    prog: str
+        The program name.
+    description: str
+        The program description.
+
+    Returns
+    -------
+    `argparse.ArgumentParser`
+        The arguemnt parser created.
+    """
     if formatter_class is None:
         formatter_class = argparse.RawTextHelpFormatter
 
@@ -44,8 +58,18 @@ def get_argument_parser(prog, description, formatter_class = None):
 
     return parser
 
-def add_reporting_params(parser):
-    # reporting options
+def add_reporting_args(parser):
+    """Add reporting arguments to an argument parser.
+
+    Parameters
+    ----------
+    parser: `argparse.ArgumentParser`
+
+    Returns
+    -------
+    `argparse.ArgumentGroup`
+        The argument group created.
+    """
     g = parser.add_argument_group('Reporting options')
 
     g.add_argument('-l', '--log-file', default=None,
@@ -61,8 +85,8 @@ def add_reporting_params(parser):
 
     return parser
 
-def add_io_params(parser):
-    """Add shared input/output parameters to an argument parser.
+def add_io_args(parser):
+    """Add input/output arguments to an argument parser.
 
     Parameters
     ----------
@@ -70,7 +94,8 @@ def add_io_params(parser):
 
     Returns
     -------
-    None
+    `argparse.ArgumentGroup`
+        The argument group created.
     """
     g = parser.add_argument_group('Input and output files (required)')
 
@@ -82,8 +107,10 @@ def add_io_params(parser):
             metavar = file_mv,
             help = 'The output file.')
 
-def add_go_term_params(parser):
-    """Add shared go term parameters.
+    return g
+
+def add_go_term_args(parser):
+    """Add GO term arguments to an argument parser.
 
     Parameters
     ----------
@@ -91,7 +118,8 @@ def add_go_term_params(parser):
 
     Returns
     -------
-    None
+    `argparse.ArgumentGroup`
+        The argument group created.
     """
     g = parser.add_argument_group('GO term options')
 
@@ -102,8 +130,10 @@ def add_go_term_params(parser):
             metavar = int_mv,
             help='The maximal length of GO term labels.')
 
-def add_signature_params(parser):
-    """Add shared signature parameters.
+    return g
+
+def add_signature_args(parser):
+    """Add signature arguments to an argument parser.
 
     Parameters
     ----------
@@ -111,7 +141,8 @@ def add_signature_params(parser):
 
     Returns
     -------
-    None
+    `argparse.ArgumentGroup`
+        The argument group created.
     """
     g = parser.add_argument_group('Signature options')
 
@@ -122,9 +153,10 @@ def add_signature_params(parser):
             metavar = int_mv,
             help='The maximal length of signature labels.')
 
+    return g
 
-def add_sample_params(parser):
-    """Add shared sample parameters.
+def add_sample_args(parser):
+    """Add sample arguments to an argument parser.
 
     Parameters
     ----------
@@ -132,7 +164,8 @@ def add_sample_params(parser):
 
     Returns
     -------
-    None
+    `argparse.ArgumentGroup`
+        The argument group created.
     """
     g = parser.add_argument_group('Sample options')
 
@@ -143,3 +176,4 @@ def add_sample_params(parser):
             metavar = name_mv,
             help='The metric used in the hierarchical clustering algorithm.')
 
+    return g

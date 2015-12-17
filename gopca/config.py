@@ -25,6 +25,8 @@ import logging
 
 import numpy as np
 
+from genometools import misc
+
 logger = logging.getLogger(__name__)
 
 class GOPCAConfig(object):
@@ -78,14 +80,18 @@ class GOPCAConfig(object):
     input_file_param_names = set([
         'expression_file',
         'go_annotation_file',
-        'ontology_file',
+        'gene_ontology_file',
     ])
     """Names of all GO-PCA input file parameters."""
 
     file_param_names = input_file_param_names | set(['output_file'])
     """Names of all GO-PCA file parameters."""
 
-    param_names = set(param_defaults.keys()) | file_param_names
+    hash_param_names = set([n + '_hash' for n in input_file_param_names])
+
+    param_names = set(param_defaults.keys()) | file_param_names | \
+            hash_param_names
+
     """Names of all GO-PCA parameters."""
     ### end static members
 
@@ -210,81 +216,149 @@ class GOPCAConfig(object):
 
         Returns
         -------
-        None
+        bool
+            True iff no problems were found.
 
-        Raises
-        ------
-        ValueError
-            If any parameter value is invalid.
         """
-        def check(b):
-            if not b:
-                raise ValueError('Invalid parameter value!')
 
-        # check input parameters
-        # specification of an ontology file is optional
-        check(isinstance(self.expression_file,str))
-        check(isinstance(self.go_annotation_file,str))
-        if self.ontology_file is not None:
-            check(isinstance(self.ontology_file,str))
+        passed = True
+
+        def check_type(attr, types):
+            # checks whether the parameter has a certain type
+            val = getattr(self, attr)
+            if not isinstance(val, types):
+                logger.error('Parameter "%d" = %s: invalid type ' +
+                        '(should be %s).', attr, val, str(types))
+                passed = False
+
+        def check_file_exists(attr):
+            # check whether the specified file exists
+            path = getattr(self, attr)
+            if not os.path.isfile(path):
+                logger.error('File "%s" = %s: file does not exist. ',
+                        attr, path)
+                passed = False
+
+        def check_file_writable(attr):
+            # check whether the specified file is writable
+            path = getattr(self, attr)
+            if os.path.isfile(path):
+                if not misc.test_file_writable(path):
+                    logger.error('File "%s" = %s: file not writable.',
+                            attr, path)
+                    passed = False
+            else:
+                if not misc.test_dir_writable(path):
+                    logger.error('File "%s" = %s: directory not writable.',
+                            attr, path)
+                    passed = False
+
+        def check_range(attr, mn = None, mx = None,
+                left_open = False, right_open = False):
+            # checks if a GO-PCA parameter falls within a certain numeric range
+
+            val = getattr(self, attr)
+            in_range = True
+
+            rel_op = {True: '<', False: '<='}
+
+            if mn is not None:
+                left_rel = '%s %s ' %(str(mn), rel_op[left_open])
+                if left_open:
+                    if not mn < val: in_range = False
+                else:
+                    if not mn <= val: in_range = False
+
+            if mx is not None:
+                right_rel = ' %s %s' %(rel_op[right_open], str(mx))
+                if right_open:
+                    if not val < mx: in_range = False
+                else:
+                    if not val <= mx: in_range = False
+
+            if not in_range:
+                logger.error('Parameter "%s" = %s: out of range ' +
+                        '(should be %s %s %s).',
+                        attr, val, left_rel, attr, right_rel)
+                passed = False
+
+        # check if input files are strings
+        # specification of gene ontology file is optional
+        check_type('expression_file', str)
+        check_type('go_annotation_file', str)
+        if self.gene_ontology_file is not None:
+            check_type('gene_ontology_file', str)
 
         if test_if_input_exists:
-            check(os.path.isfile(self.expression_file))
-            check(os.path.isfile(self.go_annotation_file))
-            if self.ontology_file is not None:
-                check(os.path.isfile(self.ontology_file))
+            # check if input files exist
+            check_file_exists('expression_file')
+            check_file_exists('go_annotation_file')
+            if self.gene_ontology_file is not None:
+                check_file_exists('gene_ontology_file')
             
-        check(isinstance(self.output_file,str))
+        # check if hash values are strings
+        if self.expression_file_hash is not None:
+            check_type('expression_file_hash', str)
+        if self.go_annotation_file_hash is not None:
+            check_type('go_annotation_file_hash', str)
+        if self.gene_ontology_file is not None and \
+                self.gene_ontology_file_hash is not None:
+            check_type('gene_ontology_file_hash', str)
+
+        # check if output file is a string
+        check_type('output_file', str)
+
         if test_if_output_writable:
-            output_dir = os.path.dirname(self.output_file)
-            if output_dir == '':
-                output_dir = '.'
-            logger.debug('Output directory: %s', output_dir)
-            check(os.access(output_dir, os.W_OK))
+            # check if output files are writable
+            check_file_writable('output_file')
 
-        check(isinstance(self.sel_var_genes,int))
-        check(self.sel_var_genes >= 0)
+        # check types and ranges of GO-PCA parameters
+        check_type('n_components', int)
+        check_range('n_components', 0)
 
-        check(isinstance(self.mHG_X_frac,(int,float)))
-        check(0.0 <= float(self.mHG_X_frac) <= 1.0)
+        check_type('sel_var_genes', int)
+        check_range('sel_var_genes', 0)
 
-        check(isinstance(self.mHG_X_min,int))
-        check(self.mHG_X_min >= 0)
+        check_type('mHG_X_frac', (int,float))
+        check_range('mHG_X_frac', 0, 1)
 
-        check(isinstance(self.mHG_L,int))
-        check(self.mHG_L >= 0)
+        check_type('mHG_X_min', int)
+        check_range('mHG_X_min', 0)
 
-        check(isinstance(self.pval_thresh,(int,float)))
-        check(0.0 < float(self.pval_thresh) <= 1.0)
+        if self.mHG_L is not None:
+            check_type('mHG_L', int)
+            check_range('mHG_L', 0)
 
-        check(isinstance(self.escore_pval_thresh,(int,float)))
-        check(0.0 < float(self.escore_pval_thresh) <= 1.0)
+        check_type('pval_thresh', (int, float))
+        check_range('pval_thresh', 0, 1, left_open = True)
 
-        check(isinstance(self.escore_thresh,(int,float)))
-        check(float(self.escore_thresh) >= 0.0)
+        check_type('escore_pval_thresh', (int, float))
+        check_range('escore_pval_thresh', 0, 1, left_open = True)
 
-        check(isinstance(self.pc_seed,int))
-        check(self.pc_seed >= 0 and self.pc_seed <= np.iinfo(np.uint32).max)
+        check_type('escore_thresh', (int, float))
+        check_range('escore_thresh', 0)
 
         if self.n_components == 0:
-            check(isinstance(self.pc_permutations,int))
-            check(self.pc_permutations > 0)
+            check_type('pc_seed', int)
+            check_range('pc_seed', 0, np.iinfo(np.uint32).max)
 
-            check(isinstance(self.pc_zscore_thresh,float))
+            check_type('pc_permutations', int)
+            check_range('pc_permutations', 0, left_open = True)
+
+            check_type('pc_zscore_thresh', (int,float))
 
         #check(isinstance(self.go_part_of_cc_only, bool))
+        return passed
 
     @property
     def hash(self):
+        """MD5 hash value for the current configuration."""
         data = []
-
         # ignore file names and contents in hash calculation
         hash_params = sorted(GOPCAConfig.param_names -
                 GOPCAConfig.file_param_names)
-
         for p in hash_params:
            data.append(str(self.__params[p]))
-
         data_str = ','.join(data)
         logger.debug('Configuration data string: %s', data_str)
         return hashlib.md5(data_str).hexdigest()

@@ -32,19 +32,20 @@ import os
 import argparse
 
 from gopca import util
-from gopca import params
+from gopca import args
 from gopca import GOPCAConfig, GOPCA
 
 def get_argument_parser():
 
     prog = 'go-pca.py'
     description = 'Run GO-PCA.'
-    parser = params.get_argument_parser(prog, description)
+    parser = args.get_argument_parser(prog, description)
 
-    file_mv = params.file_mv
-    name_mv = params.name_mv
-    int_mv = params.int_mv
-    float_mv = params.float_mv
+    file_mv = args.file_mv
+    name_mv = args.name_mv
+    int_mv = args.int_mv
+    float_mv = args.float_mv
+    str_mv = args.str_mv
 
     # input and output files
     g = parser.add_argument_group('Input and output files')
@@ -58,13 +59,28 @@ def get_argument_parser():
             help = 'Tab-separated text file containing the GO term ' +
             'annotations.')
 
-    g.add_argument('-t', '--ontology-file', required = False,
+    g.add_argument('-t', '--gene-ontology-file', required = False,
             metavar = file_mv,
             help = 'OBO file containing the Gene Ontology.')
 
     g.add_argument('-o', '--output-file', required = True,
             metavar = file_mv,
             help = 'Output pickle file (extension ".pickle" is recommended).')
+
+    # input file hash values
+    g = parser.add_argument_group('Input file hash values')
+
+    g.add_argument('-he', '--expression-file-hash', default = None,
+            metavar = str_mv,
+            help = 'MD5 hash for the experssion file.')
+
+    g.add_argument('-ha', '--go-annotation-file-hash', default = None,
+            metavar = str_mv,
+            help = 'MD5 hash for the GO annotation file.')
+
+    g.add_argument('-ht', '--gene-ontology-file-hash', default = None,
+            metavar = str_mv,
+            help = 'MD5 hash for the gene ontology file.')
 
     # GO-PCA parameters
     g = parser.add_argument_group('GO-PCA parameters')
@@ -98,7 +114,7 @@ def get_argument_parser():
 
     g.add_argument('-L', '--mHG-L', type = int, default = None,
             metavar = int_mv,
-            help='L parameter for GO enrichment (0 = off; None = #genes/8).')
+            help='L parameter for GO enrichment (0 = off; None = #genes / 8).')
 
     g.add_argument('--escore-pval-thresh', type = float, default = 1e-4,
             metavar = float_mv,
@@ -129,7 +145,7 @@ def get_argument_parser():
             help = 'Only propagate "part of" GO relations for the CC domain.')
 
     # reporting options
-    params.add_reporting_params(parser)
+    args.add_reporting_args(parser)
 
     return parser
 
@@ -155,8 +171,13 @@ def main(args = None):
 
     # input files
     expression_file = args.expression_file
-    ontology_file = args.ontology_file
+    gene_ontology_file = args.gene_ontology_file
     go_annotation_file = args.go_annotation_file
+
+    # input file hash values
+    expression_file_hash = args.expression_file_hash
+    gene_ontology_file_hash = args.gene_ontology_file_hash
+    go_annotation_file_hash = args.go_annotation_file_hash
 
     # output file
     output_file = args.output_file
@@ -184,6 +205,8 @@ def main(args = None):
     log_file = args.log_file
     quiet = args.quiet
     verbose = args.verbose
+
+    # test if we can write to log_file?
 
     # configure root logger
     logger = util.get_logger(log_file = log_file, quiet = quiet,

@@ -57,23 +57,23 @@ from genometools import misc
 
 import gopca
 from gopca import util
-from gopca import params
-from gopca.plotting import params as plot_params
+from gopca import args
+from gopca.plotting import args as plot_args
 
 def get_argument_parser():
 
     prog = 'gopca_plot_term_by_signature_matrix.py'
     description = 'Plot the GO-PCA term-by-PC matrix.'
-    parser = params.get_argument_parser(prog, description)
+    parser = args.get_argument_parser(prog, description)
 
     g = parser.add_argument_group('Required parameters')
 
     g.add_argument('-g', '--gopca-file', required=True,
-            metavar = params.file_mv,
+            metavar = args.file_mv,
             help = 'The GO-PCA output file.')
 
     g.add_argument('-o', '--output-file', required=True,
-            metavar = params.file_mv,
+            metavar = args.file_mv,
             help = 'The output file.')
 
     g = parser.add_argument_group('Optional parameters')
@@ -85,10 +85,10 @@ def get_argument_parser():
     g.add_argument('--dotcolor', default = 'yellow')
     g.add_argument('--dotsize', type = float, default = 50)
 
-    plot_params.add_fig_params(parser)
+    plot_args.add_fig_args(parser)
     parser.set_defaults(fig_font_size = 16)
 
-    plot_params.add_heatmap_params(parser)
+    plot_args.add_heatmap_args(parser)
     parser.set_defaults(val_coolest = 0.0)
     parser.set_defaults(val_hottest = 10.0)
     parser.set_defaults(cbar_ticks = [4,6,8,10])
@@ -96,8 +96,8 @@ def get_argument_parser():
     parser.set_defaults(cbar_anchor = [0.6,1.0])
     parser.set_defaults(cbar_scale = 0.2)
 
-    params.add_go_term_params(parser)
-    params.add_sample_params(parser)
+    args.add_go_term_args(parser)
+    args.add_sample_args(parser)
 
     return parser
 

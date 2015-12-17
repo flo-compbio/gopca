@@ -32,10 +32,10 @@ class GOPCAOutput(object):
 
     Parameters
     ----------
-    input_hash: str
-        The GO-PCA input hash.
-    config: `go_pca.GOPCAConfig`
-        The GO-PCA configuration.
+    user_config: `gopca.GOPCAConfig`
+        The configuration data provided by the user.
+    config: `gopca.GOPCAConfig`
+        The full GO-PCA configuration data.
     genes: tuple or list
         The list of genes (gene symbols) in the analysis.
     samples: tuple or list
@@ -50,7 +50,7 @@ class GOPCAOutput(object):
         The GO-PCA signature matrix; shape = (len(signatures) x len(samples)).
     """
 
-    def __init__(self, input_hash, config,
+    def __init__(self, user_config, config,
                 genes, samples,
                 W, Y,
                 signatures, S):
@@ -60,7 +60,7 @@ class GOPCAOutput(object):
         # S = GO-PCA signature matrix
 
         # checks
-        assert isinstance(input_hash, str)
+        assert isinstance(user_config, GOPCAConfig)
         assert isinstance(config, GOPCAConfig)
         assert isinstance(genes, (list,tuple))
         assert isinstance(samples, (list,tuple))
@@ -77,7 +77,7 @@ class GOPCAOutput(object):
         assert S.shape[0] == len(signatures)
 
         # initialization
-        self.input_hash = input_hash
+        self.user_config = deepcopy(user_config)
         self.config = deepcopy(config)
         self.genes = tuple(genes)
         self.samples = tuple(samples)
@@ -109,12 +109,12 @@ class GOPCAOutput(object):
         return hash(self.__get_hash())
 
     def __getattr__(self, name):
-        """Redirect lookup of unknown attributes to `input`."""
+        """Redirect lookup of unknown attributes to `config`."""
         # check if we have the input attribute
-        if 'input' not in self.__dict__:
+        if 'config' not in self.__dict__:
             raise AttributeError('Not present!')
 
-        return getattr(self.input,name)
+        return getattr(self.config, name)
     ### end magic functions
 
     ### private members

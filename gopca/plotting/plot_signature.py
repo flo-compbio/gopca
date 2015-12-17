@@ -38,41 +38,33 @@ from genometools import misc
 
 import gopca
 from gopca import util
-from gopca import params
-from gopca.plotting import params as plot_params
+from gopca import args
+from gopca.plotting import args as plot_args
 
 def get_argument_parser():
 
     prog = 'plot_gopca_signature.py'
     description = 'Plot a GO-PCA signature.'
-    parser = params.get_argument_parser(prog, description)
+    parser = args.get_argument_parser(prog, description)
 
-    g = parser.add_argument_group('Required parameters')
-
-    g.add_argument('-g', '--gopca-file', required = True,
-            metavar = params.file_mv,
-            help = 'The GO-PCA output file.')
+    g = args.add_io_args(parser)
 
     g.add_argument('-n', '--sig-name', required = True,
-            metavar = params.name_mv,
+            metavar = args.name_mv,
             help = 'The name of the signature.')
 
-    g.add_argument('-o', '--output-file', required = True,
-            metavar = params.file_mv,
-            help = 'The output file.')
-
-    g = parser.add_argument_group('Layout')
+    g = parser.add_argument_group('Layout options')
 
     g.add_argument('-p', '--fig-title-pos', type = float, default = 0.95,
-            metavar = params.float_mv,
+            metavar = args.float_mv,
             help = 'The position of the figure title.')
 
     g.add_argument('--fig-subgrid-ratio', type = int, default = 10,
-            metavar = params.int_mv,
+            metavar = args.int_mv,
             help = 'The size ratio between signature and heat map panels.')
 
     g.add_argument('-gs', '--gene-label-size', type = float, default = None,
-            metavar = params.float_mv,
+            metavar = args.float_mv,
             help = 'The size of the gene labels (in pt).')
 
     g.add_argument('-gr', '--gene-reverse-order', action = 'store_true',
@@ -81,9 +73,9 @@ def get_argument_parser():
     g.add_argument('--hide-id', action = 'store_true',
             help = 'Do not show the ID of the GO term.')
 
-    plot_params.add_fig_params(parser)
-    plot_params.add_heatmap_params(parser)
-    params.add_sample_params(parser)
+    plot_args.add_fig_args(parser)
+    plot_args.add_heatmap_args(parser)
+    args.add_sample_args(parser)
 
     return parser
 

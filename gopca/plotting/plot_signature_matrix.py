@@ -41,31 +41,23 @@ from genometools import misc
 
 import gopca
 from gopca import util
-from gopca import params
-from gopca.plotting import params as plot_params
+from gopca import args
+from gopca.plotting import args as plot_args
 
 def get_argument_parser():
 
     prog = 'gopca_plot_signature_matrix.py'
     description = 'Plot the GO-PCA signature matrix.'
-    parser = params.get_argument_parser(prog, description)
+    parser = args.get_argument_parser(prog, description)
 
-    g = parser.add_argument_group('Required parameters')
+    args.add_io_args(parser)
 
-    g.add_argument('-g', '--gopca-file', required=True,
-            metavar = params.file_mv,
-            help = 'The GO-PCA output file.')
+    args.add_reporting_args(parser)
 
-    g.add_argument('-o', '--output-file', required=True,
-            metavar = params.file_mv,
-            help = 'The output file.')
-
-    params.add_reporting_params(parser)
-
-    plot_params.add_fig_params(parser)
-    plot_params.add_heatmap_params(parser)
-    params.add_signature_params(parser)
-    params.add_sample_params(parser)
+    plot_args.add_fig_args(parser)
+    plot_args.add_heatmap_args(parser)
+    args.add_signature_args(parser)
+    args.add_sample_args(parser)
 
     return parser
 

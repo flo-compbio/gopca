@@ -59,7 +59,7 @@ class GOPCA(object):
         GO-PCA configuration data.
     """
 
-    def __init__(self,config):
+    def __init__(self, config):
         # store configuration
         assert isinstance(config, GOPCAConfig)
         self.__config = deepcopy(config)
@@ -80,29 +80,41 @@ class GOPCA(object):
             return getattr(self.__config,name[1:])
         raise AttributeError
 
+    ### static methods
     @staticmethod
-    def print_signatures(signatures, maxlength = 50):
-        """Print a list of signatures, sorted by their enrichment score."""
-        a = None
-        a = sorted(range(len(signatures)),key=lambda i: -signatures[i].escore)
+    def print_signatures(signatures, maxlength = 50, debug = False):
+        """Print a list of signatures, sorted by their enrichment score.
+        """
+        a = sorted(range(len(signatures)),
+                key = lambda i: -signatures[i].escore)
+
         for i in a:
             sig = signatures[i]
-            logger.info(sig.get_label(max_name_length = maxlength,
-                    include_pval = True))
+            sig_label = sig.get_label(max_name_length = maxlength,
+                    include_pval = True)
+            if debug:
+                logger.debug(sig_label)
+            else:
+                logger.info(sig_label)
 
-    ### protected methods
-    def _read_expression_data(self):
+    @staticmethod
+    def _test_file_hash(path, hashval):
+        h = util.get_file_md5sum(path)
+        return h == hashval
+
+    @staticmethod
+    def _read_expression(config):
         """Read expression data and perform variance filtering."""
 
         logger.info('Reading expression data...')
-        exp = ExpMatrix.read_tsv(self._expression_file)
+        E = ExpMatrix.read_tsv(config.expression_file)
         # ExpMatrix constructor automatically sorts genes alphabetically
 
-        p,n = exp.shape
+        p,n = E.shape
         logger.info('Expression matrix size: ' +
                 '(p = %d genes) x (n = %d samples).', p,n)
 
-        sel_var_genes = self._sel_var_genes
+        sel_var_genes = config.sel_var_genes
         if sel_var_genes > 0:
             # perform variance filtering
 
@@ -111,18 +123,16 @@ class GOPCA(object):
                 # of genes in the expresison matrix
                 logger.warning('Variance filtering has no effect ' +
                         '(sel_var_genes = %d, p = %d).', sel_var_genes, p)
-                return exp
+                return E
 
-            genes,samples,E = (exp.genes,exp.samples,exp.E)
+            #genes,samples,E = (exp.genes,exp.samples,exp.E)
 
-            # rank genes by their variance
-            var = np.var(E,axis=1,ddof=1)
+            # select most variable genes
+            var = np.var(E.X, axis=1, ddof=1)
             total_var = np.sum(var) # total sum of variance
             a = np.argsort(var)
             a = a[::-1]
-
-            # select the genes with the largest variance
-            sel = np.zeros(p,dtype=np.bool_)
+            sel = np.zeros(p, dtype = np.bool_)
             sel[a[:sel_var_genes]] = True
             sel = np.nonzero(sel)[0]
 
@@ -132,103 +142,278 @@ class GOPCA(object):
             logger.info('Selected the %d most variable genes ' +
                     '(excluded %.1f%% of genes, representing %.1f%% ' +
                     'of total variance).',
-                    sel_var_genes, 100*(lost_p/float(p)),
-                    100*(lost_var/total_var))
+                    sel_var_genes, 100 * (lost_p / float(p)),
+                    100 * (lost_var / total_var))
 
             # filtering
-            genes = [genes[i] for i in sel]
-            E = E[sel,:]
+            E.genes = [E.genes[i] for i in sel]
+            E.X = E.X[sel,:]
 
             p,n = E.shape
             logger.info('Expression matrix size, after variance filtering: ' +
                     'p = %d genes x n = %d samples.', p, n)
 
-            exp = ExpMatrix(genes, samples, E)
+        return E
 
-        return exp
+    @staticmethod
+    def _read_gene_ontology(config):
+        """Read the Gene Ontology data."""
+        if config.gene_ontology_file is None:
+            raise AttributeError('No ontology file provided!')
 
-    def _estimate_n_components(self, E):
+        logger.info('Reading ontology...')
+        logger.debug('part_of_cc_only: %s', str(config.go_part_of_cc_only))
+
+        p_logger = logging.getLogger(goparser.__name__)
+        p_logger.setLevel(logging.ERROR)
+        P = GOParser()
+        P.parse_ontology(config.gene_ontology_file,
+                part_of_cc_only = config.go_part_of_cc_only)
+        p_logger.setLevel(logging.NOTSET)
+
+        return P
+
+    @staticmethod
+    def _read_go_annotations(config):
+        """Read the GO annotations."""
+        logger.info('Reading GO annotations...')
+        go_annotations = util.read_go_annotations(config.go_annotation_file)
+        return go_annotations
+
+    @staticmethod
+    def _estimate_n_components(config, X):
         """Estimate the number of non-trivial PCs using a permutation test."""
 
-        assert isinstance(E,np.ndarray) 
+        assert isinstance(X, np.ndarray) 
         logger.info('Estimating the number of principal components ' +
-                '(seed = %d)...', self._pc_seed)
+                '(seed = %d)...', config.pc_seed)
         logger.debug('(permutations = %d, z-score threshold = %.1f)...',
-                self._pc_permutations, self._pc_zscore_thresh)
+                config.pc_permutations, config.pc_zscore_thresh)
 
         # perform PCA
-        p,n = E.shape
-        d_max = min(p,n-1)
+        p,n = X.shape
+        d_max = min(p, n - 1)
         M_pca = PCA(n_components = d_max)
-        M_pca.fit(E.T)
+        M_pca.fit(X.T)
 
         d = M_pca.explained_variance_ratio_
         logger.debug('Largest explained variance: %.2f', d[0])
 
-        thresh = util.get_pc_explained_variance_threshold(E,
-                self._pc_zscore_thresh, self._pc_permutations, self._pc_seed)
+        thresh = util.get_pc_explained_variance_threshold(X,
+                config.pc_zscore_thresh, config.pc_permutations,
+                config.pc_seed)
         logger.debug('Explained variance threshold: %.2f', thresh)
         d_est = np.sum(d >= thresh)
 
         logger.info('The estimated number of PCs is %d.', d_est)
-        self.set_param('n_components',d_est)
+        config.set_param('n_components',d_est)
 
-    def _read_ontology(self):
-        """Read the Gene Ontology data."""
-        if self._ontology_file is None:
-            raise AttributeError('No ontology file provided!')
+    @staticmethod
+    def _local_filter(config, M_enrich, enriched_terms, ranked_genes):
+        """Apply GO-PCA's "local" filter.
+        
+        Returns enrichments that pass the filter.
+        """
 
-        go_parser = None
-        logger.info('Reading ontology...')
-        logger.debug('part_of_cc_only: %s', str(self._go_part_of_cc_only))
-        go_parser = GOParser()
-        p_logger = logging.getLogger(goparser.__name__)
-        p_logger.setLevel(logging.ERROR)
-        go_parser.parse_ontology(self._ontology_file,
-                part_of_cc_only = self._go_part_of_cc_only)
-        p_logger.setLevel(logging.NOTSET)
-        return go_parser
+        if len(enriched_terms) <= 1:
+            return enriched_terms
 
-    def _read_go_annotations(self):
-        """Read the GO annotations."""
-        logger.info('Reading GO annotations...')
-        go_annotations = util.read_go_annotations(self._go_annotation_file)
-        return go_annotations
+        # sort enriched terms by enrichment
+        q = len(enriched_terms)
+        a = sorted(range(q), key = lambda i: -enriched_terms[i].escore)
+        todo = [enriched_terms[i] for i in a]
 
-        #n_assign = sum(len(v) for k,v in self.annotations.iteritems())
-        #self.message('(%d annotations) done!', n_assign)
+        # keep the most enriched term
+        most_enriched = todo[0]
+        kept_terms = [most_enriched]
+        todo = todo[1:]
 
-    def _get_config_dict(self):
-        return self.__config.get_dict()
+        # exclude genes annotated with the most enriched term
+        genes_used = set(most_enriched.genes)
+        new_ranked_genes = []
+        L = config.mHG_L
+        new_L = L
+        for i,g in enumerate(ranked_genes):
+            if g not in genes_used:
+                new_ranked_genes.append(g)
+            elif i < L: # gene was already used, adjust L if necessary
+                new_L -= 1
+        ranked_genes = new_ranked_genes
+        L = new_L
 
-    def _get_input_hash(self):
-        """Calculate the GO-PCA input hash."""
-        data = []
+        # start filtering
+        enr_logger = logging.getLogger(go_enrichment.__name__)
+        enr_logger.setLevel(logging.ERROR)
+        K_max = max([enr.K for enr in todo])
+        p = len(ranked_genes)
+        mat = np.zeros((K_max + 1, p + 1), dtype=np.longdouble)
+        while todo:
+            most_enriched = todo[0]
+            term_id = most_enriched.term[0]
 
-        config_hash = self.__config.hash
-        expression_hash = util.get_file_md5sum(self._expression_file)
-        go_annotation_hash = util.get_file_md5sum(self._go_annotation_file)
-        ontology_hash = ''
-        if self._ontology_file is not None:
-            ontology_hash = util.get_file_md5sum(self._ontology_file)
+            # test if GO term is still enriched after removing all previously
+            # used genes
+            enr = M_enrich.get_enriched_terms(ranked_genes, config.pval_thresh,
+                    config.mHG_X_frac, config.mHG_X_min, L,
+                    escore_pval_thresh = config.escore_pval_thresh,
+                    selected_term_ids = [term_id], mat = mat)
+            assert len(enr) in [0,1]
+            # enr will be an empty list if GO term does not meet the p-value
+            # threshold
+            if enr:
+                enr = enr[0]
+                #print enr,'%d @ %d, s=%.1e' %(enr.mHG_k_n,enr.mHG_n,enr.mHG_s)
 
-        # reporting
-        logger.info('Config hash: %s', config_hash)
-        logger.info('Expression file hash: %s', expression_hash)
-        logger.info('GO annotation file hash: %s', go_annotation_hash)
-        if self._ontology_file is not None:
-            logger.info('Ontology file hash: %s', ontology_hash)
+                # test fold enrichment threshold (if specified)
+                still_enriched = False
+                if config.escore_thresh is None:
+                    still_enriched = True
+                elif enr.escore >= config.escore_thresh:
+                    still_enriched = True
 
-        data = (config_hash, expression_hash, go_annotation_hash,
-            ontology_hash)
-        data_str = ','.join(data)
-        input_hash = hashlib.md5(data_str).hexdigest()
-        logger.info('')
-        logger.info('====> GO-PCA input hash: %s' , input_hash)
-        logger.info('')
+                if still_enriched:
+                    # if GO term is still considered enriched, keep it!
+                    kept_terms.append(most_enriched)
 
-        return input_hash
-    ### end protected functions
+                    # next, exclude selected genes from further analysis:
+                    # 1) update set of used (excluded) genes 2) adjust L
+                    genes_used.update(most_enriched.genes)
+                    new_ranked_genes = []
+                    new_L = L
+                    for i, g in enumerate(ranked_genes):
+                        if g not in genes_used:
+                            new_ranked_genes.append(g)
+                        elif i < L: # gene was already used, adjust L if necessary
+                            new_L -= 1
+                    ranked_genes = new_ranked_genes
+                    L = new_L
+
+            # next!
+            todo = todo[1:]
+
+        enr_logger.setLevel(logging.NOTSET)
+        logger.info('Local filter: Kept %d / %d enriched terms.', \
+                len(kept_terms), len(enriched_terms))
+
+        return kept_terms
+
+    @staticmethod
+    def _generate_signature(config, genes, X, pc, enr):
+        """Algorithm for generating a signature based on an enriched GO term.
+        """
+
+        # select genes above cutoff giving rise to XL-mHG test statistic
+        enr_genes = enr.genes[:enr.mHG_k_n]
+
+        # calculate average expression
+        indices = np.int64([genes.index(g) for g in enr_genes])
+        X_enr = X[indices,:]
+        mean = np.mean(util.get_standardized_matrix(X_enr), axis = 0)
+
+        # calculate seed based on the X genes most strongly correlated with the average
+        corr = np.float64([pearsonr(mean, x)[0] for x in X_enr])
+        a = np.argsort(corr)
+        a = a[::-1]
+        seed = np.mean(util.get_standardized_matrix(X_enr[a[:enr.X],:]), 0)
+
+        # select all other genes with correlation of at least sig_corr_thresh
+        additional_indices = np.int64([i for i in a[enr.X:]
+                if pearsonr(seed, X_enr[i,:])[0] >= config.sig_corr_thresh])
+        sel = np.r_[a[:enr.X], additional_indices]
+        sig_genes = [enr_genes[i] for i in sel]
+        sig_X = X_enr[sel,:]
+
+        return GOPCASignature(sig_genes, sig_X, pc, enr)
+
+    @staticmethod
+    def _generate_pc_signatures(config, genes, E, M, W, pc):
+        """Generate signatures for a specific principal component and ordering.
+
+        The absolute value of ``pc`` determines the principal component (PC).
+        Genes are then ranked by their loadings for this PC. Whether this
+        ranking is in ascending or descending order is determined by the sign
+        of ``pc``: If it has a  positive sign, then the ranking will be in
+        descending order (most positive loading values first). If it has a
+        negative sign, then the ranking will be in ascending order (most
+        negative loading values first).
+        """
+
+        # rank genes by their PC loadings
+        pc_index = abs(pc)-1
+        a = np.argsort(W[:,pc_index])
+        if pc > 0:
+            a = a[::-1]
+        ranked_genes = [genes[i] for i in a]
+
+        # - find enriched GO terms using the XL-mHG test
+        # - get_enriched_terms() also calculates the enrichment score,
+        #   but does not use it for filtering
+        logger.debug('config: %f %d %d' %(config.mHG_X_frac, config.mHG_X_min, config.mHG_L))
+        enriched_terms = M.get_enriched_terms(ranked_genes, config.pval_thresh,
+                config.mHG_X_frac, config.mHG_X_min, config.mHG_L,
+                config.escore_pval_thresh)
+        if not enriched_terms:
+            return []
+
+        # filter enriched GO terms by strength of enrichment
+        # (if threshold is provided)
+        if config.escore_thresh is not None:
+            q_before = len(enriched_terms)
+            enriched_terms = [t for t in enriched_terms
+                    if t.escore >= config.escore_thresh]
+            q = len(enriched_terms)
+            logger.info('Kept %d / %d enriched terms with E-score >= %.1f',
+                    q, q_before, config.escore_thresh)
+
+        #logger.debug('-'*70)
+        #logger.debug('All enriched terms:')
+        #for enr in enriched_terms:
+        #    logger.debug(enr.get_pretty_format())
+        #logger.debug('-'*70)
+
+        # filter enriched GO terms (local filter)
+        if not config.no_local_filter:
+            enriched_terms = GOPCA._local_filter(config, M, enriched_terms, ranked_genes)
+
+        # generate signatures
+        signatures = []
+        q = len(enriched_terms)
+        for j,enr in enumerate(enriched_terms):
+            signatures.append(GOPCA._generate_signature(config, genes, E, pc, enr))
+        logger.info('Generated %d signatures based on the enriched GO terms.',
+                q)
+
+        return signatures
+
+    @staticmethod
+    def _global_filter(config, new_signatures, previous_signatures, go_parser):
+        """Apply GO-PCA's "global" filter.
+        """
+        if len(previous_signatures) == 0:
+            return new_signatures
+
+        kept_signatures = []
+        previous_terms = set([sig.term[0] for sig in previous_signatures])
+        for sig in new_signatures:
+            term_id = sig.term[0]
+            term = go_parser.terms[term_id] # get the GOTerm object
+            novel = True
+            for t in (set([term_id]) | term.ancestors | term.descendants):
+                if t in previous_terms:
+                    
+                    logger.debug('GO term "%s" filtered out due to "%s".',
+                            go_parser.terms[term_id].name,
+                            go_parser.terms[t].name)
+                    novel = False
+                    break
+            if novel:
+                kept_signatures.append(sig)
+        return kept_signatures
+
+    @staticmethod
+    def _get_config_dict(config):
+        return config.get_dict()
+    ### end static functions
 
     ### public functions
     def has_param(self, name):
@@ -267,74 +452,101 @@ class GOPCA(object):
         """
         t0 = time.time()
 
-        # check the user-provided configuration
-        self.__config.check()
+        # check the configuration
+        if not self.__config.check():
+            # problems with the configuration
+            return 1
 
-        # calculate GO-PCA input hash
-        input_hash = self._get_input_hash()
-
-        # make a copy of the input data before changing anything
+        # make a copy of the configuration
         config = deepcopy(self.__config)
 
-        if self._ontology_file is None and (not self._no_global_filter):
+        if config.gene_ontology_file is None and (not config.no_global_filter):
             # no ontology file => disable global filter
-            logger.warning('Disabling global filter, since no ontology file was provided.')
-            self.set_param('no_global_filter',True)
+            logger.warning('Disabling global filter, since no gene ontology ' +
+                    'file was provided.')
+            config.set_param('no_global_filter', True)
 
         # read expression
-        exp = self._read_expression_data()
+        hashval = util.get_file_md5sum(config.expression_file)
+        if config.expression_file_hash is not None and \
+                config.expression_file_hash != hashval:
+            logging.error('MD5 hash of expression file does not match!')
+            return 1
+        else:
+            config.expression_file_hash = hashval
+        logger.info('Expression file hash: %s', config.expression_file_hash)
+        E = self._read_expression(config)
 
         # determine mHG_L, if 0 or None
-        if self._mHG_L is None:
+        if config.mHG_L is None:
             # None = "default" value
-            self.set_param('mHG_L',int(len(exp.genes)/8.0))
-        elif self._mHG_L == 0:
+            config.set_param('mHG_L', int(len(exp.genes)/8.0))
+        elif config.mHG_L == 0:
             # 0 = "disabled"
-            self.set_param('mHG_L',len(exp.genes))
+            config.set_param('mHG_L', len(exp.genes))
 
         # read ontology
-        if self._ontology_file is not None:
-            go_parser = self._read_ontology()
+        if config.gene_ontology_file is not None:
+            hashval = util.get_file_md5sum(config.gene_ontology_file)
+            if config.gene_ontology_file_hash is not None and \
+                    config.gene_ontology_file_hash != hashval:
+                logging.error('MD5 hash of gene ontology file does not match!')
+                return 1
+            else:
+                config.gene_ontology_file_hash = hashval
+            logger.info('Gene ontology file hash: %s',
+                    config.gene_ontology_file_hash)
+            go_parser = self._read_gene_ontology(config)
 
         # read GO annotations
-        go_annotations = self._read_go_annotations()
+        hashval = util.get_file_md5sum(config.go_annotation_file)
+        if config.go_annotation_file_hash is not None and \
+                config.go_annotation_file_hash != hashval:
+            logging.error('MD5 hash of GO annotation file does not match!')
+            return 1
+        else:
+            config.go_annotation_file_hash = hashval
+        logger.info('GO annotation file hash: %s',
+                config.go_annotation_file_hash)
+        go_annotations = self._read_go_annotations(config)
 
-        if self._n_components == 0:
+
+        if config.n_components == 0:
             # estimate the number of non-trivial PCs using a permutation test
-            self._estimate_n_components(exp.E)
-            if self._n_components == 0:
+            self._estimate_n_components(config, E.X)
+            if config.n_components == 0:
                 # no non-trivial PCs => abort
-                self._logger.error('The estimated number of non-trivial ' +
+                logger.error('The estimated number of non-trivial ' +
                         'principal components is zero!')
                 raise ValueError
 
         logger.debug('-'*70)
-        logger.debug('GO-PCA parameters:')
-        for d in self.__config.get_param_strings():
+        logger.debug('GO-PCA will be run with these parameters:')
+        for d in config.get_param_strings():
             logger.debug(d)
         logger.debug('-'*70)
 
         # create GOEnrichment object
-        M_enrich = GOEnrichmentAnalysis(exp.genes,go_annotations)
+        M_enrich = GOEnrichmentAnalysis(E.genes, go_annotations)
 
         # perform PCA
         logger.info('Performing PCA...')
-        M_pca = PCA(n_components = self._n_components)
-        Y = M_pca.fit_transform(exp.E.T)
+        M_pca = PCA(n_components = config.n_components)
+        Y = M_pca.fit_transform(E.X.T)
 
         # output cumulative fraction explained for each PC
         frac = M_pca.explained_variance_ratio_
         cum_frac = np.cumsum(frac)
         logger.info('Cumulative fraction of variance explained by the first %d PCs: %.1f%%', \
-                self._n_components,100*cum_frac[-1])
+                config.n_components, 100 * cum_frac[-1])
 
         # generate signatures
         W = M_pca.components_.T
         final_signatures = []
-        p = exp.p
+        p = E.p
         var_expl = 0.0
         res_var = None
-        for pc in range(self._n_components):
+        for pc in range(config.n_components):
 
             var_expl += frac[pc]
             logger.info('')
@@ -345,19 +557,19 @@ class GOPCA(object):
                     'is %.1f%%.', 100*var_expl)
 
             signatures = []
-            signatures_dsc = self.generate_pc_signatures(exp.genes,exp.E,M_enrich,W,pc+1)
-            signatures_asc = self.generate_pc_signatures(exp.genes,exp.E,M_enrich,W,-pc-1)
+            signatures_dsc = self._generate_pc_signatures(config, E.genes, E.X, M_enrich, W, pc+1)
+            signatures_asc = self._generate_pc_signatures(config, E.genes, E.X, M_enrich, W, -pc-1)
             signatures = signatures_dsc + signatures_asc
 
-            logger.info('# signatures: %d',len(signatures))
+            logger.info('# signatures: %d', len(signatures))
             before = len(signatures)
 
-            if not self._no_global_filter:
-                signatures = self.global_filter(signatures,final_signatures,go_parser)
+            if not config.no_global_filter:
+                signatures = self._global_filter(config, signatures, final_signatures, go_parser)
                 logger.info('Global filter: kept %d / %d signatures.',
                         len(signatures),before)
         
-            self.print_signatures(signatures)
+            self.print_signatures(signatures, debug = True)
             final_signatures.extend(signatures)
             logger.info('Total no. of signatures so far: %d',
                     len(final_signatures))
@@ -369,208 +581,16 @@ class GOPCA(object):
         logger.info('GO-PCA generated %d signatures:', len(final_signatures))
         self.print_signatures(final_signatures)
 
-        S = np.float64([util.get_signature_expression(exp.genes, exp.E, sig.genes)
+        S = np.float64([util.get_signature_expression(E.genes, E.X, sig.genes)
                 for sig in final_signatures])
 
         # include the input data in the output data
-        output = GOPCAOutput(input_hash, self.__config, exp.genes, exp.samples, W, Y,
+        output = GOPCAOutput(self.__config, config, E.genes, E.samples, W, Y,
                 final_signatures, S)
 
         t1 = time.time()
-        logger.info('Total GO-PCA runtime: %.2fs', t1-t0)
+        logger.info('Total GO-PCA runtime: %.2f s.', t1-t0)
 
         return output
 
-    def local_filter(self, M_enrich, enriched_terms, ranked_genes):
-        """GO-PCA's "local" filter.
-        
-        Returns enrichments that pass the filter.
-        """
 
-        if len(enriched_terms) <= 1:
-            return enriched_terms
-
-        # sort enriched terms by enrichment
-        q = len(enriched_terms)
-        a = sorted(range(q),key=lambda i:-enriched_terms[i].escore)
-        todo = [enriched_terms[i] for i in a]
-
-        # keep the most enriched term
-        most_enriched = todo[0]
-        kept_terms = [most_enriched]
-        todo = todo[1:]
-
-        # exclude genes annotated with the most enriched term
-        genes_used = set(most_enriched.genes)
-        new_ranked_genes = []
-        L = self._mHG_L
-        new_L = L
-        for i,g in enumerate(ranked_genes):
-            if g not in genes_used:
-                new_ranked_genes.append(g)
-            elif i < L: # gene was already used, adjust L if necessary
-                new_L -= 1
-        ranked_genes = new_ranked_genes
-        L = new_L
-
-        # start filtering
-        enr_logger = logging.getLogger(go_enrichment.__name__)
-        enr_logger.setLevel(logging.ERROR)
-        K_max = max([enr.K for enr in todo])
-        p = len(ranked_genes)
-        mat = np.zeros((K_max+1,p+1),dtype=np.longdouble)
-        while todo:
-            most_enriched = todo[0]
-            term_id = most_enriched.term[0]
-
-            # test if GO term is still enriched after removing all previously
-            # used genes
-            enr = M_enrich.get_enriched_terms(ranked_genes, self._pval_thresh,
-                    self._mHG_X_frac, self._mHG_X_min, L,
-                    escore_pval_thresh = self._escore_pval_thresh,
-                    selected_term_ids = [term_id], mat=mat)
-            assert len(enr) in [0,1]
-            # enr will be an empty list if GO term does not meet the p-value
-            # threshold
-            if enr:
-                enr = enr[0]
-                #print enr,'%d @ %d, s=%.1e' %(enr.mHG_k_n,enr.mHG_n,enr.mHG_s)
-
-                # test fold enrichment threshold (if specified)
-                still_enriched = False
-                if self._escore_thresh is None:
-                    still_enriched = True
-                elif enr.escore >= self._escore_thresh:
-                    still_enriched = True
-
-                if still_enriched:
-                    # if GO term is still considered enriched, keep it!
-                    kept_terms.append(most_enriched)
-
-                    # next, exclude selected genes from further analysis:
-                    # 1) update set of used (excluded) genes 2) adjust L
-                    genes_used.update(most_enriched.genes)
-                    new_ranked_genes = []
-                    new_L = L
-                    for i,g in enumerate(ranked_genes):
-                        if g not in genes_used:
-                            new_ranked_genes.append(g)
-                        elif i < L: # gene was already used, adjust L if necessary
-                            new_L -= 1
-                    ranked_genes = new_ranked_genes
-                    L = new_L
-
-            # next!
-            todo = todo[1:]
-
-        enr_logger.setLevel(logging.NOTSET)
-        logger.info('Local filter: Kept %d / %d enriched terms.', \
-                len(kept_terms),len(enriched_terms))
-        return kept_terms
-
-    def global_filter(self, new_signatures, previous_signatures, go_parser):
-        """GO-PCA's "global" filter.
-        """
-        if len(previous_signatures) == 0:
-            return new_signatures
-        kept_signatures = []
-        previous_terms = set([sig.term[0] for sig in previous_signatures])
-        for sig in new_signatures:
-            term_id = sig.term[0]
-            term = go_parser.terms[term_id] # get the GOTerm object
-            novel = True
-            for t in (set([term_id]) | term.ancestors | term.descendants):
-                if t in previous_terms:
-                    
-                    logger.debug('GO term "%s" filtered out due to "%s".',
-                            go_parser.terms[term_id].name,
-                            go_parser.terms[t].name)
-                    novel = False
-                    break
-            if novel:
-                kept_signatures.append(sig)
-        return kept_signatures
-
-    def generate_pc_signatures(self, genes, E, M, W, pc):
-        """Generate signatures for a specific principal component and ordering.
-
-        The absolute value of ``pc`` determines the principal component (PC).
-        Genes are then ranked by their loadings for this PC. Whether this
-        ranking is in ascending or descending order is determined by the sign
-        of ``pc``: If it has a  positive sign, then the ranking will be in
-        descending order (most positive loading values first). If it has a
-        negative sign, then the ranking will be in ascending order (most
-        negative loading values first).
-        """
-
-        # rank genes by their PC loadings
-        pc_index = abs(pc)-1
-        a = np.argsort(W[:,pc_index])
-        if pc > 0:
-            a = a[::-1]
-        ranked_genes = [genes[i] for i in a]
-
-        # - find enriched GO terms using the XL-mHG test
-        # - get_enriched_terms() also calculates the enrichment score,
-        #   but does not use it for filtering
-        enriched_terms = M.get_enriched_terms(ranked_genes, self._pval_thresh,
-                self._mHG_X_frac, self._mHG_X_min, self._mHG_L,
-                self._escore_pval_thresh)
-        if not enriched_terms:
-            return []
-
-        # filter enriched GO terms by strength of enrichment
-        # (if threshold is provided)
-        if self._escore_thresh is not None:
-            q_before = len(enriched_terms)
-            enriched_terms = [t for t in enriched_terms
-                    if t.escore >= self._escore_thresh]
-            q = len(enriched_terms)
-            logger.info('Kept %d / %d enriched terms with E-score >= %.1f',
-                    q, q_before, self._escore_thresh)
-
-        #logger.debug('-'*70)
-        #logger.debug('All enriched terms:')
-        #for enr in enriched_terms:
-        #    logger.debug(enr.get_pretty_format())
-        #logger.debug('-'*70)
-
-        # filter enriched GO terms (local filter)
-        if not self._no_local_filter:
-            enriched_terms = self.local_filter(M, enriched_terms, ranked_genes)
-
-        # generate signatures
-        signatures = []
-        q = len(enriched_terms)
-        for j,enr in enumerate(enriched_terms):
-            signatures.append(self.generate_signature(genes,E,pc,enr))
-        logger.info('Generated %d signatures based on the enriched GO terms.',
-                q)
-
-        return signatures
-
-    def generate_signature(self, genes, E, pc, enr):
-        """Algorithm for generating a signature based on an enriched GO term.
-        """
-
-        # select genes above cutoff giving rise to XL-mHG test statistic
-        enr_genes = enr.genes[:enr.mHG_k_n]
-
-        # calculate average expression
-        indices = np.int64([genes.index(g) for g in enr_genes])
-        E_enr = E[indices,:]
-        mean = np.mean(util.get_standardized_matrix(E_enr),axis=0)
-
-        # calculate seed based on the X genes most strongly correlated with the average
-        corr = np.float64([pearsonr(mean,e)[0] for e in E_enr])
-        a = np.argsort(corr)
-        a = a[::-1]
-        seed = np.mean(util.get_standardized_matrix(E_enr[a[:enr.X],:]),0)
-
-        # select all other genes with correlation of at least sig_corr_thresh
-        additional_indices = np.int64([i for i in a[enr.X:] if pearsonr(seed,E_enr[i,:])[0] >= self._sig_corr_thresh])
-        sel = np.r_[a[:enr.X],additional_indices]
-        sig_genes = [enr_genes[i] for i in sel]
-        sig_E = E_enr[sel,:]
-
-        return GOPCASignature(sig_genes, sig_E, pc, enr)

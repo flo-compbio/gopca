@@ -97,7 +97,7 @@ def get_file_md5sum(path, mode = 'r'):
         MD5 hash of file content, represented as a 32-digit hex string.
     """
     digest = None
-    with misc.open_plain_or_gzip(path, mode=mode) as fh:
+    with open(path, mode = mode) as fh:
         digest = hashlib.md5(fh.read()).hexdigest()
     return digest
     
