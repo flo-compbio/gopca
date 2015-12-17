@@ -273,7 +273,7 @@ class GOEnrichmentAnalysis(object):
         q = len(enriched_terms)
         ignored = m - tested
         if ignored > 0:
-            logger.info('%d / %d GO terms (%.1f%%) had less than %d genes' +
+            logger.info('%d / %d GO terms (%.1f%%) had less than %d genes ' +
                     'annotated with them and were ignored.',
                     ignored,m,100*(ignored/float(m)),X_min)
 
