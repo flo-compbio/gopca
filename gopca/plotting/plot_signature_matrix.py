@@ -41,31 +41,23 @@ from genometools import misc
 
 import gopca
 from gopca import util
-from gopca import params
-from gopca.plotting import params as plot_params
-
-logger = logging.getLogger(__name__)
+from gopca import cli
+from gopca.plotting import cli as plot_cli
 
 def get_argument_parser():
 
-    prog = 'plot_gopca_signature_matrix.py'
+    prog = 'gopca_plot_signature_matrix.py'
     description = 'Plot the GO-PCA signature matrix.'
-    parser = params.get_argument_parser(prog, description)
+    parser = cli.get_argument_parser(prog, description)
 
-    g = parser.add_argument_group('Required parameters')
+    cli.add_io_args(parser)
 
-    g.add_argument('-g', '--gopca-file', required=True,
-            metavar = params.file_mv,
-            help = 'The GO-PCA output file.')
+    cli.add_reporting_args(parser)
 
-    g.add_argument('-o', '--output-file', required=True,
-            metavar = params.file_mv,
-            help = 'The output file.')
-
-    plot_params.add_fig_params(parser)
-    plot_params.add_heatmap_params(parser)
-    params.add_signature_params(parser)
-    params.add_sample_params(parser)
+    plot_cli.add_fig_args(parser)
+    plot_cli.add_heatmap_args(parser)
+    cli.add_signature_args(parser)
+    cli.add_sample_args(parser)
 
     return parser
 
@@ -110,8 +102,14 @@ def main(args=None):
     sig_reverse_order = args.sig_reverse_order
     sig_max_len = args.sig_max_len
 
+    # reporting parameters
+    log_file = args.log_file
+    quiet = args.quiet
+    verbose = args.verbose
+
     # configure root logger
-    logger = misc.configure_logger('')
+    logger = util.get_logger(log_file = log_file, quiet = quiet,
+            verbose = verbose)
 
     # read GO-PCA output
     output = None

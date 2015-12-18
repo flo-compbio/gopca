@@ -38,41 +38,33 @@ from genometools import misc
 
 import gopca
 from gopca import util
-from gopca import params
-from gopca.plotting import params as plot_params
+from gopca import cli
+from gopca.plotting import cli as plot_cli
 
 def get_argument_parser():
 
     prog = 'plot_gopca_signature.py'
     description = 'Plot a GO-PCA signature.'
-    parser = params.get_argument_parser(prog, description)
+    parser = cli.get_argument_parser(prog, description)
 
-    g = parser.add_argument_group('Required parameters')
-
-    g.add_argument('-g', '--gopca-file', required = True,
-            metavar = params.file_mv,
-            help = 'The GO-PCA output file.')
+    g = cli.add_io_args(parser)
 
     g.add_argument('-n', '--sig-name', required = True,
-            metavar = params.name_mv,
+            metavar = cli.name_mv,
             help = 'The name of the signature.')
 
-    g.add_argument('-o', '--output-file', required = True,
-            metavar = params.file_mv,
-            help = 'The output file.')
-
-    g = parser.add_argument_group('Layout')
+    g = parser.add_argument_group('Layout options')
 
     g.add_argument('-p', '--fig-title-pos', type = float, default = 0.95,
-            metavar = params.float_mv,
+            metavar = cli.float_mv,
             help = 'The position of the figure title.')
 
     g.add_argument('--fig-subgrid-ratio', type = int, default = 10,
-            metavar = params.int_mv,
+            metavar = cli.int_mv,
             help = 'The size ratio between signature and heat map panels.')
 
     g.add_argument('-gs', '--gene-label-size', type = float, default = None,
-            metavar = params.float_mv,
+            metavar = cli.float_mv,
             help = 'The size of the gene labels (in pt).')
 
     g.add_argument('-gr', '--gene-reverse-order', action = 'store_true',
@@ -81,9 +73,9 @@ def get_argument_parser():
     g.add_argument('--hide-id', action = 'store_true',
             help = 'Do not show the ID of the GO term.')
 
-    plot_params.add_fig_params(parser)
-    plot_params.add_heatmap_params(parser)
-    params.add_sample_params(parser)
+    plot_cli.add_fig_args(parser)
+    plot_cli.add_heatmap_args(parser)
+    cli.add_sample_args(parser)
 
     return parser
 
@@ -198,20 +190,20 @@ def main(args=None):
 
     # get signature gene expression matrix and cluster rows
     sig_genes = sig.genes
-    E = sig.E
-    logger.debug('Expression matrix shape', str(E.shape))
-    order_rows = util.cluster_rows(E, metric='correlation', method='average')
+    X = sig.X
+    logger.debug('Expression matrix shape', str(X.shape))
+    order_rows = util.cluster_rows(X, metric='correlation', method='average')
     if gene_reverse_order:
         order_rows = order_rows[::-1]
     sig_genes = [sig_genes[i] for i in order_rows]
-    E = E[order_rows,:]
+    X = X[order_rows,:]
 
     # standardize gene expression matrix
-    E_std = util.get_standardized_matrix(E)
+    X_std = util.get_standardized_matrix(X)
     # calculate signature label and expression
     include_id = not(hide_id)
     sig_label = sig.get_label(include_id = include_id)
-    sig_expr = np.mean(E_std, axis=0)
+    sig_expr = np.mean(X_std, axis=0)
 
     # get sample order from signature matrix
     #if sort_by_signature:
@@ -223,7 +215,7 @@ def main(args=None):
         S = output.S
         order_cols = util.cluster_samples(S, metric = sample_cluster_metric)
         sig_expr = sig_expr[order_cols]
-        E_std = E_std[:,order_cols]
+        X_std = X_std[:,order_cols]
 
     # plotting
     logger.info('Plotting...')
@@ -251,7 +243,7 @@ def main(args=None):
     ax = plt.subplot2grid((subgrid_ratio, 1), (1, 0),
             rowspan = subgrid_ratio - 1)
     plt.sca(ax)
-    plt.imshow(E_std, interpolation='none', aspect='auto',
+    plt.imshow(X_std, interpolation='none', aspect='auto',
             vmin = vmin, vmax = vmax, cmap = cmap)
     plt.yticks(np.arange(len(sig_genes)), sig_genes , size = gene_label_size)
     plt.xlabel('Samples')

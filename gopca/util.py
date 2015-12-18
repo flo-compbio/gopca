@@ -22,6 +22,7 @@ import sys
 import argparse
 import csv
 import cPickle as pickle
+import hashlib
 import logging
 from pkg_resources import parse_version
 
@@ -34,6 +35,21 @@ import gopca
 from genometools import misc
 
 logger = logging.getLogger(__name__)
+
+def get_logger(name = '', log_file = None, quiet = False,
+    verbose = False):
+
+    # configure root logger
+    log_level = logging.INFO
+    if quiet:
+        log_level = logging.WARNING
+    elif verbose:
+        log_level = logging.DEBUG
+
+    new_logger = misc.configure_logger(name, log_file = log_file,
+            log_level = log_level)
+
+    return new_logger
 
 def get_pc_explained_variance_threshold(E,z,t,seed):
 
@@ -66,7 +82,25 @@ def get_pc_explained_variance_threshold(E,z,t,seed):
     thresh = mean_null + z * std_null
 
     return thresh
-        
+
+def get_file_md5sum(path, mode = 'r'):
+    """Get MD5 hash of file content.
+
+    Parameters
+    ----------
+    path: str
+        Path of file.
+    
+    Returns
+    -------
+    str
+        MD5 hash of file content, represented as a 32-digit hex string.
+    """
+    digest = None
+    with open(path, mode = mode) as fh:
+        digest = hashlib.md5(fh.read()).hexdigest()
+    return digest
+    
 def simpleaxis(ax):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -203,7 +237,7 @@ def variance_filter(genes,E,top):
 
 def read_gopca_output(fn):
     output = None
-    with open(fn,'rb') as fh:
+    with open(fn, 'rb') as fh:
         output = pickle.load(fh)
     return output
 
@@ -228,17 +262,18 @@ def cluster_rows(S, metric='correlation', method='average', reverse=False):
         order_rows = order_rows[::-1]
     return order_rows
 
-def cluster_signatures(S, metric='correlation', method='average',
-        reverse=False):
+def cluster_signatures(S, metric = 'correlation', method = 'average',
+        reverse = False):
     # hierarchical clustering of signatures
     order_rows = cluster_rows(S, metric, method, reverse)
     return order_rows
 
-def cluster_samples(S, metric='euclidean', method='average', reverse=False):
+def cluster_samples(S, metric = 'euclidean', method = 'average',
+        reverse = False):
     order_cols = cluster_rows(S.T, metric, method, reverse)
     return order_cols
 
-def get_qvalues(pvals,pi_zero=1.0):
+def get_qvalues(pvals, pi_zero = 1.0):
     # implements storey-tibshirani procedure for calculating q-values
     n = pvals.size
     qvals = np.empty(n,dtype=np.float64)

@@ -17,13 +17,16 @@
 """Module containing the `GOPCAOutput` class.
 """
 
+# TO-DO: implement output hash
+
 import logging
+import hashlib
 from copy import deepcopy
 import cPickle as pickle
 
 import numpy as np
 
-from gopca import GOPCAInput, GOPCASignature
+from gopca import GOPCAConfig, GOPCASignature
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +35,10 @@ class GOPCAOutput(object):
 
     Parameters
     ----------
-    input_: `go_pca.GOPCAInput`
-        The GO-PCA input data.
+    user_config: `gopca.GOPCAConfig`
+        The configuration data provided by the user.
+    config: `gopca.GOPCAConfig`
+        The full GO-PCA configuration data.
     genes: tuple or list
         The list of genes (gene symbols) in the analysis.
     samples: tuple or list
@@ -48,140 +53,90 @@ class GOPCAOutput(object):
         The GO-PCA signature matrix; shape = (len(signatures) x len(samples)).
     """
 
-    def __init__(self,input_,genes,samples,W,Y,signatures,S):
+    def __init__(self, user_config, config,
+                genes, samples,
+                W, Y,
+                signatures, S):
 
         # W = PCA loading matrix
         # Y = PCA score matrix
         # S = GO-PCA signature matrix
 
-        # get logger
-        self._logger = logging.getLogger(__name__)
-
-        # make sure input is valid
-        if not input_.valid:
-            input_.validate()
-
-        if input_.hash is None:
-            input_.calculate_hash()
-
         # checks
-        assert isinstance(input_,GOPCAInput)
-        assert isinstance(genes,list) or isinstance(genes,tuple)
-        assert isinstance(samples,list) or isinstance(samples,tuple)
-        assert isinstance(W,np.ndarray)
-        assert isinstance(Y,np.ndarray)
-        assert isinstance(signatures,list) or isinstance(signatures,tuple)
+        assert isinstance(user_config, GOPCAConfig)
+        assert isinstance(config, GOPCAConfig)
+        assert isinstance(genes, (list,tuple))
+        assert isinstance(samples, (list,tuple))
+        assert isinstance(W, np.ndarray)
+        assert isinstance(Y, np.ndarray)
+        assert isinstance(signatures, (list,tuple))
         for s in signatures:
-            assert isinstance(s,GOPCASignature)
-        assert isinstance(S,np.ndarray)
+            assert isinstance(s, GOPCASignature)
+        assert isinstance(S, np.ndarray)
 
         assert W.shape[0] == len(genes)
         assert Y.shape[0] == len(samples)
         assert W.shape[1] == Y.shape[1]
         assert S.shape[0] == len(signatures)
 
-        # the following does not have to hold true
-        #assert W.shape[1] == input_.n_components
-        #assert Y.shape[1] == input_.n_components
-        #assert S.shape[1] == len(samples)
-
         # initialization
-        self.input = deepcopy(input_)
+        self.user_config = deepcopy(user_config)
+        self.config = deepcopy(config)
+
+        self.signatures = tuple(signatures)
+        self.S = S.copy()
+        self.S.flags.writeable = False
+
         self.genes = tuple(genes)
         self.samples = tuple(samples)
         self.W = W.copy()
+        self.W.flags.writeable = False
         self.Y = Y.copy()
-        self.signatures = tuple(signatures)
-        self.S = S.copy()
+        self.Y.flags.writeable = False
 
     ### magic functions
     def __repr__(self):
-        param_str = '%d genes; %d samples; %d PCs; %d signatures' \
-                %(self.p, self.n, self.D, self.q)
-        return '<GOPCAOutput object (%s); hash = %s>' \
-                %(param_str, self.__get_hash())
+        hash_str = 'signatures hash=%d; samples hash=%d; ' \
+                %(hash(self.signatures), hash(self.samples)) + \
+                \
+                'S hash=%d' %(hash(self.S.data)) + \
+                \
+                'user_config hash=%d; config hash=%d; ' \
+                %(hash(self.user_config), hash(self.config)) + \
+                \
+                'genes hash=%d; samples hash=%d; ' \
+                %(hash(self.genes), hash(self.samples)) + \
+                \
+                'W hash=%d; Y hash=%d' \
+                %(hash(self.W.data), hash(self.Y.data))
+
+        return '<GOPCAOutput: %d signatures (%s)>' %(self.q, hash_str)
 
     def __str__(self):
-        return '<GOPCAOutput object (%d signatures, %d samples)>' \
-                %(self.q, self.n)
+        param_str = 'expression matrix: %d genes / %d samples / %d PCs tested' \
+                %(self.p, self.n, self.D)
+
+        return '<GOPCAOutput with %d signatures (%s) - output hash: %s>' \
+                %(self.q, param_str, self.hash)
 
     def __eq__(self,other):
         if type(self) is not type(other):
             return False
-        elif self.__get_hash() == other.__get_hash():
+        elif repr(self) == repr(other):
             return True
         else:
             return False
 
     def __hash__(self):
-        return hash(self.__get_hash())
+        return hash(repr(self))
 
-    def __getstate__(self):
-        """Called to obtain the data to be pickled.
-
-        We need to remove the logger object before pickling, since pickling
-        this object would result in an error.
-        """
-        d = self.__dict__.copy()
-        del d['_logger']
-        return d
-
-    def __setstate__(self,state):
-        """Called to unpickle the object.
-
-        We restore the logger object that was deleted before pickling.
-        """
-        state['_logger'] = logging.getLogger(__name__)
-        self.__dict__.update(state)
+    def __setstate__(self, d):
+        self.__dict__ = d
+        self.W.flags.writeable = False
+        self.Y.flags.writeable = False
+        self.S.flags.writeable = False
     ### end magic functions
 
-    ### private members
-    def __get_hash(self):
-        """Calculates a MD5 hash based on GO-PCA input and output data.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        str
-            MD5 hash as a hex string.
-        """
-        hashes = [self.input.hash, hash(self.genes), hash(self.samples)]
-        hashes.extend([self._hash_ndarray(a) for a in
-                [self.W, self.Y, self.S]])
-        hashes.extend([hash(sig) for sig in self.signatures])
-
-        hash_str = ','.join([str(h) for h in hashes])
-        h = haslib.md5(hash_str).hexdigest()
-        return h
-    ### end private members
-  
-    ### protected members
-    def _hash_ndarray(self,a):
-        """Calculate a hash for a NumPy array."""
-        before = a.flags.writable
-        a.flags.writable = False
-        h = hash(a.data)
-        a.flags.writable = before
-        return a
-
-    # logging convenience functions
-    def _debug(self,s,*args):
-        self._logger.debug(s,*args)
-
-    def _info(self,s,*args):
-        self._logger.info(s,*args)
-
-    def _warning(self,s,*args):
-        self._logger.warning(s,*args)
-
-    def _error(self,s,*args):
-        self._logger.error(s,*args)
-
-
-    ### public members
     @property
     def p(self):
         """The number of genes in the analysis."""
@@ -202,13 +157,38 @@ class GOPCAOutput(object):
         """The number of signatures generated."""
         return len(self.signatures)
 
-    def get_hash(self):
-        """ Calculates a MD5 hash based on GO-PCA input and output data.
-        
-        See documentation for `__get_hash`.
-        """
-        return self.__get_hash()
+    def get_param(self, name):
+        return getattr(self.input, name)
 
+    @property
+    def hash(self):
+        """Calculates a MD5 hash value for the GO-PCA output.
+
+        This explicitly ignores the configuration data, since users might only
+        be interested in checking whether the output data is consistent.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            MD5 hash as a hex string.
+        """
+        data = []
+        data.append(hash(self.signatures))
+        data.append(hash(self.samples))
+        data.append(hash(self.S.data))
+        data.append(hash(self.genes))
+        data.append(hash(self.W.data))
+        data.append(hash(self.Y.data))
+
+        hash_str = ','.join(str(d) for d in data)
+        h = hashlib.md5(hash_str).hexdigest()
+
+        return h
+  
     def save(self,path):
         """Save the current object to a pickle file.
 
@@ -221,7 +201,7 @@ class GOPCAOutput(object):
         -------
         None
         """
-        self._info('Saving GO-PCA output to file "%s"...', path)
+        logger.info('Saving GO-PCA output to file "%s"...', path)
         with open(path,'wb') as ofh:
             pickle.dump(self,ofh,pickle.HIGHEST_PROTOCOL)
 
@@ -239,7 +219,7 @@ class GOPCAOutput(object):
         GOPCAOutput
             The GOPCAOutput object.
         """
-        self._info('Reading GO-PCA output from file "%s"...', path)
+        logger.info('Reading GO-PCA output from file "%s"...', path)
         output = None
         with open(path,'rb') as fh:
             output = pickle.load(fh)

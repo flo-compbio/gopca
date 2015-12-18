@@ -32,7 +32,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='gopca',
 
-    version='1.1rc10',
+    version='1.1rc11',
 
     description=description,
     long_description=long_description,
@@ -93,10 +93,12 @@ setup(
             'gopca_extract_signatures.py = gopca.scripts.extract_signatures:main',
             'gopca_extract_signatures_excel.py = gopca.scripts.extract_signatures_excel:main',
             'gopca_extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
+            'gopca_convert_to_matlab.py = gopca.scripts.convert_to_matlab:main',
 
             # plotting scripts
             'gopca_plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
             'gopca_plot_signature.py = gopca.plotting.plot_signature:main',
+            'gopca_plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
         ],
     },
 )

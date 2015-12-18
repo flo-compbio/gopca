@@ -29,27 +29,18 @@ from scipy.cluster.hierarchy import linkage, dendrogram
 from genometools import misc
 from genometools.expression import ExpMatrix
 from gopca import util
-from gopca import params
+from gopca import cli
 
 def get_argument_parser():
 
     prog = 'gopca_extract_signature_matrix.py'
     description='Extract the GO-PCA signatures matrix as a tab-delimited ' + \
         'text file.'
-    parser = params.get_argument_parser(prog, description)
+    parser = cli.get_argument_parser(prog, description)
 
-    g = parser.add_argument_group('Input and output files (REQUIRED)')
-
-    g.add_argument('-g', '--gopca-file', required = True,
-            metavar = params.file_mv,
-            help = 'The GO-PCA output file.')
-
-    g.add_argument('-o', '--output-file', required=True,
-            metavar = params.file_mv,
-            help = 'The output file.')
-
-    params.add_signature_params(parser)
-    params.add_sample_params(parser)
+    cli.add_io_args(parser)
+    cli.add_signature_args(parser)
+    cli.add_sample_args(parser)
 
     return parser
 

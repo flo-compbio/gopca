@@ -97,7 +97,8 @@ import networkx as nx
 
 from genometools import misc
 from goparser import GOParser
-#from gopca import common
+from gopca import util
+from gopca import cli
 
 def get_argument_parser():
     """Function to obtain the argument parser.
@@ -111,58 +112,63 @@ def get_argument_parser():
     This function is used by the `sphinx-argparse` extension for sphinx.
     """
     
+    prog = 'gopca_extract_go_annotations.py'
     description = """Script for determining the set of genes annotated with \
             each GO term."""
 
-    parser = argparse.ArgumentParser(description = description)
+    parser = cli.get_argument_parser(prog, description)
 
     # input files
-    parser.add_argument('-g','--gene-file',required=True,
+    g = parser.add_argument_group('Input and output files')
+
+    g.add_argument('-g', '--gene-file', required = True,
+            metavar = cli.file_mv,
             help="""Path of tab-delimited file containing all "valid" gene
                     symbols.""")
 
-    parser.add_argument('-t','--ontology-file',required=True,
+    g.add_argument('-t', '--ontology-file', required = True,
+            metavar = cli.file_mv,
             help='Path of ontology file (in OBO format).')
 
-    parser.add_argument('-a','--gene-association-file',required=True,
+    g.add_argument('-a', '--gene-association-file', required = True,
+            metavar = cli.file_mv,
             help='Path of gene association file (in GAF format).')
 
     # output file
-    parser.add_argument('-o','--output-file',required=True,
+    g.add_argument('-o', '--output-file', required = True,
+            metavar = cli.file_mv,
             help='Path of output file.')
 
+    g = parser.add_argument_group('Other options')
+
     # evidence
-    parser.add_argument('-e','--select-evidence',nargs='+',default=[],
+    g.add_argument('-e', '--select-evidence', nargs = '*', default = None,
+            metavar = '<evidence code, ...>',
             help="""List of three-letter evidence codes to include.
                     If not specified, include all evidence types.""")
 
     # which GO terms to include in final output?
-    parser.add_argument('--min-genes-per-term',type=int,default=0,
+    g.add_argument('--min-genes-per-term', type = int, default=0,
+            metavar = cli.int_mv,
             help="""Exclude GO terms that have fewer than the specified number
                     of genes annotated with them. Disabled (0) by default.""")
 
-    parser.add_argument('--max-genes-per-term',type=int,default=0,
+    g.add_argument('--max-genes-per-term', type = int, default=0,
+            metavar = cli.int_mv,
             help="""Exclude GO terms that have more than the specified number
                     of genes annotated with them. Disabled (0) by default.""")
 
-    # logging options
-    parser.add_argument('-l','--log-file',default=None,
-            help='Path of log file.')
-
-    parser.add_argument('-q','--quiet',action='store_true',
-            help='Suppress all output except warnings and errors.')
-
-    parser.add_argument('-v','--verbose',action='store_true',
-            help='Enable verbose output. Ignored if ``--quiet`` is specified.')
-
     # legacy options
-    parser.add_argument('--part-of-cc-only',action='store_true',
+    g.add_argument('--part-of-cc-only', action = 'store_true',
             help="""If enabled, ignore ``part_of`` relations outside the
                     ``cellular_component`` (CC) domain.""")
 
+    # reporting options
+    cli.add_reporting_args(parser)
+
     return parser
 
-def main(args=None):
+def main(args = None):
     """Extract GO annotations and store in tab-delimited text file.
 
     Parameters
@@ -200,14 +206,8 @@ def main(args=None):
     verbose = args.verbose
 
     # configure root logger
-    log_level = logging.INFO
-    if quiet:
-        log_level = logging.WARNING
-    elif args.verbose:
-        log_level = logging.DEBUG
-
-    logger = misc.configure_logger('', log_file = log_file,
-            log_level = log_level)
+    logger = util.get_logger(log_file = log_file, quiet = quiet,
+            verbose = verbose)
 
     # checks
     assert os.path.isfile(gene_file)
@@ -217,14 +217,9 @@ def main(args=None):
     # read genes and sort them
     genes = sorted(misc.read_single(args.gene_file))
     n = len(genes)
-    logger.info('Read %d genes.', n); sys.stdout.flush()
+    logger.info('Read %d genes.', n)
 
     # Read GO term definitions and parse UniProtKB GO annotations
-    if len(select_evidence) == 1 and (not select_evidence[0].strip(' ')):
-        select_evidence = []
-
-    misc.configure_logger('goparser', log_file = log_file,
-            log_level = log_level)
     GO = GOParser()
     GO.parse_ontology(ontology_file,part_of_cc_only=False)
     GO.parse_annotations(gene_association_file,gene_file,select_evidence=select_evidence)

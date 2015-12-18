@@ -1,8 +1,3 @@
-.. GO-PCA documentation master file, created by
-   sphinx-quickstart on Fri Sep 11 11:35:24 2015.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 GO-PCA |version|
 ================
 
@@ -31,9 +26,11 @@ Briefly, GO-PCA combines `principal component analysis (PCA)`__  with
 i.e., small sets of genes that are both strongly correlated and closely
 functionally related. It then plots the expression profiles of all
 signatures in a heat map. This visualization, referred to as the **signature
-matrix**, is designed to serve as a systematic and easily interpretable
-representation of biologically relevant expression patterns. The
-`GO-PCA paper`__ contains a detailed description of the method.
+matrix**, aims to provide a systematic and easily interpretable view
+of biologically relevant expression patterns in the data. These and other
+GO-PCA outputs can serve as a powerful starting point for data analysis and
+hypothesis generation. The `GO-PCA paper`__ contains a detailed description of
+the method.
 
 __ pca_
 __ go_enrich_
