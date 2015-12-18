@@ -53,10 +53,11 @@ class GOTermEnrichment(object):
     #Note: Change this so that it inherits from class mHGResult
     #     (only additional attributes: term, genes).
 
-    def __init__(self,term,pval,genes,ranks,N,X,L,mHG_n=None,mHG_k_n=None,mHG_s=None):
+    def __init__(self, term, pval, genes, ranks, N, X, L, mHG_n = None,
+            mHG_k_n = None, mHG_s = None):
 
         ranks = np.int32(ranks)
-        ranks.flags.writeable=False # this makes ranks.data hashable
+        ranks.flags.writeable = False # this makes ranks.data hashable
 
         self.term = term # 4-tuple (id,source,collection,name)
         self.genes = tuple(genes) # genes corresponding to the "1's"
@@ -76,12 +77,16 @@ class GOTermEnrichment(object):
         self.escore = None
 
     def __repr__(self):
-        return '<GOTermEnrichment: %s (pval=%.1e; X=%d; L=%d; N=%d); genes hash=%d; positions hash=%d)>' \
-                %('/'.join(self.term),self.pval,self.X,self.L,self.N,hash(self.genes),hash(self.ranks.data))
+        return '<GOTermEnrichment: %s (pval=%.1e; X=%d; L=%d; N=%d); ' \
+                %('/'.join(self.term), self.pval, self.X, self.L, self.N) + \
+                'genes hash=%d; positions hash=%d)>' \
+                %(hash(self.genes), hash(self.ranks.data))
 
     def __str__(self):
-        return '<GOTermEnrichment of term "%s" (%s; %d genes) with p-value = %.1e (X=%d, L=%d, N=%d)>' \
-                %(str(self.term[3]),self.term[0],len(self.genes),self.pval,self.X,self.L,self.N)
+        return '<GOTermEnrichment of term "%s" (%s; %d genes) ' \
+                %(str(self.term[3]), self.term[0], len(self.genes)) + \
+                'with p-value = %.1e (X=%d, L=%d, N=%d)>' \
+                %(self.pval, self.X, self.L, self.N)
 
     def __hash__(self):
         return hash(repr(self))
@@ -93,6 +98,10 @@ class GOTermEnrichment(object):
             return True
         else:
             return False
+
+    def __setstate__(self, d):
+        self.__dict__ = d
+        self.ranks.flags.writeable = False
 
     @property
     def k(self):
@@ -108,7 +117,7 @@ class GOTermEnrichment(object):
 
     @property
     def fold_enrichment(self):
-        return self.k / (self.K * (self.n/float(self.N)))
+        return self.k / (self.K * (self.n / float(self.N)))
 
     def calculate_escore(self,pval_thresh=1.0):
         """ Calculate XL-mHG enrichment score.  """

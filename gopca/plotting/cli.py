@@ -105,7 +105,7 @@ def add_heatmap_args(parser):
             help = 'The colorbar padding.')
 
     g.add_argument('-ct', '--cbar-ticks', nargs='*', default = None,
-            metavar = '<[float, ...]>',
+            metavar = '<> or <float, ...>',
             help = 'The colorbar ticks.')
 
     return g

@@ -20,19 +20,20 @@ import sys
 import argparse
 import cPickle as pickle
 
+import numpy as np
 from scipy.io import savemat
 
 from gopca import util
-from gopca import params
+from gopca import cli
 
 def get_argument_parser():
 
     prog = 'convert_to_matlab_format.py'
     description = 'Converts GO-PCA output to MATLAB format.'
-    parser = params.get_argument_parser(prog, description)
+    parser = cli.get_argument_parser(prog, description)
 
-    params.add_io_params(parser)
-    params.add_reporting_params(parser)
+    cli.add_io_args(parser)
+    #params.add_reporting_params(parser)
 
     parser.add_argument('--append-mat', action = 'store_true',
             help = 'Automatically append .mat file extension.')
@@ -53,42 +54,64 @@ def main(args=None):
     append_mat = args.append_mat
 
     # reporting options
-    log_file = args.log_file
-    quiet = args.quiet
-    verbose = args.verbose
+    #log_file = args.log_file
+    #quiet = args.quiet
+    #verbose = args.verbose
 
-    G = util.read_gocpca_output(gopca_file)
+    G = util.read_gopca_output(gopca_file)
     
     signatures = G.signatures
-    labels = [sig.get_label() for sig in signatures]
-    sig_genes = dict([sig.term[0].replace(':','_'),sorted(sig.genes)] for sig in signatures)
+    #for sig in signatures:
+    #    sig.genes = np.asarray(sig.genes, dtype = np.object)
+    #    sig.enr.genes = np.asarray(sig.enr.genes, dtype = np.object)
+    #    sig.enr.term = np.asarray(sig.enr.term, dtype = np.object)
+
+    sig_labels = np.asarray([sig.label for sig in signatures],
+            dtype = np.object)
+    sig_genes = [np.asarray(sig.genes, dtype = np.object) for sig in signatures]
+    sig_term_genes = [np.asarray(sig.enr.genes, dtype = np.object) for sig in signatures]
+    #sig_genes = dict([sig.term[0].replace(':','_'),sorted(sig.genes)] for sig in signatures)
     #print sig_genes
-    samples = list(result.samples)
-    S = result.S
+
     #common.write_expression(output_file,labels,samples,S)
 
     mat = {}
 
-    # parameters, file hashes and global hash
-    mat['params'] = G.get_input_dict()
-    mat['raw_params'] = G.get_raw_input_dict()
+    # configuration (savemat does not know how to handle None)
+    conf = G.user_config.get_dict()
+    for k,v in conf.iteritems():
+        if v is None:
+            conf[k] = ''
+    mat['user_config'] = conf
+
+    conf = G.config.get_dict()
+    for k,v in conf.iteritems():
+        if v is None:
+            conf[k] = ''
+    mat['config'] = conf
 
     # gene and sample names
-    mat['genes'] = G.genes
-    mat['samples'] = G.samples
+    mat['genes'] = np.asarray(G.genes, dtype = np.object)
+    mat['samples'] = np.asarray(G.samples, dtype = np.object)
 
     # PCA data
     mat['W'] = G.W # the PC loading matrix
     mat['Y'] = G.Y # the PC score matrix
 
     # signatures and signature matrix
-    mat['signature_labels'] = labels
+    mat['signatures'] = signatures
+    mat['signature_labels'] = sig_labels
     mat['signature_genes'] = sig_genes
+    mat['signature_term_genes'] = sig_term_genes
 
+    mat['signature_genes'] = sig_genes
     mat['S'] = G.S # the signature matrix
 
+    # output hash
+    mat['output_hash'] = G.hash
+
     # signatures
-    savemat(output_file,mat,appendmat=append_mat)
+    savemat(output_file, mat, appendmat = append_mat)
 
     return 0
 

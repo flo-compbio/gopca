@@ -32,20 +32,20 @@ import os
 import argparse
 
 from gopca import util
-from gopca import args
+from gopca import cli
 from gopca import GOPCAConfig, GOPCA
 
 def get_argument_parser():
 
     prog = 'go-pca.py'
     description = 'Run GO-PCA.'
-    parser = args.get_argument_parser(prog, description)
+    parser = cli.get_argument_parser(prog, description)
 
-    file_mv = args.file_mv
-    name_mv = args.name_mv
-    int_mv = args.int_mv
-    float_mv = args.float_mv
-    str_mv = args.str_mv
+    file_mv = cli.file_mv
+    name_mv = cli.name_mv
+    int_mv = cli.int_mv
+    float_mv = cli.float_mv
+    str_mv = cli.str_mv
 
     # input and output files
     g = parser.add_argument_group('Input and output files')
@@ -145,7 +145,7 @@ def get_argument_parser():
             help = 'Only propagate "part of" GO relations for the CC domain.')
 
     # reporting options
-    args.add_reporting_args(parser)
+    cli.add_reporting_args(parser)
 
     return parser
 

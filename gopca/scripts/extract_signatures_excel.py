@@ -38,24 +38,13 @@ import numpy as np
 
 from genometools import misc
 from gopca import util
-from gopca import params
+from gopca import cli
 
 def get_argument_parser():
-
     prog = 'gopca_extract_signatures_excel.py'
     description = 'Extract GO-PCA signatures as an Excel spreadsheet.'
-    parser = params.get_argument_parser(prog, description)
-
-    g = parser.add_argument_group('Input and output files (REQUIRED)')
-
-    g.add_argument('-g', '--gopca-file', required = True,
-            metavar = params.file_mv,
-            help = 'The GO-PCA output file.')
-
-    g.add_argument('-o', '--output-file', required=True,
-            metavar = params.file_mv,
-            help = 'The output file.')
-
+    parser = cli.get_argument_parser(prog, description)
+    cli.add_io_args(parser)
     return parser
 
 def main(args=None):

@@ -56,8 +56,8 @@ class GOPCASignature(object):
     ----------
     genes: list or tuple of str
         See :attr:`genes` attribute.
-    E: ndarray
-        See :attr:`E` attribute.
+    X: ndarray
+        See :attr:`X` attribute.
     pc: int
         See :attr:`pc` attribute.
     enr: `go_enrichment.GOTermEnrichment`
@@ -66,9 +66,9 @@ class GOPCASignature(object):
     Attributes
     ----------
     genes: tuple of str
-        The list of genes in the signatures. The ordering of the genes must
-        correspond to the ordering of the rows in ``E``.
-    E: `numpy.ndarray`
+        The list of genes in the signature. The ordering of the genes must
+        correspond to the ordering of the rows in ``S``.
+    X: `numpy.ndarray`
         A matrix containing the expression profiles of the ``genes``. Each gene
         corresponds to one row in the matrix, so ``E.shape`` should be
         ``(p,n)``, where ``p`` is the number of genes, and ``n`` is the number
@@ -90,30 +90,41 @@ class GOPCASignature(object):
             ('signaling', 'signal.')]
     """Abbreviations used in generating signature labels."""
 
-    def __init__(self,genes,E,pc,enr,label=None):
-        self.genes = tuple(genes) # genes in the signature (NOT equal to self.enr.genes, which contains the gene names corresponding to all the 1's)
-        self.E = E # expression of the genes in the signture, with ordering matching that of self.genes
-        self.pc = pc # principal component (sign indicates whether ordering was ascending or descending)
-        self.enr = enr # GO enrichment this signature is based on
+    def __init__(self, genes, X, pc, enr):
+        self.genes = tuple(genes) # genes in the signature (!= self.enr.genes)
+
+        X = X.copy()
+        X.flags.writeable = False
+        self.X = X
+
+        self.pc = pc
+        self.enr = enr
 
     def __repr__(self):
-        return '<GOPCASignature: label="%s", pc=%d, es=%.1f; %s>' \
-                %(self.label,self.pc,self.escore,repr(self.enr))
+        assert not self.X.flags.writeable
+        return '<GOPCASignature: %s (p=%.1e; e=%.1f; ' \
+                %(self.label, self.pval, self.escore) + \
+                'genes hash=%d; enr hash=%d, matrix hash=%d>' \
+                %(hash(self.genes), hash(self.enr), hash(self.X.data))
 
     def __str__(self):
-        return '<GO-PCA Signature "%s" (PC %d / E-score %.1fx / %s)>' \
-                %(self.label,self.pc,self.escore, str(self.enr))
+        return '<GOPCASignature "%s" (p-value %.1e / E-score %.1fx)>' \
+                %(self.label, self.pval, self.escore)
 
     def __hash__(self):
         return hash(repr(self))
 
-    def __eq__(self,other):
+    def __eq__(self, other):
         if type(self) is not type(other):
             return False
         elif repr(self) == repr(other):
             return True
         else:
             return False
+
+    def __setstate__(self, d):
+        self.__dict__ = d
+        self.X.flags.writeable = False
 
     @property
     def term(self):
@@ -159,11 +170,11 @@ class GOPCASignature(object):
 
     @property
     def label(self):
-        return self.get_label(include_id=False)
+        return self.get_label(include_id = False)
 
     @property
     def median_correlation(self):
-        C = np.corrcoef(self.E)
+        C = np.corrcoef(self.X)
         ind = np.triu_indices(self.k,k=1)
         return np.median(C[ind])
 
@@ -192,6 +203,7 @@ class GOPCASignature(object):
     def get_label(self, max_name_length = 0, include_stats = True,
             include_id = True, include_pval = False,
             include_domain = True):
+        """Generate a signature label."""
         enr = self.enr
 
         term = enr.term

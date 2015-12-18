@@ -1,7 +1,7 @@
-gopca.params module
+gopca.config module
 ===================
 
-.. automodule:: gopca.params
+.. automodule:: gopca.config
     :members:
     :undoc-members:
     :show-inheritance:

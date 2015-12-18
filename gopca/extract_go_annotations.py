@@ -98,7 +98,7 @@ import networkx as nx
 from genometools import misc
 from goparser import GOParser
 from gopca import util
-from gopca import args
+from gopca import cli
 
 def get_argument_parser():
     """Function to obtain the argument parser.
@@ -116,27 +116,27 @@ def get_argument_parser():
     description = """Script for determining the set of genes annotated with \
             each GO term."""
 
-    parser = args.get_argument_parser(prog, description)
+    parser = cli.get_argument_parser(prog, description)
 
     # input files
     g = parser.add_argument_group('Input and output files')
 
     g.add_argument('-g', '--gene-file', required = True,
-            metavar = args.file_mv,
+            metavar = cli.file_mv,
             help="""Path of tab-delimited file containing all "valid" gene
                     symbols.""")
 
     g.add_argument('-t', '--ontology-file', required = True,
-            metavar = args.file_mv,
+            metavar = cli.file_mv,
             help='Path of ontology file (in OBO format).')
 
     g.add_argument('-a', '--gene-association-file', required = True,
-            metavar = args.file_mv,
+            metavar = cli.file_mv,
             help='Path of gene association file (in GAF format).')
 
     # output file
     g.add_argument('-o', '--output-file', required = True,
-            metavar = args.file_mv,
+            metavar = cli.file_mv,
             help='Path of output file.')
 
     g = parser.add_argument_group('Other options')
@@ -149,12 +149,12 @@ def get_argument_parser():
 
     # which GO terms to include in final output?
     g.add_argument('--min-genes-per-term', type = int, default=0,
-            metavar = args.int_mv,
+            metavar = cli.int_mv,
             help="""Exclude GO terms that have fewer than the specified number
                     of genes annotated with them. Disabled (0) by default.""")
 
     g.add_argument('--max-genes-per-term', type = int, default=0,
-            metavar = args.int_mv,
+            metavar = cli.int_mv,
             help="""Exclude GO terms that have more than the specified number
                     of genes annotated with them. Disabled (0) by default.""")
 
@@ -164,7 +164,7 @@ def get_argument_parser():
                     ``cellular_component`` (CC) domain.""")
 
     # reporting options
-    args.add_reporting_params(parser)
+    cli.add_reporting_args(parser)
 
     return parser
 

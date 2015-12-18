@@ -57,23 +57,23 @@ from genometools import misc
 
 import gopca
 from gopca import util
-from gopca import args
-from gopca.plotting import args as plot_args
+from gopca import cli
+from gopca.plotting import cli as plot_cli
 
 def get_argument_parser():
 
     prog = 'gopca_plot_term_by_signature_matrix.py'
     description = 'Plot the GO-PCA term-by-PC matrix.'
-    parser = args.get_argument_parser(prog, description)
+    parser = cli.get_argument_parser(prog, description)
 
     g = parser.add_argument_group('Required parameters')
 
     g.add_argument('-g', '--gopca-file', required=True,
-            metavar = args.file_mv,
+            metavar = cli.file_mv,
             help = 'The GO-PCA output file.')
 
     g.add_argument('-o', '--output-file', required=True,
-            metavar = args.file_mv,
+            metavar = cli.file_mv,
             help = 'The output file.')
 
     g = parser.add_argument_group('Optional parameters')
@@ -85,10 +85,10 @@ def get_argument_parser():
     g.add_argument('--dotcolor', default = 'yellow')
     g.add_argument('--dotsize', type = float, default = 50)
 
-    plot_args.add_fig_args(parser)
+    plot_cli.add_fig_args(parser)
     parser.set_defaults(fig_font_size = 16)
 
-    plot_args.add_heatmap_args(parser)
+    plot_cli.add_heatmap_args(parser)
     parser.set_defaults(val_coolest = 0.0)
     parser.set_defaults(val_hottest = 10.0)
     parser.set_defaults(cbar_ticks = [4,6,8,10])
@@ -96,8 +96,8 @@ def get_argument_parser():
     parser.set_defaults(cbar_anchor = [0.6,1.0])
     parser.set_defaults(cbar_scale = 0.2)
 
-    args.add_go_term_args(parser)
-    args.add_sample_args(parser)
+    cli.add_go_term_args(parser)
+    cli.add_sample_args(parser)
 
     return parser
 
@@ -156,9 +156,10 @@ def main(args=None):
     W = G.W # loading matrix
     S = G.S # signature matrix
     #input_ = G.input
-    X_frac = G.mHG_X_frac
-    X_min = G.mHG_X_min
-    L = G.mHG_L
+    config = G.config
+    X_frac = config.mHG_X_frac
+    X_min = config.mHG_X_min
+    L = config.mHG_L
 
     # order genes alphabetically
     a = np.lexsort([genes])

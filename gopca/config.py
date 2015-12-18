@@ -113,6 +113,9 @@ class GOPCAConfig(object):
             raise AttributeError('There is no GO-PCA parameter called "%s"!' \
                     %(name))
 
+    def __hash__(self):
+        return hash(frozenset(self.__params.items()))
+
     def __deepcopy__(self, memo):
         cp = GOPCAConfig()
         cp.set_params(self.__params)

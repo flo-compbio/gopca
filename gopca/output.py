@@ -17,7 +17,10 @@
 """Module containing the `GOPCAOutput` class.
 """
 
+# TO-DO: implement output hash
+
 import logging
+import hashlib
 from copy import deepcopy
 import cPickle as pickle
 
@@ -79,77 +82,61 @@ class GOPCAOutput(object):
         # initialization
         self.user_config = deepcopy(user_config)
         self.config = deepcopy(config)
+
+        self.signatures = tuple(signatures)
+        self.S = S.copy()
+        self.S.flags.writeable = False
+
         self.genes = tuple(genes)
         self.samples = tuple(samples)
         self.W = W.copy()
+        self.W.flags.writeable = False
         self.Y = Y.copy()
-        self.signatures = tuple(signatures)
-        self.S = S.copy()
+        self.Y.flags.writeable = False
 
     ### magic functions
     def __repr__(self):
-        param_str = '%d genes; %d samples; %d PCs; %d signatures' \
-                %(self.p, self.n, self.D, self.q)
-        return '<GOPCAOutput object (%s); GO-PCA input hash = %s>' \
-                %(param_str, self.input_hash())
+        hash_str = 'signatures hash=%d; samples hash=%d; ' \
+                %(hash(self.signatures), hash(self.samples)) + \
+                \
+                'S hash=%d' %(hash(self.S.data)) + \
+                \
+                'user_config hash=%d; config hash=%d; ' \
+                %(hash(self.user_config), hash(self.config)) + \
+                \
+                'genes hash=%d; samples hash=%d; ' \
+                %(hash(self.genes), hash(self.samples)) + \
+                \
+                'W hash=%d; Y hash=%d' \
+                %(hash(self.W.data), hash(self.Y.data))
+
+        return '<GOPCAOutput: %d signatures (%s)>' %(self.q, hash_str)
 
     def __str__(self):
-        return '<GOPCAOutput object (%d signatures, %d samples)>' \
-                %(self.q, self.n)
+        param_str = 'expression matrix: %d genes / %d samples / %d PCs tested' \
+                %(self.p, self.n, self.D)
+
+        return '<GOPCAOutput with %d signatures (%s) - output hash: %s>' \
+                %(self.q, param_str, self.hash)
 
     def __eq__(self,other):
         if type(self) is not type(other):
             return False
-        elif self.__get_hash() == other.__get_hash():
+        elif repr(self) == repr(other):
             return True
         else:
             return False
 
     def __hash__(self):
-        return hash(self.__get_hash())
+        return hash(repr(self))
 
-    def __getattr__(self, name):
-        """Redirect lookup of unknown attributes to `config`."""
-        # check if we have the input attribute
-        if 'config' not in self.__dict__:
-            raise AttributeError('Not present!')
-
-        return getattr(self.config, name)
+    def __setstate__(self, d):
+        self.__dict__ = d
+        self.W.flags.writeable = False
+        self.Y.flags.writeable = False
+        self.S.flags.writeable = False
     ### end magic functions
 
-    ### private members
-    def __get_hash(self):
-        """Calculates a MD5 hash based on GO-PCA input and output data.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        str
-            MD5 hash as a hex string.
-        """
-        hashes = [self.input.hash, hash(self.genes), hash(self.samples)]
-        hashes.extend([self._hash_ndarray(a) for a in
-                [self.W, self.Y, self.S]])
-        hashes.extend([hash(sig) for sig in self.signatures])
-
-        hash_str = ','.join([str(h) for h in hashes])
-        h = haslib.md5(hash_str).hexdigest()
-        return h
-    ### end private members
-  
-    ### protected members
-    def _hash_ndarray(self,a):
-        """Calculate a hash for a NumPy array."""
-        before = a.flags.writable
-        a.flags.writable = False
-        h = hash(a.data)
-        a.flags.writable = before
-        return a
-
-    ### public members
     @property
     def p(self):
         """The number of genes in the analysis."""
@@ -170,17 +157,38 @@ class GOPCAOutput(object):
         """The number of signatures generated."""
         return len(self.signatures)
 
-    @property
     def get_param(self, name):
         return getattr(self.input, name)
 
-    def get_hash(self):
-        """ Calculates a MD5 hash based on GO-PCA input and output data.
-        
-        See documentation for `__get_hash`.
-        """
-        return self.__get_hash()
+    @property
+    def hash(self):
+        """Calculates a MD5 hash value for the GO-PCA output.
 
+        This explicitly ignores the configuration data, since users might only
+        be interested in checking whether the output data is consistent.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            MD5 hash as a hex string.
+        """
+        data = []
+        data.append(hash(self.signatures))
+        data.append(hash(self.samples))
+        data.append(hash(self.S.data))
+        data.append(hash(self.genes))
+        data.append(hash(self.W.data))
+        data.append(hash(self.Y.data))
+
+        hash_str = ','.join(str(d) for d in data)
+        h = hashlib.md5(hash_str).hexdigest()
+
+        return h
+  
     def save(self,path):
         """Save the current object to a pickle file.
 
