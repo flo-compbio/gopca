@@ -28,7 +28,7 @@ from gopca import cli
 
 def get_argument_parser():
 
-    desc = 'Converts GO-PCA output to MATLAB format.'
+    desc = 'Converts GO-PCA result to MATLAB format.'
     parser = cli.get_argument_parser(desc = desc)
 
     cli.add_io_args(parser)
@@ -57,7 +57,7 @@ def main(args=None):
     #quiet = args.quiet
     #verbose = args.verbose
 
-    G = util.read_gopca_output(gopca_file)
+    G = util.read_gopca_result(gopca_file)
     
     signatures = G.signatures
     #for sig in signatures:

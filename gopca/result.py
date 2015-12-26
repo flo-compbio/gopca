@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""Module containing the `GOPCAOutput` class.
+"""Module containing the `GOPCAResult` class.
 """
 
 import logging
@@ -28,11 +28,13 @@ from gopca import GOPCAConfig, GOPCASignature
 
 logger = logging.getLogger(__name__)
 
-class GOPCAOutput(object):
-    """Class representing a complete set of GO-PCA output data.
+class GOPCAResult(object):
+    """Class representing a GO-PCA result.
 
     Parameters
     ----------
+    config: `GOPCAConfig`
+        The GO-PCA configuration data.
     genes: tuple or list
         The list of genes (gene symbols) in the analysis.
     samples: tuple or list
@@ -82,13 +84,13 @@ class GOPCAOutput(object):
 
     ### magic functions
     def __repr__(self):
-        return '<GOPCAOutput: %d signatures (hash=%d)>' %(self.q, hash(self))
+        return '<GOPCAResult: %d signatures (hash=%d)>' %(self.q, hash(self))
 
     def __str__(self):
         param_str = 'data: %d genes, %d samples, %d PCs tested' \
                 %(self.p, self.n, self.D)
 
-        return '<GOPCAOutput with %d signatures (%s)>' \
+        return '<GOPCAReult with %d signatures (%s)>' \
                 %(self.q, param_str)
 
     def __hash__(self):
@@ -170,6 +172,6 @@ class GOPCAOutput(object):
         -------
         None
         """
-        logger.info('Writing GO-PCA output to pickle file "%s"...', path)
+        logger.info('Writing GO-PCA result to pickle file "%s"...', path)
         with open(path, 'wb') as ofh:
             pickle.dump(self, ofh, pickle.HIGHEST_PROTOCOL)

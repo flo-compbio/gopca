@@ -37,8 +37,8 @@ from genometools import misc
 
 #logger = logging.getLogger(__name__)
 
-def get_logger(name = '', log_file = None, quiet = False,
-    verbose = False):
+def get_logger(name = '', log_stream = sys.stdout, log_file = None,
+    quiet = False, verbose = False):
 
     # configure root logger
     log_level = logging.INFO
@@ -47,8 +47,7 @@ def get_logger(name = '', log_file = None, quiet = False,
     elif verbose:
         log_level = logging.DEBUG
 
-    new_logger = misc.configure_logger(name, log_file = log_file,
-            log_level = log_level)
+    new_logger = misc.configure_logger(name, log_stream, log_file, log_level)
 
     return new_logger
 
@@ -229,14 +228,14 @@ def variance_filter(genes, E, top):
     E = E[sel,:]
     return genes,E
 
-def read_gopca_output(path):
-    """Read GO-PCA output from pickle."""
+def read_gopca_result(path):
+    """Read GO-PCA result from pickle."""
     G = None
     with open(path, 'rb') as fh:
         G = pickle.load(fh)
     if isinstance(G, gopca.GOPCARun):
-        G = G.output
-    assert isinstance(G, gopca.GOPCAOutput)
+        G = G.result
+    assert isinstance(G, gopca.GOPCAResult)
     return G
 
 def read_go_annotations(fn):

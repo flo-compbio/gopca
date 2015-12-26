@@ -74,7 +74,7 @@ def main(args=None):
 
     ws = workbook.add_worksheet()
 
-    G = util.read_gopca_output(gopca_file)
+    G = util.read_gopca_result(gopca_file)
     signatures = G.signatures
 
     # sort signatures first by PC, then by fold enrichment

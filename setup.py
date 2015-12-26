@@ -96,6 +96,7 @@ setup(
             'gopca_convert_to_matlab.py = gopca.scripts.convert_to_matlab:main',
             'gopca_filter_signatures.py = gopca.scripts.filter_signatures:main',
             'gopca_combine_outputs.py = gopca.scripts.combine_outputs:main',
+            'gopca_print_info.py = gopca.scripts.print_info:main',
 
             # plotting scripts
             'gopca_plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',

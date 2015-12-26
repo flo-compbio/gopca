@@ -73,6 +73,7 @@ class GOPCAConfig(object):
         'pc_seed': 0,
         'pc_permutations': 15, 
         'pc_zscore_thresh': 2.0,
+        'pc_max': 0, # no limit on number of PCs to test
         'go_part_of_cc_only': False,
     }
     """GO-PCA parameter default values."""
@@ -88,10 +89,10 @@ class GOPCAConfig(object):
     """Names of all GO-PCA file parameters."""
 
     hash_param_names = set([n + '_hash' for n in input_file_param_names])
+    """Names of all GO-PCA file hash parameters."""
 
     param_names = set(param_defaults.keys()) | file_param_names | \
             hash_param_names
-
     """Names of all GO-PCA parameters."""
     ### end static members
 
@@ -356,6 +357,9 @@ class GOPCAConfig(object):
             check_range('pc_permutations', 0, left_open = True)
 
             check_type('pc_zscore_thresh', (int,float))
+
+            check_type('pc_max', int)
+            check_range('pc_max', 0, np.iinfo(np.uint32).max)
 
         #check(isinstance(self.go_part_of_cc_only, bool))
         return passed

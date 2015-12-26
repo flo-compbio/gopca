@@ -42,7 +42,7 @@ import gopca
 from gopca import util
 from gopca import go_enrichment
 from gopca.go_enrichment import GOEnrichmentAnalysis
-from gopca import GOPCAConfig, GOPCASignature, GOPCAOutput, GOPCARun
+from gopca import GOPCAConfig, GOPCASignature, GOPCAResult, GOPCARun
 
 logger = logging.getLogger(__name__)
 
@@ -208,7 +208,12 @@ class GOPCA(object):
         d_est = np.sum(d >= thresh)
 
         logger.info('The estimated number of PCs is %d.', d_est)
-        config.set_param('n_components',d_est)
+
+        if config.pc_max > 0 and d_est > config.pc_max:
+            d_est = config.pc_max
+            logger.info('Limiting the number of PCs to test to %d.', d_est)
+
+        config.set_param('n_components', d_est)
 
     @staticmethod
     def _local_filter(config, M_enrich, enriched_terms, ranked_genes):
@@ -248,7 +253,7 @@ class GOPCA(object):
         enr_logger.setLevel(logging.ERROR)
         K_max = max([enr.K for enr in todo])
         p = len(ranked_genes)
-        mat = np.zeros((K_max + 1, p + 1), dtype=np.longdouble)
+        mat = np.zeros((K_max + 1, p + 1), dtype = np.longdouble)
         while todo:
             most_enriched = todo[0]
             term_id = most_enriched.term[0]
@@ -478,7 +483,7 @@ class GOPCA(object):
             logging.error('MD5 hash of expression file does not match!')
             return 1
         else:
-            config.expression_file_hash = hashval
+            config.set_param('expression_file_hash', hashval)
         logger.info('Expression file hash: %s', config.expression_file_hash)
         E = self._read_expression(config)
 
@@ -498,7 +503,7 @@ class GOPCA(object):
                 logging.error('MD5 hash of gene ontology file does not match!')
                 return 1
             else:
-                config.gene_ontology_file_hash = hashval
+                config.set_param('gene_ontology_file_hash', hashval)
             logger.info('Gene ontology file hash: %s',
                     config.gene_ontology_file_hash)
             go_parser = self._read_gene_ontology(config)
@@ -510,7 +515,7 @@ class GOPCA(object):
             logging.error('MD5 hash of GO annotation file does not match!')
             return 1
         else:
-            config.go_annotation_file_hash = hashval
+            config.set_param('go_annotation_file_hash', hashval)
         logger.info('GO annotation file hash: %s',
                 config.go_annotation_file_hash)
         go_annotations = self._read_go_annotations(config)
@@ -587,8 +592,8 @@ class GOPCA(object):
         S = np.float64([util.get_signature_expression(E.genes, E.X, sig.genes)
                 for sig in final_signatures])
 
-        output = GOPCAOutput(config, E.genes, E.samples, W, Y, final_signatures, S)
-        run = GOPCARun(gopca.__version__, self.__config, timestamp, output)
+        result = GOPCAResult(config, E.genes, E.samples, W, Y, final_signatures, S)
+        run = GOPCARun(gopca.__version__, self.__config, timestamp, result)
 
         t1 = time.time()
         logger.info('Total GO-PCA runtime: %.2f s.', t1-t0)

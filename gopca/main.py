@@ -141,6 +141,10 @@ def get_argument_parser():
             metavar = float_mv,
             help = 'Z-score threshold.')
 
+    g.add_argument('-pm', '--pc-max', type = int, default = 0,
+            metavar = int_mv,
+            help = 'Maximum number of PCs to test.')
+
     # legacy options
     g.add_argument('--go-part-of-cc-only', action = 'store_true',
             help = 'Only propagate "part of" GO relations for the CC domain.')
@@ -201,6 +205,7 @@ def main(args = None):
     pc_seed = args.pc_seed
     pc_permutations = args.pc_permutations
     pc_zscore_thresh = args.pc_zscore_thresh
+    pc_max = args.pc_max
 
     # reporting options
     log_file = args.log_file

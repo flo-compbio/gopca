@@ -19,6 +19,12 @@
 Changelog
 =========
 
+Version 1.1rc12
+---------------
+- Reorganized internal class structure (see `GOPCARun` in ``run.py``)
+- Added Unicode support
+- Added ``gopca_print_info.py`` script to quickly inspect GO-PCA output data
+
 Version 1.1rc10
 ---------------
 

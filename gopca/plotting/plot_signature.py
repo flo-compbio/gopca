@@ -133,7 +133,7 @@ def main(args=None):
     logger = misc.configure_logger('')
 
     # read GO-PCA output
-    G = util.read_gopca_output(gopca_file)
+    G = util.read_gopca_result(gopca_file)
 
     # find signature selected
     signatures = G.signatures

@@ -68,7 +68,7 @@ def main(args = None):
     logger = util.get_logger(log_file = log_file, quiet = quiet,
             verbose = verbose)
 
-    G = util.read_gopca_output(gopca_file)
+    G = util.read_gopca_result(gopca_file)
 
     signatures = G.signatures
     S = G.S
