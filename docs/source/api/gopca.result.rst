@@ -1,7 +1,7 @@
-gopca.output module
+gopca.result module
 ===================
 
-.. automodule:: gopca.output
+.. automodule:: gopca.result
     :members:
     :undoc-members:
     :show-inheritance:

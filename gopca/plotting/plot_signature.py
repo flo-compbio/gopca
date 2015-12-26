@@ -43,9 +43,8 @@ from gopca.plotting import cli as plot_cli
 
 def get_argument_parser():
 
-    prog = 'plot_gopca_signature.py'
-    description = 'Plot a GO-PCA signature.'
-    parser = cli.get_argument_parser(prog, description)
+    desc = 'Plot a GO-PCA signature.'
+    parser = cli.get_argument_parser(desc = desc)
 
     g = cli.add_io_args(parser)
 
@@ -79,38 +78,6 @@ def get_argument_parser():
 
     return parser
 
-
-def read_args_from_cmdline():
-
-    parser = argparse.ArgumentParser(description='')
-
-    parser.add_argument('-g','--gopca-file',required=True)
-    parser.add_argument('-s','--sig-name',required=True)
-    parser.add_argument('-o','--output-file',required=True)
-
-
-    parser.add_argument('-d','--figure-dimensions',type=float,help='in inches',nargs=2,default=[15,10])
-    parser.add_argument('-r','--figure-resolution',type=int,help='in dpi',default=150)
-    parser.add_argument('-f','--figure-font-size',type=int,help='in pt',default=20)
-    parser.add_argument('-m','--figure-font-family',default='serif')
-    parser.add_argument('-c','--figure-colormap',default='RdBu_r')
-    parser.add_argument('-vn','--figure-vmin',type=float,default=-3.0)
-    parser.add_argument('-vx','--figure-vmax',type=float,default=3.0)
-
-    parser.add_argument('-co','--figure-colorbar-orientation',default='horizontal')
-    parser.add_argument('-ca','--figure-colorbar-anchor',type=float,nargs=2,default=(0.96,1.0))
-    parser.add_argument('-cs','--figure-colorbar-shrink',type=float,default=0.3)
-    parser.add_argument('-cp','--figure-colorbar-pad',type=float,default=0.015)
-
-
-    parser.add_argument('-t','--use-tex',action='store_true')
-    parser.add_argument('-b','--matplotlib-backend',default=None)
-    parser.add_argument('-i','--invert-gene-order',action='store_true')
-    parser.add_argument('--disable-sample-clustering',action='store_true')
-    parser.add_argument('--cluster-global',action='store_true')
-    parser.add_argument('--sort-by-signature',action='store_true')
-
-    return parser.parse_args()
 
 def main(args=None):
 
@@ -166,10 +133,10 @@ def main(args=None):
     logger = misc.configure_logger('')
 
     # read GO-PCA output
-    output = util.read_gopca_output(gopca_file)
+    G = util.read_gopca_result(gopca_file)
 
     # find signature selected
-    signatures = output.signatures
+    signatures = G.signatures
     term_ids = set([sig.term[0] for sig in signatures])
     sig = None
     if sig_name in term_ids:
@@ -212,7 +179,7 @@ def main(args=None):
     #    sig_expr = sig_expr[a]
     #    E_std = E_std[:,a]
     if (not sample_no_clustering):
-        S = output.S
+        S = G.S
         order_cols = util.cluster_samples(S, metric = sample_cluster_metric)
         sig_expr = sig_expr[order_cols]
         X_std = X_std[:,order_cols]

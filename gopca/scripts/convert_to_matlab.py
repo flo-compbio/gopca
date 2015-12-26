@@ -28,12 +28,11 @@ from gopca import cli
 
 def get_argument_parser():
 
-    prog = 'convert_to_matlab_format.py'
-    description = 'Converts GO-PCA output to MATLAB format.'
-    parser = cli.get_argument_parser(prog, description)
+    desc = 'Converts GO-PCA result to MATLAB format.'
+    parser = cli.get_argument_parser(desc = desc)
 
     cli.add_io_args(parser)
-    #params.add_reporting_params(parser)
+    #cli.add_reporting_args(parser)
 
     parser.add_argument('--append-mat', action = 'store_true',
             help = 'Automatically append .mat file extension.')
@@ -58,7 +57,7 @@ def main(args=None):
     #quiet = args.quiet
     #verbose = args.verbose
 
-    G = util.read_gopca_output(gopca_file)
+    G = util.read_gopca_result(gopca_file)
     
     signatures = G.signatures
     #for sig in signatures:
@@ -78,12 +77,6 @@ def main(args=None):
     mat = {}
 
     # configuration (savemat does not know how to handle None)
-    conf = G.user_config.get_dict()
-    for k,v in conf.iteritems():
-        if v is None:
-            conf[k] = ''
-    mat['user_config'] = conf
-
     conf = G.config.get_dict()
     for k,v in conf.iteritems():
         if v is None:

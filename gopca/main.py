@@ -46,25 +46,26 @@ def get_argument_parser():
     int_mv = cli.int_mv
     float_mv = cli.float_mv
     str_mv = cli.str_mv
+    str_type = cli.str_type
 
     # input and output files
     g = parser.add_argument_group('Input and output files')
 
     g.add_argument('-e', '--expression-file', required = True,
-            metavar = file_mv,
+            metavar = file_mv, type = str_type,
             help = 'Tab-separated text file containing the expression matrix.')
 
     g.add_argument('-a', '--go-annotation-file', required = True,
-            metavar = file_mv,
+            metavar = file_mv, type = str_type,
             help = 'Tab-separated text file containing the GO term ' +
             'annotations.')
 
     g.add_argument('-t', '--gene-ontology-file', required = False,
-            metavar = file_mv,
+            metavar = file_mv, type = str_type,
             help = 'OBO file containing the Gene Ontology.')
 
     g.add_argument('-o', '--output-file', required = True,
-            metavar = file_mv,
+            metavar = file_mv, type = str_type,
             help = 'Output pickle file (extension ".pickle" is recommended).')
 
     # input file hash values
@@ -140,6 +141,10 @@ def get_argument_parser():
             metavar = float_mv,
             help = 'Z-score threshold.')
 
+    g.add_argument('-pm', '--pc-max', type = int, default = 0,
+            metavar = int_mv,
+            help = 'Maximum number of PCs to test.')
+
     # legacy options
     g.add_argument('--go-part-of-cc-only', action = 'store_true',
             help = 'Only propagate "part of" GO relations for the CC domain.')
@@ -200,6 +205,7 @@ def main(args = None):
     pc_seed = args.pc_seed
     pc_permutations = args.pc_permutations
     pc_zscore_thresh = args.pc_zscore_thresh
+    pc_max = args.pc_max
 
     # reporting options
     log_file = args.log_file
@@ -223,8 +229,8 @@ def main(args = None):
     config = GOPCAConfig(params)
 
     M = GOPCA(config)
-    G = M.run()
-    G.save(output_file)
+    R = M.run()
+    R.write_pickle(output_file)
 
     return 0
 

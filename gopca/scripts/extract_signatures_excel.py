@@ -41,9 +41,8 @@ from gopca import util
 from gopca import cli
 
 def get_argument_parser():
-    prog = 'gopca_extract_signatures_excel.py'
-    description = 'Extract GO-PCA signatures as an Excel spreadsheet.'
-    parser = cli.get_argument_parser(prog, description)
+    desc = 'Extract GO-PCA signatures as an Excel spreadsheet.'
+    parser = cli.get_argument_parser(desc = desc)
     cli.add_io_args(parser)
     return parser
 
@@ -75,8 +74,8 @@ def main(args=None):
 
     ws = workbook.add_worksheet()
 
-    output = util.read_gopca_output(gopca_file)
-    signatures = output.signatures
+    G = util.read_gopca_result(gopca_file)
+    signatures = G.signatures
 
     # sort signatures first by PC, then by fold enrichment
     signatures = sorted(signatures,

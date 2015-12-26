@@ -101,6 +101,7 @@ def main(args=None):
     # signatures
     sig_reverse_order = args.sig_reverse_order
     sig_max_len = args.sig_max_len
+    sig_filter_corr = args.sig_filter_corr
 
     # reporting parameters
     log_file = args.log_file
@@ -112,15 +113,22 @@ def main(args=None):
             verbose = verbose)
 
     # read GO-PCA output
-    output = None
-    with open(gopca_file,'rb') as fh:
-        output = pickle.load(fh)
+    G = util.read_gopca_result(gopca_file)
+
+    signatures = G.signatures
+    S = G.S
+
+    if sig_filter_corr < 1.0:
+        q_before = G.q
+        signatures, S = util.filter_signatures(signatures, S, sig_filter_corr)
+        q = len(signatures)
+        logger.info('Filtered %d / %d signatures.', q_before - q, q_before)
+        
+        #signature = sorted(G.signatures, 
 
     # generate labels
-    signatures = output.signatures
     labels = [sig.get_label(include_id=False,max_name_length=sig_max_len) for sig in signatures]
-    samples = output.samples
-    S = output.S
+    samples = G.samples
 
     # clustering of rows (signatures)
     order_rows = util.cluster_signatures(S, reverse=sig_reverse_order)
