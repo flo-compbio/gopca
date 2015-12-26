@@ -62,26 +62,14 @@ from gopca.plotting import cli as plot_cli
 
 def get_argument_parser():
 
-    prog = 'gopca_plot_term_by_signature_matrix.py'
-    description = 'Plot the GO-PCA term-by-PC matrix.'
-    parser = cli.get_argument_parser(prog, description)
+    desc = 'Plot the GO-PCA term-by-PC matrix.'
+    parser = cli.get_argument_parser(desc = desc)
 
-    g = parser.add_argument_group('Required parameters')
-
-    g.add_argument('-g', '--gopca-file', required=True,
-            metavar = cli.file_mv,
-            help = 'The GO-PCA output file.')
-
-    g.add_argument('-o', '--output-file', required=True,
-            metavar = cli.file_mv,
-            help = 'The output file.')
+    cli.add_io_args(parser)
 
     g = parser.add_argument_group('Optional parameters')
 
     g.add_argument('--max-pval', type = float, default = 1e-4)
-    #g.add_argument('--pvalue-best',type=float,default=1e-10)
-    #g.add_argument('--pvalue-worst',type=float,default=1.0)
-    #g.add_argument('--cbar-ticks',type=float,nargs='+',default=[4,6,8,10])
     g.add_argument('--dotcolor', default = 'yellow')
     g.add_argument('--dotsize', type = float, default = 50)
 

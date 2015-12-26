@@ -32,7 +32,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='gopca',
 
-    version='1.1rc11',
+    version='1.1rc12',
 
     description=description,
     long_description=long_description,
@@ -68,7 +68,7 @@ setup(
 
     install_requires=['setuptools', 'networkx', 'xlsxwriter',
             'numpy', 'scipy', 'matplotlib', 'cython', 'scikit-learn',
-            'genometools>=1.2rc2', 'goparser>=1.1', 'xlmhg>=1.1rc3'],
+            'genometools>=1.2rc4', 'goparser>=1.1', 'xlmhg>=1.1rc3'],
 
     extras_require={
             'docs': ['sphinx','sphinx-bootstrap-theme','sphinx-argparse','mock']
@@ -94,6 +94,8 @@ setup(
             'gopca_extract_signatures_excel.py = gopca.scripts.extract_signatures_excel:main',
             'gopca_extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
             'gopca_convert_to_matlab.py = gopca.scripts.convert_to_matlab:main',
+            'gopca_filter_signatures.py = gopca.scripts.filter_signatures:main',
+            'gopca_combine_outputs.py = gopca.scripts.combine_outputs:main',
 
             # plotting scripts
             'gopca_plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',

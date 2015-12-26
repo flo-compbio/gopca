@@ -33,14 +33,13 @@ from gopca import cli
 
 def get_argument_parser():
 
-    prog = 'gopca_extract_signature_matrix.py'
-    description='Extract the GO-PCA signatures matrix as a tab-delimited ' + \
-        'text file.'
-    parser = cli.get_argument_parser(prog, description)
+    desc = 'Extract the GO-PCA signatures matrix as a tab-delimited text file.'
+    parser = cli.get_argument_parser(desc = desc)
 
     cli.add_io_args(parser)
     cli.add_signature_args(parser)
     cli.add_sample_args(parser)
+    cli.add_reporting_args(parser)
 
     return parser
 
@@ -60,14 +59,19 @@ def main(args=None):
     sample_no_clustering = args.sample_no_clustering
 
     # configure root logger
-    logger = misc.configure_logger('')
+    log_file = args.log_file
+    quiet = args.quiet
+    verbose = args.verbose
 
-    output = util.read_gopca_output(gopca_file)
+    logger = misc.get_logger(log_file = log_file, quiet = quiet,
+            verbose = verbose)
+
+    G = util.read_gopca_output(gopca_file)
     
-    signatures = output.signatures
+    signatures = G.signatures
     labels = [sig.get_label(include_id=False) for sig in signatures]
-    samples = list(output.samples)
-    S = output.S
+    samples = list(G.samples)
+    S = G.S
 
     # clustering of rows (signatures)
     order_rows = util.cluster_signatures(S, reverse = sig_reverse_order)

@@ -46,25 +46,26 @@ def get_argument_parser():
     int_mv = cli.int_mv
     float_mv = cli.float_mv
     str_mv = cli.str_mv
+    str_type = cli.str_type
 
     # input and output files
     g = parser.add_argument_group('Input and output files')
 
     g.add_argument('-e', '--expression-file', required = True,
-            metavar = file_mv,
+            metavar = file_mv, type = str_type,
             help = 'Tab-separated text file containing the expression matrix.')
 
     g.add_argument('-a', '--go-annotation-file', required = True,
-            metavar = file_mv,
+            metavar = file_mv, type = str_type,
             help = 'Tab-separated text file containing the GO term ' +
             'annotations.')
 
     g.add_argument('-t', '--gene-ontology-file', required = False,
-            metavar = file_mv,
+            metavar = file_mv, type = str_type,
             help = 'OBO file containing the Gene Ontology.')
 
     g.add_argument('-o', '--output-file', required = True,
-            metavar = file_mv,
+            metavar = file_mv, type = str_type,
             help = 'Output pickle file (extension ".pickle" is recommended).')
 
     # input file hash values
@@ -223,8 +224,8 @@ def main(args = None):
     config = GOPCAConfig(params)
 
     M = GOPCA(config)
-    G = M.run()
-    G.save(output_file)
+    R = M.run()
+    R.write_pickle(output_file)
 
     return 0
 

@@ -20,11 +20,12 @@
 import os
 import sys
 import argparse
-import csv
 import cPickle as pickle
 import hashlib
 import logging
 from pkg_resources import parse_version
+
+import unicodecsv as csv
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
@@ -34,7 +35,7 @@ import sklearn
 import gopca
 from genometools import misc
 
-logger = logging.getLogger(__name__)
+#logger = logging.getLogger(__name__)
 
 def get_logger(name = '', log_file = None, quiet = False,
     verbose = False):
@@ -51,7 +52,51 @@ def get_logger(name = '', log_file = None, quiet = False,
 
     return new_logger
 
-def get_pc_explained_variance_threshold(E,z,t,seed):
+def filter_signatures(signatures, S, corr_thresh):
+
+    if corr_thresh == 1.0:
+        # no filtering
+        return signatures, S
+
+    q, n = S.shape
+    info = np.zeros(q, dtype = np.float64)
+    # sort signatures by information content?
+    max_ent = - n * ((1/float(n)) * np.log2(1/float(n)))
+    for i, sig in enumerate(signatures):
+        abs_sig = np.absolute(S[i,:])
+        total = np.sum(abs_sig)
+        rel = abs_sig / total
+        ent = - np.sum(rel * np.log2(rel))
+        info[i] = max_ent - ent
+    a = np.argsort(info)
+    a = a[::-1]
+
+    sig_abs_pcs = np.absolute(np.int64([sig.pc for sig in signatures]))
+    a = np.lexsort([-info, sig_abs_pcs])
+    #print '\n'.join(['%.3f: %s' %(info[i],str(G.signatures[i])) for i in a[:5]])
+
+    # filtering
+    sel = np.ones(q, dtype = np.bool_)
+    for i in a:
+
+        if not sel[i]:
+            # already excluded
+            continue
+
+        for i2, sig in enumerate(signatures):
+            if i == i2 or not sel[i2]:
+                continue
+            assert np.corrcoef(np.vstack([S[i,:],S[i2,:]])).shape == (2,2)
+            if np.corrcoef(np.vstack([S[i,:],S[i2,:]]))[0,1] >= corr_thresh:
+                sel[i2] = False
+
+    sel = np.nonzero(sel)[0]
+    signatures = [signatures[i] for i in sel]
+    S = S[sel,:]
+
+    return signatures, S
+
+def get_pc_explained_variance_threshold(E, z, t, seed):
 
     # RandomizedPCA does not work in Scikit-learn 0.14.1,
     # but it works in Scikit-learn 0.16.1
@@ -70,7 +115,7 @@ def get_pc_explained_variance_threshold(E,z,t,seed):
     M_null = PCA(n_components = 1)
     for j in xrange(t):
 
-        for i in range(p):
+        for i in xrange(p):
             E_perm[i,:] = E[i,np.random.permutation(n)]
 
         M_null.fit(E_perm.T)
@@ -83,7 +128,7 @@ def get_pc_explained_variance_threshold(E,z,t,seed):
 
     return thresh
 
-def get_file_md5sum(path, mode = 'r'):
+def get_file_md5sum(path, mode = 'rb'):
     """Get MD5 hash of file content.
 
     Parameters
@@ -115,57 +160,6 @@ def print_signatures(signatures):
     for i in a:
         sig = signatures[i]
         print sig.get_label(max_name_length=maxlength,include_pval=True)
-
-def read_meta(fn):
-    meta = {}
-    with open(fn) as fh:
-        reader = csv.reader(fh,dialect='excel-tab')
-        for l in reader:
-            meta[l[0]] = l[1:]
-    return meta
-
-def read_gene_data(fn,case_insensitive=False):
-    labels = None
-    genes = []
-    data = []
-    with open(fn) as fh:
-        reader = csv.reader(fh,dialect='excel-tab')
-        labels = reader.next()[1:]
-        for l in reader:
-            g = l[0]
-            if case_insensitive: g = g.upper()
-            genes.append(g)
-            data.append(l[1:])
-    D = np.float64(data)
-    return genes,labels,D
-
-def read_expression(fn,case_insensitive=False):
-    samples = None
-    genes = []
-    expr = []
-    with open(fn) as fh:
-        reader = csv.reader(fh,dialect='excel-tab')
-        samples = reader.next()[1:]
-        for l in reader:
-            g = l[0]
-            if case_insensitive: g = g.upper()
-            genes.append(g)
-            expr.append(l[1:])
-    E = np.float64(expr)
-    return genes,samples,E
-
-def write_expression(output_file,genes,samples,E):
-    write_gene_data(output_file,genes,samples,E)
-
-def write_gene_data(output_file,genes,labels,D):
-    p = len(genes)
-    n = len(labels)
-    assert D.shape == (p,n)
-    with open(output_file,'w') as ofh:
-        writer = csv.writer(ofh,dialect='excel-tab',lineterminator='\n',quoting=csv.QUOTE_NONE)
-        writer.writerow(['.'] + labels)
-        for i,g in enumerate(genes):
-            writer.writerow([g] + ['%.5f' %(D[i,j]) for j in range(n)])
 
 def get_centered(e):
     e = e.copy()
@@ -216,15 +210,15 @@ def get_signature_expression_robust(genes,E,sig_genes):
 
 def get_median_pairwise_correlation(E):
     C = np.corrcoef(E)
-    sel = np.triu_indices(C.shape[0],k=1)
+    sel = np.triu_indices(C.shape[0], k=1)
     return np.median(C[sel])
 
-def get_signature_label(GO,sig,max_length=40):
+def get_signature_label(GO, sig, max_length=40):
     count = ' (%d:%d/%d)' %(sig.pc,len(sig.genes),sig.K)
     enr = sig.enr
     return GO.terms[enr.term[0]].get_pretty_format(omit_acc=True,max_name_length=max_length) + count
 
-def variance_filter(genes,E,top):
+def variance_filter(genes, E, top):
     # filter genes by variance
     a = np.argsort(np.var(E,axis=1,ddof=1))[::-1]
     n = E.shape[0]
@@ -235,25 +229,24 @@ def variance_filter(genes,E,top):
     E = E[sel,:]
     return genes,E
 
-def read_gopca_output(fn):
-    output = None
-    with open(fn, 'rb') as fh:
-        output = pickle.load(fh)
-    return output
+def read_gopca_output(path):
+    """Read GO-PCA output from pickle."""
+    G = None
+    with open(path, 'rb') as fh:
+        G = pickle.load(fh)
+    if isinstance(G, gopca.GOPCARun):
+        G = G.output
+    assert isinstance(G, gopca.GOPCAOutput)
+    return G
 
 def read_go_annotations(fn):
     ann = {}
-    with open(fn) as fh:
-        reader = csv.reader(fh,dialect='excel-tab')
+    with open(fn, 'rb') as fh:
+        reader = csv.reader(fh, dialect='excel-tab')
         for l in reader:
             ann[tuple(l[:4])] = l[4].split(',')
     return ann
 
-def get_signature_labels(signatures,omit_acc=False):
-    labels = []
-    for sig in signatures:
-        return sig.enrichment
-        
 def cluster_rows(S, metric='correlation', method='average', reverse=False):
     distxy = squareform(pdist(S, metric=metric))
     R = dendrogram(linkage(distxy, method=method), no_plot=True)
@@ -268,7 +261,8 @@ def cluster_signatures(S, metric = 'correlation', method = 'average',
     order_rows = cluster_rows(S, metric, method, reverse)
     return order_rows
 
-def cluster_samples(S, metric = 'euclidean', method = 'average',
+#def cluster_samples(S, metric = 'euclidean', method = 'average',
+def cluster_samples(S, metric = 'correlation', method = 'average',
         reverse = False):
     order_cols = cluster_rows(S.T, metric, method, reverse)
     return order_cols

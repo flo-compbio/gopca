@@ -81,19 +81,18 @@ Examples
 
 """
 
-# we don't assume that gene names are sorted
-
 import sys
 import os
-
 import argparse
-import csv
 import gzip
 import logging
 import cPickle as pickle
+import textwrap
 
 import numpy as np
 import networkx as nx
+
+import unicodecsv as csv
 
 from genometools import misc
 from goparser import GOParser
@@ -111,18 +110,19 @@ def get_argument_parser():
     -----
     This function is used by the `sphinx-argparse` extension for sphinx.
     """
-    
-    prog = 'gopca_extract_go_annotations.py'
-    description = """Script for determining the set of genes annotated with \
-            each GO term."""
+    #prog = 'gopca_extract_go_annotations.py'
+    desc = """Write a file containing the genes annotated with each GO term."""
 
-    parser = cli.get_argument_parser(prog, description)
+    parser = cli.get_argument_parser(desc = desc)
+
+    file_mv = cli.file_mv
+    str_type = cli.str_type
 
     # input files
     g = parser.add_argument_group('Input and output files')
 
     g.add_argument('-g', '--gene-file', required = True,
-            metavar = cli.file_mv,
+            type = str_type, metavar = file_mv,
             help="""Path of tab-delimited file containing all "valid" gene
                     symbols.""")
 
@@ -221,8 +221,9 @@ def main(args = None):
 
     # Read GO term definitions and parse UniProtKB GO annotations
     GO = GOParser()
-    GO.parse_ontology(ontology_file,part_of_cc_only=False)
-    GO.parse_annotations(gene_association_file,gene_file,select_evidence=select_evidence)
+    GO.parse_ontology(ontology_file, part_of_cc_only = False)
+    GO.parse_annotations(gene_association_file, gene_file,
+            select_evidence = select_evidence)
 
     #with open(go_pickle_file) as fh:
     #   GO = pickle.load(fh)
@@ -261,7 +262,7 @@ def main(args = None):
             if c == term_gene_counts[j2] and tg == term_genes[j2]:
                 G.add_edge(j1,j2)
 
-    sel = np.ones(m,dtype=np.bool_)
+    sel = np.ones(m, dtype=np.bool_)
     affected = 0
     for k,cc in enumerate(nx.connected_components(G)):
         if len(cc) == 1: # singleton
@@ -288,9 +289,10 @@ def main(args = None):
     # write output file
     logger.info('Writing output file...')
     p = len(genes)
-    with open(output_file,'w') as ofh:
-        writer = csv.writer(ofh,dialect='excel-tab',lineterminator='\n',quoting=csv.QUOTE_NONE)
-        for j,(id_,tg) in enumerate(zip(term_ids,term_genes)):
+    with open(output_file, 'wb') as ofh:
+        writer = csv.writer(ofh, dialect = 'excel-tab',
+                lineterminator = os.linesep, quoting = csv.QUOTE_NONE)
+        for j, (id_, tg) in enumerate(zip(term_ids, term_genes)):
             term = list(GO.terms[id_].get_tuple())
             writer.writerow(term + [','.join(sorted(tg))])
     logger.info('done!');

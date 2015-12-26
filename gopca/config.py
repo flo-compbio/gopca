@@ -113,6 +113,13 @@ class GOPCAConfig(object):
             raise AttributeError('There is no GO-PCA parameter called "%s"!' \
                     %(name))
 
+    def __repr__(self):
+        return '<GOPCAConfig object (hash=%d)>' %(hash(self))
+
+    def __str__(self):
+        param_str = '; '.join(self.get_param_strings())
+        return '<GOPCAConfig object (%s)>' %(param_str)
+
     def __hash__(self):
         return hash(frozenset(self.__params.items()))
 
@@ -120,6 +127,12 @@ class GOPCAConfig(object):
         cp = GOPCAConfig()
         cp.set_params(self.__params)
         return cp
+
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return False
+        else:
+            return repr(self) == repr(other)
 
     ### public members  
     def has_param(self, name):
@@ -155,7 +168,7 @@ class GOPCAConfig(object):
     def get_param_strings(self):
         d = []
         for k in sorted(self.__params.keys()):
-            d.append('%s: %s' %(k,str(self.__params[k])))
+            d.append('%s=%s' %(k,str(self.__params[k])))
         return d
 
     def get_dict(self):
@@ -203,7 +216,7 @@ class GOPCAConfig(object):
 
     def reset_params(self):
         """Reset all parameters to their default values."""
-        self.params = dict([p, None] for p in GOPCAConfig.param_names)
+        self.__params = dict([p, None] for p in GOPCAConfig.param_names)
         self.set_params(GOPCAConfig.param_defaults)
 
     def check(self, test_if_input_exists = True,
@@ -230,7 +243,7 @@ class GOPCAConfig(object):
             # checks whether the parameter has a certain type
             val = getattr(self, attr)
             if not isinstance(val, types):
-                logger.error('Parameter "%d" = %s: invalid type ' +
+                logger.error('Parameter "%s" = %s: invalid type ' +
                         '(should be %s).', attr, val, str(types))
                 passed = False
 
@@ -245,16 +258,10 @@ class GOPCAConfig(object):
         def check_file_writable(attr):
             # check whether the specified file is writable
             path = getattr(self, attr)
-            if os.path.isfile(path):
-                if not misc.test_file_writable(path):
-                    logger.error('File "%s" = %s: file not writable.',
-                            attr, path)
-                    passed = False
-            else:
-                if not misc.test_dir_writable(path):
-                    logger.error('File "%s" = %s: directory not writable.',
-                            attr, path)
-                    passed = False
+            if not misc.test_file_writable(path):
+                logger.error('File "%s" = %s: file not writable.',
+                        attr, path)
+                passed = False
 
         def check_range(attr, mn = None, mx = None,
                 left_open = False, right_open = False):
@@ -287,10 +294,10 @@ class GOPCAConfig(object):
 
         # check if input files are strings
         # specification of gene ontology file is optional
-        check_type('expression_file', str)
-        check_type('go_annotation_file', str)
+        check_type('expression_file', (str, unicode))
+        check_type('go_annotation_file', (str, unicode))
         if self.gene_ontology_file is not None:
-            check_type('gene_ontology_file', str)
+            check_type('gene_ontology_file', (str, unicode))
 
         if test_if_input_exists:
             # check if input files exist
@@ -309,7 +316,7 @@ class GOPCAConfig(object):
             check_type('gene_ontology_file_hash', str)
 
         # check if output file is a string
-        check_type('output_file', str)
+        check_type('output_file', (str, unicode))
 
         if test_if_output_writable:
             # check if output files are writable

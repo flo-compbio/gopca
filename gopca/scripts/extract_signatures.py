@@ -43,9 +43,8 @@ sign = lambda x:int(math.copysign(1.0,x))
 
 def get_argument_parser():
 
-    prog = 'gopca_extract_signatures.py'
-    description = 'Extract GO-PCA signatures as tab-delimited text file.'
-    parser = cli.get_argument_parser(prog, description)
+    desc = 'Extract GO-PCA signatures as tab-delimited text file.'
+    parser = cli.get_argument_parser(desc = desc)
     cli.add_io_args(parser)
 
     return parser
@@ -63,8 +62,8 @@ def main(args=None):
 
     assert os.path.isfile(gopca_file)
 
-    output = util.read_gopca_output(gopca_file)
-    signatures = output.signatures
+    G = util.read_gopca_output(gopca_file)
+    signatures = G.signatures
 
     # sort signatures first by PC, then by fold enrichment
     signatures = sorted(signatures, 
