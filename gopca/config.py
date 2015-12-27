@@ -20,8 +20,11 @@
 
 import os
 import hashlib
+import codecs
 import logging
-#from ConfigParser import SafeConfigParser
+from collections import OrderedDict
+
+from configparser import ConfigParser
 
 import numpy as np
 
@@ -58,46 +61,51 @@ class GOPCAConfig(object):
     """
 
     ### static members
-    param_defaults = {
-        'sel_var_genes': 0, # do not apply variance filter
-        'n_components': 0, # determine # PCs automatically
-        'pval_thresh': 1e-6,
-        'sig_corr_thresh': 0.5,
-        'mHG_X_frac': 0.25,
-        'mHG_X_min': 5,
-        'mHG_L': 0, # will be set to int(0.125*p), where p is the number of genes
-        'escore_pval_thresh': 1e-4,
-        'escore_thresh': 2.0,
-        'no_local_filter': False,
-        'no_global_filter': False,
-        'pc_seed': 0,
-        'pc_permutations': 15, 
-        'pc_zscore_thresh': 2.0,
-        'pc_max': 0, # no limit on number of PCs to test
-        'go_part_of_cc_only': False,
-    }
+    param_defaults = OrderedDict([
+        ('sel_var_genes', 0), # do not apply variance filter
+        ('n_components', 0), # determine # PCs automatically
+        ('pval_thresh', 1e-6),
+        ('sig_corr_thresh', 0.5),
+        ('mHG_X_frac', 0.25),
+        ('mHG_X_min', 5),
+        ('mHG_L', 0), # will be set to int(0.125*p), where p is # genes
+        ('escore_pval_thresh', 1e-4),
+        ('escore_thresh', 2.0),
+        ('no_local_filter', False),
+        ('no_global_filter', False),
+        ('pc_seed', 0),
+        ('pc_permutations', 15), 
+        ('pc_zscore_thresh', 2.0),
+        ('pc_max', 0), # no limit on number of PCs to test
+        ('go_part_of_cc_only', False),
+    ])
     """GO-PCA parameter default values."""
 
-    input_file_param_names = set([
+    input_file_param_names = OrderedDict.fromkeys([
         'expression_file',
-        'go_annotation_file',
         'gene_ontology_file',
+        'go_annotation_file',
     ])
     """Names of all GO-PCA input file parameters."""
 
-    file_param_names = input_file_param_names | set(['output_file'])
-    """Names of all GO-PCA file parameters."""
-
-    hash_param_names = set([n + '_hash' for n in input_file_param_names])
+    hash_param_names = OrderedDict.fromkeys([n + '_hash'
+            for n in input_file_param_names])
     """Names of all GO-PCA file hash parameters."""
 
-    param_names = set(param_defaults.keys()) | file_param_names | \
-            hash_param_names
+    output_file_param_name = 'output_file'
+
+    file_param_names = OrderedDict.fromkeys(input_file_param_names.keys() +
+            [output_file_param_name])
+    """Names of all GO-PCA file parameters."""
+
+    param_names = OrderedDict.fromkeys(misc.flatten(
+            zip(input_file_param_names, hash_param_names)) +
+            [output_file_param_name] + param_defaults.keys())
     """Names of all GO-PCA parameters."""
     ### end static members
 
     def __init__(self, params = {}):
-        self.__params = {}
+        self.__params = OrderedDict()
         # first, set all parameters to their default values
         self.reset_params()
         # then, set specified parameters to the given values
@@ -108,7 +116,7 @@ class GOPCAConfig(object):
 
         Note: This function is only called for non-existing attributes.
         """
-        if name in GOPCAConfig.param_names:
+        if name in self.param_names:
             return self.__params[name]
         else:
             raise AttributeError('There is no GO-PCA parameter called "%s"!' \
@@ -149,7 +157,7 @@ class GOPCAConfig(object):
         bool
             Whether or not the parameter exists.
         """
-        return name in GOPCAConfig.param_names
+        return name in self.param_names
 
     def get_param(self, name):
         """Returns the value of a GO-PCA parameter.
@@ -196,7 +204,7 @@ class GOPCAConfig(object):
         value: ?
             The parameter value.
         """
-        if name not in GOPCAConfig.param_names:
+        if name not in self.param_names:
             raise ValueError('No GO-PCA parameter named "%s"!' %(param))
         self.__params[name] = value
 
@@ -217,8 +225,9 @@ class GOPCAConfig(object):
 
     def reset_params(self):
         """Reset all parameters to their default values."""
-        self.__params = dict([p, None] for p in GOPCAConfig.param_names)
-        self.set_params(GOPCAConfig.param_defaults)
+        self.__params = OrderedDict([p, None]
+                for p in self.param_names)
+        self.set_params(self.param_defaults)
 
     def check(self, test_if_input_exists = True,
                 test_if_output_writable = True):
@@ -369,16 +378,67 @@ class GOPCAConfig(object):
         """MD5 hash value for the current configuration."""
         data = []
         # ignore file names and contents in hash calculation
-        hash_params = sorted(GOPCAConfig.param_names -
-                GOPCAConfig.file_param_names)
+        hash_params = sorted(self.param_names - self.file_param_names)
         for p in hash_params:
            data.append(str(self.__params[p]))
         data_str = ','.join(data)
         logger.debug('Configuration data string: %s', data_str)
         return hashlib.md5(data_str).hexdigest()
 
-    def read_config_file(self, path):
-        raise NotImplemented
+    @classmethod
+    def read_config_file(cls, path):
+        """Reads GO-PCA configuration data form an INI-style text file.
 
-    def write_config_file(self, output_file):
-        raise NotImplemented
+        Parameters
+        ----------
+        path: str or unicode
+            The file path.
+
+        Returns
+        -------
+        `gopca.GOPCAConfig`
+            The GO-PCA configuration data.
+        """
+        params = {}
+        with codecs.open(path, 'rb', encoding = 'utf-8') as fh:
+            config = ConfigParser()
+            config.optionxform = lambda x: x
+            config.read_file(fh)
+            if 'GO-PCA' not in config:
+                logger.error('Config file has no [GO-PCA] section!')
+                return None
+            d = config['GO-PCA']
+            for p,v in d.iteritems():
+                if p in cls.param_defaults:
+                    t = type(cls.param_defaults[p])
+                    if t == bool:
+                        v = d.getboolean(p)
+                    elif t == float:
+                        v = d.getfloat(p)
+                    elif t == int:
+                        v = d.getint(p)
+                params[p] = v
+        return cls(params)
+
+    def write_config_file(self, path):
+        """Write configuration data to an INI-style text file.
+
+        Parameters
+        ----------
+        path: str or unicode
+            The file path
+
+        Returns
+        -------
+        None
+        """
+        config = ConfigParser()
+        config.optionxform = lambda x: x
+        config['GO-PCA'] = OrderedDict()
+        g = config['GO-PCA']
+        for p,v in self.__params.iteritems():
+            if v is not None:
+                g[p] = unicode(v)
+
+        with codecs.open(path, 'wb', encoding = 'utf-8') as ofh:
+            config.write(ofh)
