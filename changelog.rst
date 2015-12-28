@@ -19,6 +19,11 @@
 Changelog
 =========
 
+Version 1.1rc13
+---------------
+- Added support for INI-style GO-PCA configuration file ("go-pca.py -c ...")
+- Improved documentation of command-line pamaraters ("go-pca.py --help")
+
 Version 1.1rc12
 ---------------
 - Reorganized internal class structure (see `GOPCARun` in ``run.py``)

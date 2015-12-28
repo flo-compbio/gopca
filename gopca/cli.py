@@ -31,8 +31,7 @@ str_mv = '<str>'
 
 str_type = lambda s: unicode(s, sys.getfilesystemencoding())
 
-def get_argument_parser(prog = None, desc = None,
-        formatter_class = None):
+def get_argument_parser(prog = None, desc = None, formatter_class = None):
     """Create an argument parser.
 
     Parameters

@@ -63,12 +63,12 @@ class GOPCAConfig(object):
     ### static members
     param_defaults = OrderedDict([
         ('sel_var_genes', 0), # do not apply variance filter
-        ('n_components', 0), # determine # PCs automatically
+        ('n_components', -1), # determine # PCs using permutation test
         ('pval_thresh', 1e-6),
         ('sig_corr_thresh', 0.5),
         ('mHG_X_frac', 0.25),
         ('mHG_X_min', 5),
-        ('mHG_L', 0), # will be set to int(0.125*p), where p is # genes
+        ('mHG_L', -1), # will be set to p / 8, where p is # genes
         ('escore_pval_thresh', 1e-4),
         ('escore_thresh', 2.0),
         ('no_local_filter', False),
@@ -261,7 +261,7 @@ class GOPCAConfig(object):
             # check whether the specified file exists
             path = getattr(self, attr)
             if not os.path.isfile(path):
-                logger.error('File "%s" = %s: file does not exist. ',
+                logger.error('Parameter "%s" = %s: file does not exist.',
                         attr, path)
                 passed = False
 
@@ -269,7 +269,7 @@ class GOPCAConfig(object):
             # check whether the specified file is writable
             path = getattr(self, attr)
             if not misc.test_file_writable(path):
-                logger.error('File "%s" = %s: file not writable.',
+                logger.error('Parameter "%s" = %s: file not writable.',
                         attr, path)
                 passed = False
 
@@ -325,16 +325,16 @@ class GOPCAConfig(object):
                 self.gene_ontology_file_hash is not None:
             check_type('gene_ontology_file_hash', str)
 
-        # check if output file is a string
-        check_type('output_file', (str, unicode))
-
-        if test_if_output_writable:
-            # check if output files are writable
-            check_file_writable('output_file')
+        if self.output_file is not None:
+            # check if output file is a string
+            check_type('output_file', (str, unicode))
+            if test_if_output_writable:
+                # check if output files are writable
+                check_file_writable('output_file')
 
         # check types and ranges of GO-PCA parameters
         check_type('n_components', int)
-        check_range('n_components', 0)
+        check_range('n_components', -1)
 
         check_type('sel_var_genes', int)
         check_range('sel_var_genes', 0)
@@ -345,9 +345,8 @@ class GOPCAConfig(object):
         check_type('mHG_X_min', int)
         check_range('mHG_X_min', 0)
 
-        if self.mHG_L is not None:
-            check_type('mHG_L', int)
-            check_range('mHG_L', 0)
+        check_type('mHG_L', int)
+        check_range('mHG_L', -1)
 
         check_type('pval_thresh', (int, float))
         check_range('pval_thresh', 0, 1, left_open = True)
@@ -358,9 +357,9 @@ class GOPCAConfig(object):
         check_type('escore_thresh', (int, float))
         check_range('escore_thresh', 0)
 
-        if self.n_components == 0:
+        if self.n_components == -1:
             check_type('pc_seed', int)
-            check_range('pc_seed', 0, np.iinfo(np.uint32).max)
+            check_range('pc_seed', -1, np.iinfo(np.uint32).max)
 
             check_type('pc_permutations', int)
             check_range('pc_permutations', 0, left_open = True)
@@ -386,7 +385,7 @@ class GOPCAConfig(object):
         return hashlib.md5(data_str).hexdigest()
 
     @classmethod
-    def read_config_file(cls, path):
+    def read_config(cls, path):
         """Reads GO-PCA configuration data form an INI-style text file.
 
         Parameters
@@ -420,7 +419,7 @@ class GOPCAConfig(object):
                 params[p] = v
         return cls(params)
 
-    def write_config_file(self, path):
+    def write_config(self, path):
         """Write configuration data to an INI-style text file.
 
         Parameters

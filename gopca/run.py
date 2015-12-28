@@ -88,6 +88,5 @@ class GOPCARun(object):
         -------
         None
         """
-        logger.info('Writing GO-PCA run to pickle file "%s"...', path)
         with open(path, 'wb') as ofh:
             pickle.dump(self, ofh, pickle.HIGHEST_PROTOCOL)

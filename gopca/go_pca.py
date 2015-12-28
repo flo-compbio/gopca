@@ -64,23 +64,7 @@ class GOPCA(object):
     def __init__(self, config):
         # store configuration
         assert isinstance(config, GOPCAConfig)
-        self.__config = deepcopy(config)
-
-    def __getattr__(self,name):
-        """Custom attribute lookup function.
-
-        We use this function to simplify access to GO-PCA parameters, which are
-        stored in a `GOPCAConfig` object. Each (unknown) attribute name
-        starting with an underscore gets mapped to the `GOPCAConfig` attribute
-        of the same name, with the underscore removed.
-
-        For example, this allows us to write, ``self._expression_file`` instead
-        of ``self.__config.expression_file``.
-        """
-        # map attributes to parameters
-        if name[0] == '_' and self.has_param(name[1:]):
-            return getattr(self.__config,name[1:])
-        raise AttributeError
+        self.config = deepcopy(config)
 
     ### static methods
     @staticmethod
@@ -108,7 +92,6 @@ class GOPCA(object):
     def _read_expression(config):
         """Read expression data and perform variance filtering."""
 
-        logger.info('Reading expression data...')
         E = ExpMatrix.read_tsv(config.expression_file)
         # ExpMatrix constructor automatically sorts genes alphabetically
 
@@ -160,11 +143,6 @@ class GOPCA(object):
     @staticmethod
     def _read_gene_ontology(config):
         """Read the Gene Ontology data."""
-        if config.gene_ontology_file is None:
-            raise AttributeError('No ontology file provided!')
-
-        logger.info('Reading ontology...')
-        logger.debug('part_of_cc_only: %s', str(config.go_part_of_cc_only))
 
         p_logger = logging.getLogger(goparser.__name__)
         p_logger.setLevel(logging.ERROR)
@@ -178,7 +156,6 @@ class GOPCA(object):
     @staticmethod
     def _read_go_annotations(config):
         """Read the GO annotations."""
-        logger.info('Reading GO annotations...')
         go_annotations = util.read_go_annotations(config.go_annotation_file)
         return go_annotations
 
@@ -186,6 +163,7 @@ class GOPCA(object):
     def _estimate_n_components(config, X):
         """Estimate the number of non-trivial PCs using a permutation test."""
 
+        assert isinstance(config, GOPCAConfig)
         assert isinstance(X, np.ndarray) 
         logger.info('Estimating the number of principal components ' +
                 '(seed = %d)...', config.pc_seed)
@@ -424,10 +402,10 @@ class GOPCA(object):
 
     ### public functions
     def has_param(self, name):
-        return self.__config.has_param(name)
+        return self.config.has_param(name)
 
     def get_param(self, name):
-        return self.__config.get_param(name)
+        return self.config.get_param(name)
 
     def set_param(self, name, value):
         """Set a GO-PCA parameter.
@@ -443,7 +421,7 @@ class GOPCA(object):
         -------
         None
         """
-        self.__config.set_param(name, value)
+        self.config.set_param(name, value)
 
     def run(self):
         """Run GO-PCA.
@@ -459,16 +437,16 @@ class GOPCA(object):
         """
         t0 = time.time()
         # check the configuration
-        if not self.__config.check():
+        if not self.config.check():
             # problems with the configuration
-            return 1
+            return None
 
         # get the timestamp
         timestamp = str(datetime.datetime.utcnow())
         logger.info('Timestamp: %s', timestamp)
 
         # make a copy of the configuration
-        config = deepcopy(self.__config)
+        config = deepcopy(self.config)
 
         if config.gene_ontology_file is None and (not config.no_global_filter):
             # no ontology file => disable global filter
@@ -477,57 +455,76 @@ class GOPCA(object):
             config.set_param('no_global_filter', True)
 
         # read expression
+        logger.info('Reading expression data...')
         hashval = util.get_file_md5sum(config.expression_file)
-        if config.expression_file_hash is not None and \
-                config.expression_file_hash != hashval:
-            logging.error('MD5 hash of expression file does not match!')
-            return 1
+        logger.info('Expression file hash: %s', hashval)
+        if config.expression_file_hash is not None:
+            if config.expression_file_hash == hashval:
+                logging.info('MD5 hash of expression file matches specified value.')
+            else:
+                logging.error('MD5 hash of expression file does not match!')
+                return None
         else:
             config.set_param('expression_file_hash', hashval)
-        logger.info('Expression file hash: %s', config.expression_file_hash)
         E = self._read_expression(config)
 
-        # determine mHG_L, if 0 or None
-        if config.mHG_L is None:
-            # None = "default" value
-            config.set_param('mHG_L', int(len(E.genes)/8.0))
-        elif config.mHG_L == 0:
-            # 0 = "disabled"
-            config.set_param('mHG_L', len(E.genes))
-
         # read ontology
+        go_parser = None
         if config.gene_ontology_file is not None:
+            logger.info('Reading gene ontology...')
+            logger.debug('part_of_cc_only: %s', str(config.go_part_of_cc_only))
             hashval = util.get_file_md5sum(config.gene_ontology_file)
-            if config.gene_ontology_file_hash is not None and \
-                    config.gene_ontology_file_hash != hashval:
-                logging.error('MD5 hash of gene ontology file does not match!')
-                return 1
+            logger.info('Gene ontology file hash: %s', hashval)
+            if config.gene_ontology_file_hash is not None:
+                if config.gene_ontology_file_hash == hashval:
+                    logging.info('MD5 hash of gene ontology file matches specified value.')
+                else:
+                    logging.error('MD5 hash of gene ontology file does not match specified value!')
+                    return None
             else:
                 config.set_param('gene_ontology_file_hash', hashval)
-            logger.info('Gene ontology file hash: %s',
-                    config.gene_ontology_file_hash)
             go_parser = self._read_gene_ontology(config)
 
         # read GO annotations
+        logger.info('Reading GO annotations...')
         hashval = util.get_file_md5sum(config.go_annotation_file)
-        if config.go_annotation_file_hash is not None and \
-                config.go_annotation_file_hash != hashval:
-            logging.error('MD5 hash of GO annotation file does not match!')
-            return 1
+        logger.info('GO annotation file hash: %s', hashval)
+        if config.go_annotation_file_hash is not None:
+            if config.go_annotation_file_hash == hashval:
+                logging.info('MD5 hash of GO annotation file matches specified value.')
+            else:
+                logging.error('MD5 hash of GO annotation file does not match specified value!')
+                return None
         else:
             config.set_param('go_annotation_file_hash', hashval)
-        logger.info('GO annotation file hash: %s',
-                config.go_annotation_file_hash)
         go_annotations = self._read_go_annotations(config)
 
-        if config.n_components == 0:
+        # determine mHG_L, if -1 or 0
+        if config.mHG_L == -1:
+            # -1 = determine L automatically => p / 8
+            config.set_param('mHG_L', int(E.p / 8.0))
+        elif config.mHG_L == 0:
+            # 0 = "disable" effect of L => set it to p
+            config.set_param('mHG_L', E.p)
+
+        if config.n_components == -1:
             # estimate the number of non-trivial PCs using a permutation test
             self._estimate_n_components(config, E.X)
             if config.n_components == 0:
-                # no non-trivial PCs => abort
                 logger.error('The estimated number of non-trivial ' +
                         'principal components is zero!')
-                raise ValueError
+
+        else:
+            d_max = min(E.p, E.n - 1)
+            if config.n_components > d_max:
+                logger.error('The number of PCs to test was specified as ' +
+                        '%d, but the data only has %d PCs.',
+                        config.n_components, d_max)
+                return None
+
+        if config.n_components == 0:
+            logger.error('No principal components to test.')
+            return None
 
         logger.debug('-'*70)
         logger.debug('GO-PCA will be run with these parameters:')
@@ -546,8 +543,8 @@ class GOPCA(object):
         # output cumulative fraction explained for each PC
         frac = M_pca.explained_variance_ratio_
         cum_frac = np.cumsum(frac)
-        logger.info('Cumulative fraction of variance explained by the first %d PCs: %.1f%%', \
-                config.n_components, 100 * cum_frac[-1])
+        logger.info('Cumulative fraction of variance explained by the first ' +
+                '%d PCs: %.1f%%', config.n_components, 100 * cum_frac[-1])
 
         # generate signatures
         W = M_pca.components_.T
@@ -560,9 +557,9 @@ class GOPCA(object):
             logger.info('')
             logger.info('-'*70)
             logger.info('PC %d explains %.1f%% of the variance.',
-                    pc+1, 100*frac[pc])
+                    pc + 1, 100 * frac[pc])
             logger.info('The new cumulative fraction of variance explained ' +
-                    'is %.1f%%.', 100*var_expl)
+                    'is %.1f%%.', 100 * var_expl)
 
             signatures = []
             signatures_dsc = self._generate_pc_signatures(config, E.genes, E.X, M_enrich, W, pc+1)
@@ -586,16 +583,23 @@ class GOPCA(object):
 
         logger.info('')
         logger.info('='*70)
-        logger.info('GO-PCA generated %d signatures:', len(final_signatures))
+        logger.info('GO-PCA generated %d signatures.',
+                len(final_signatures))
+
         self.print_signatures(final_signatures)
 
         S = np.float64([util.get_signature_expression(E.genes, E.X, sig.genes)
                 for sig in final_signatures])
 
         result = GOPCAResult(config, E.genes, E.samples, W, Y, final_signatures, S)
-        run = GOPCARun(gopca.__version__, self.__config, timestamp, result)
+        run = GOPCARun(gopca.__version__, self.config, timestamp, result)
+
+        if config.output_file is not None:
+            logger.info('Storing GO-PCA run in file "%s"...',
+                    config.output_file)
+            run.write_pickle(config.output_file)
 
         t1 = time.time()
-        logger.info('Total GO-PCA runtime: %.2f s.', t1-t0)
+        logger.info('This GO-PCA run took %.2f s.', t1 - t0)
 
         return run
