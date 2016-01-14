@@ -71,12 +71,18 @@ class GOPCAResult(object):
 
         self.config = deepcopy(config)
 
-        self.genes = tuple(genes)
+        self.genes = None
+        if genes is not None:
+            self.genes = tuple(genes)
         self.samples = tuple(samples)
-        self.W = W.copy()
-        self.W.flags.writeable = False
-        self.Y = Y.copy()
-        self.Y.flags.writeable = False
+        self.W = None
+        if W is not None:
+            self.W = W.copy()
+            self.W.flags.writeable = False
+        self.Y = None
+        if Y is not None:
+            self.Y = Y.copy()
+            self.Y.flags.writeable = False
 
         self.signatures = tuple(signatures)
         self.S = S.copy()
@@ -109,8 +115,10 @@ class GOPCAResult(object):
         self.__dict__ = d
         # set "writeable" flag to False for all ndarrays, making them hashable
         # (value of writeable flag is not stored in the pickle)
-        self.W.flags.writeable = False
-        self.Y.flags.writeable = False
+        if self.W is not None:
+            self.W.flags.writeable = False
+        if self.Y is not None:
+            self.Y.flags.writeable = False
         self.S.flags.writeable = False
 
     @property

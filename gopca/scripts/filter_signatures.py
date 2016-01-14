@@ -28,18 +28,18 @@ import numpy as np
 from genometools import misc
 from gopca import util
 from gopca import cli
-from gopca import GOPCAOutput
+from gopca import GOPCAResult
 
 def get_argument_parser():
 
     desc ='Filter redundant GO-PCA signatures.'
-    parser = cli.get_argument_parser(description = desc)
+    parser = cli.get_argument_parser(desc = desc)
 
     g = parser.add_argument_group('Filtering options')
 
     cli.add_io_args(parser)
 
-    g.add_argument('--sig-filter-corr', type = float, required = True,
+    g.add_argument('-r', '--corr-thresh', type = float, required = True,
             metavar = cli.float_mv,
             help = textwrap.dedent("""\
                 Correlation threshold for filtering signatures
@@ -58,7 +58,7 @@ def main(args = None):
     gopca_file = args.gopca_file
     output_file = args.output_file
 
-    sig_filter_corr = args.sig_filter_corr
+    corr_thresh = args.corr_thresh
 
     log_file = args.log_file
     quiet = args.quiet
@@ -73,13 +73,13 @@ def main(args = None):
     signatures = G.signatures
     S = G.S
 
-    if sig_filter_corr < 1.0:
+    if corr_thresh < 1.0:
         q_before = G.q
-        signatures, S = util.filter_signatures(signatures, S, sig_filter_corr)
+        signatures, S = util.filter_signatures(signatures, S, corr_thresh)
         q = len(signatures)
         logger.info('Filtered %d / %d signatures.', q_before - q, q_before)
 
-    F = GOPCAOutput(G.genes, G.samples, G.W, G.Y, signatures, S)
+    F = GOPCAResult(G.config, G.genes, G.samples, G.W, G.Y, signatures, S)
     F.write_pickle(output_file)
 
     return 0

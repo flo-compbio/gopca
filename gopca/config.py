@@ -84,7 +84,7 @@ class GOPCAConfig(object):
     input_file_param_names = OrderedDict.fromkeys([
         'expression_file',
         'gene_ontology_file',
-        'go_annotation_file',
+        'gene_set_file',
     ])
     """Names of all GO-PCA input file parameters."""
 
@@ -177,7 +177,7 @@ class GOPCAConfig(object):
     def get_param_strings(self):
         d = []
         for k in sorted(self.__params.keys()):
-            d.append('%s=%s' %(k,str(self.__params[k])))
+            d.append(u'%s=%s' %(k, unicode(self.__params[k])))
         return d
 
     def get_dict(self):
@@ -305,22 +305,22 @@ class GOPCAConfig(object):
         # check if input files are strings
         # specification of gene ontology file is optional
         check_type('expression_file', (str, unicode))
-        check_type('go_annotation_file', (str, unicode))
+        check_type('gene_set_file', (str, unicode))
         if self.gene_ontology_file is not None:
             check_type('gene_ontology_file', (str, unicode))
 
         if test_if_input_exists:
             # check if input files exist
             check_file_exists('expression_file')
-            check_file_exists('go_annotation_file')
+            check_file_exists('gene_set_file')
             if self.gene_ontology_file is not None:
                 check_file_exists('gene_ontology_file')
             
         # check if hash values are strings
         if self.expression_file_hash is not None:
             check_type('expression_file_hash', str)
-        if self.go_annotation_file_hash is not None:
-            check_type('go_annotation_file_hash', str)
+        if self.gene_set_file_hash is not None:
+            check_type('gene_set_file_hash', str)
         if self.gene_ontology_file is not None and \
                 self.gene_ontology_file_hash is not None:
             check_type('gene_ontology_file_hash', str)

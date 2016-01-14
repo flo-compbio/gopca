@@ -99,13 +99,14 @@ setup(
             'gopca_extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
             'gopca_convert_to_matlab.py = gopca.scripts.convert_to_matlab:main',
             'gopca_filter_signatures.py = gopca.scripts.filter_signatures:main',
-            'gopca_combine_outputs.py = gopca.scripts.combine_outputs:main',
+            'gopca_combine_signatures.py = gopca.scripts.combine_signatures:main',
             'gopca_print_info.py = gopca.scripts.print_info:main',
 
             # plotting scripts
             'gopca_plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
             'gopca_plot_signature.py = gopca.plotting.plot_signature:main',
             'gopca_plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
+            'gopca_plot_pc_scores.py = gopca.plotting.plot_pc_scores:main',
         ],
     },
 )

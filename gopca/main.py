@@ -66,9 +66,9 @@ def get_argument_parser():
                 Tab-separated text file containing the gene expression matrix.
                 """))
 
-    g.add_argument('-a', '--go-annotation-file', type = str_type,
+    g.add_argument('-s', '--gene-set-file', type = str_type,
             metavar = file_mv, help = textwrap.dedent("""\
-                Tab-separated text file containing the GO term annotations.
+                Tab-separated text file containing the gene sets.
                 """))
 
     g.add_argument('-t', '--gene-ontology-file', required = False,
@@ -84,8 +84,8 @@ def get_argument_parser():
     g.add_argument('-he', '--expression-file-hash', metavar = str_mv,
             help = 'MD5 hash for the experssion file.')
 
-    g.add_argument('-ha', '--go-annotation-file-hash', metavar = str_mv,
-            help = 'MD5 hash for the GO annotation file.')
+    g.add_argument('-hs', '--gene-set-file-hash', metavar = str_mv,
+            help = 'MD5 hash for the gene set file.')
 
     g.add_argument('-ht', '--gene-ontology-file-hash', metavar = str_mv,
             help = 'MD5 hash for the gene ontology file.')
@@ -248,8 +248,8 @@ def main(args = None):
     if config.expression_file is None:
         logger.error('No expression file specified!')
         passed = False
-    if config.go_annotation_file is None:
-        logger.error('No GO annotation file specified!')
+    if config.gene_set_file is None:
+        logger.error('No gene set file specified!')
         passed = False
     if config.output_file is None:
         logger.error('No output file specified!')

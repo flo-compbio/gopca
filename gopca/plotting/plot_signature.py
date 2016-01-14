@@ -48,9 +48,14 @@ def get_argument_parser():
 
     g = cli.add_io_args(parser)
 
+    g = parser.add_argument_group('Signature options')
+
     g.add_argument('-n', '--sig-name', required = True,
             metavar = cli.name_mv,
             help = 'The name of the signature.')
+
+    g.add_argument('--no-standardization', action = 'store_true',
+            help = 'Do not standardize the expression values.')
 
     g = parser.add_argument_group('Layout options')
 
@@ -85,10 +90,13 @@ def main(args=None):
         parser = get_argument_parser()
         args = parser.parse_args()
 
-    # required arguments
+    # input/output
     gopca_file = args.gopca_file
-    sig_name = args.sig_name
     output_file = args.output_file
+
+    # signature
+    sig_name = args.sig_name
+    no_standardization = args.no_standardization
 
     # layout
     gene_label_size = args.gene_label_size
@@ -165,8 +173,12 @@ def main(args=None):
     sig_genes = [sig_genes[i] for i in order_rows]
     X = X[order_rows,:]
 
-    # standardize gene expression matrix
-    X_std = util.get_standardized_matrix(X)
+    if (not no_standardization):
+        # standardize gene expression matrix
+        X_std = util.get_standardized_matrix(X)
+    else:
+        # only center expression matrix
+        X_std = util.get_centered_matrix(X)
     # calculate signature label and expression
     include_id = not(hide_id)
     sig_label = sig.get_label(include_id = include_id)
@@ -224,7 +236,11 @@ def main(args=None):
             pad = cbar_pad, ticks = cbticks, use_gridspec = False,
             anchor = cbar_anchor)
     cb.ax.tick_params(labelsize = 'small')
-    cb.set_label('Standardized Expression',size = 'small')
+
+    if (not no_standardization):
+        cb.set_label('Standardized Expression',size = 'small')
+    else:
+        cb.set_label('Centered Expression', size = 'small')
     plt.suptitle(sig_label, va = 'top', y = title_pos)
 
     #plt.tight_layout()

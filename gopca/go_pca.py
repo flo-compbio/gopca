@@ -36,6 +36,7 @@ from scipy.stats import pearsonr
 import goparser
 from goparser import GOParser
 
+from genometools.basic import GeneSetDB
 from genometools.expression import ExpMatrix
 
 import gopca
@@ -154,10 +155,10 @@ class GOPCA(object):
         return P
 
     @staticmethod
-    def _read_go_annotations(config):
-        """Read the GO annotations."""
-        go_annotations = util.read_go_annotations(config.go_annotation_file)
-        return go_annotations
+    def _read_gene_sets(config):
+        """Read the gene sets."""
+         = util.read_go_annotations(config.go_annotation_file)
+        return g
 
     @staticmethod
     def _estimate_n_components(config, X):
@@ -485,26 +486,26 @@ class GOPCA(object):
                 config.set_param('gene_ontology_file_hash', hashval)
             go_parser = self._read_gene_ontology(config)
 
-        # read GO annotations
-        logger.info('Reading GO annotations...')
+        # read gene sets
+        logger.info('Reading gene sets...')
         hashval = util.get_file_md5sum(config.go_annotation_file)
-        logger.info('GO annotation file hash: %s', hashval)
-        if config.go_annotation_file_hash is not None:
-            if config.go_annotation_file_hash == hashval:
-                logging.info('MD5 hash of GO annotation file matches specified value.')
+        logger.info('Gene set file hash: %s', hashval)
+        if config.gene_set_file_hash is not None:
+            if config.gene_set_file_hash == hashval:
+                logging.info('MD5 hash of gene set file matches specified value.')
             else:
-                logging.error('MD5 hash of GO annotation file does not match specified value!')
+                logging.error('MD5 hash of gene set file does not match specified value!')
                 return None
         else:
-            config.set_param('go_annotation_file_hash', hashval)
-        go_annotations = self._read_go_annotations(config)
+            config.set_param('gene_set_file_hash', hashval)
+        D = GeneSetDB.read_tsv(config.gene_set_file)
 
         # determine mHG_L, if -1 or 0
         if config.mHG_L == -1:
             # -1 = determine L automatically => p / 8
             config.set_param('mHG_L', int(E.p / 8.0))
         elif config.mHG_L == 0:
-            # 0 = "disable" effect of L => set it to p
+            # 0 = "disable" effect of L => set it to the number of genes
             config.set_param('mHG_L', E.p)
 
         if config.n_components == -1:
@@ -532,10 +533,10 @@ class GOPCA(object):
             logger.debug(d)
         logger.debug('-'*70)
 
-        # create GOEnrichment object
-        M_enrich = GOEnrichmentAnalysis(E.genes, go_annotations)
+        # create GSEAnalysis object
+        M_enrich = GSEAnalysis(E.genome, D)
 
-        # perform PCA
+        # run PCA
         logger.info('Performing PCA...')
         M_pca = PCA(n_components = config.n_components)
         Y = M_pca.fit_transform(E.X.T)
