@@ -88,7 +88,7 @@ setup(
     entry_points={
         'console_scripts': [
             # pre-processing scripts
-            'gopca_extract_go_annotations.py = gopca.extract_go_annotations:main',
+            'gopca_extract_go_gene_sets.py = gopca.extract_go_gene_sets:main',
 
             # GO-PCA scripts
             'go-pca.py = gopca.main:main',

@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.7
+# -*- coding: utf-8 -*-
 
 # Copyright (c) 2015 Florian Wagner
 #
@@ -127,7 +128,7 @@ def main(args=None):
         #signature = sorted(G.signatures, 
 
     # generate labels
-    labels = [sig.get_label(include_id=False,max_name_length=sig_max_len) for sig in signatures]
+    labels = [unicode(sig.get_label(include_id=False,max_name_length=sig_max_len)) for sig in signatures]
     samples = G.samples
 
     # clustering of rows (signatures)
@@ -159,14 +160,21 @@ def main(args=None):
     #   ipython.magic('matplotlib inline')
 
     if use_tex:
-        rc('text', usetex=True)
+        rc('text', usetex = True)
+        rc('text.latex', unicode = True)
     rc('font', family = font_family, size = font_size)
+
     rc('figure', figsize = (fig_size[0], fig_size[1]))
     rc('savefig', dpi = fig_res)
 
     # plotting
     plt.imshow(S, interpolation='none', aspect='auto',
             vmin=vmin, vmax=vmax, cmap=cmap)
+
+    #from matplotlib import font_manager
+    #prop = font_manager.FontProperties(fname = '/usr/share/fonts/truetype/freefont/FreeSerif.ttf')
+    #plt.title(u'💩Hello', font_properties = prop, size = 32)
+    #plt.title(u'€Hello')
 
     plt.xticks(())
 
@@ -179,18 +187,18 @@ def main(args=None):
             pad = cbar_pad, ticks=cbticks, use_gridspec=False,
             anchor=cbar_anchor)
     cb.ax.tick_params(labelsize = 'small')
-    cb.set_label('Standardized Expression', size='small')
+    cb.set_label(u'Standardized Expression', size='small')
 
     q,n = S.shape
     if args.show_sample_labels:
         plt.xticks(np.arange(n), sample_labels, size='x-small', rotation = 30, ha = 'right')
-    plt.yticks(np.arange(q),labels,size='x-small')
-    plt.xlabel('Samples (n=%d)' %(n))
-    plt.ylabel('Signatures')
+    plt.yticks(np.arange(q), labels, size='x-small')
+    plt.xlabel(u'Samples (n=%d)' %(n))
+    plt.ylabel(u'Signatures')
 
-    logger.info('Saving to file...')
+    logger.info(u'Saving to file...')
     plt.savefig(output_file,bbox_inches='tight')
-    logger.info('Done!')
+    logger.info(u'Done!')
 
     return 0
 

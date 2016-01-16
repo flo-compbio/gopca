@@ -49,7 +49,7 @@ def combine_signatures(*results):
     G.Y = None
     for i, G_other in range(results[1:]):
         G.signatures = G.signatures + G_other.signatures
-        G.S = np.vstack(G.S, G_other.S])
+        G.S = np.vstack([G.S, G_other.S])
     return G
 
 def get_logger(name = '', log_stream = sys.stdout, log_file = None,

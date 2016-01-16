@@ -92,8 +92,9 @@ def main(args=None):
     if R is not None:
         print 'GO-PCA Run'
         print '----------'
-        print '- Version: %s' %(R.version)
+        print '- GO-PCA version: %s' %(R.version)
         print '- Timestamp: %s' %(R.timestamp)
+        print '- Exec. time: %.1f s' %(R.exec_time)
 
         if print_user_config:
             print '- User-provided config data:'

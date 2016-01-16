@@ -87,7 +87,7 @@ def main(args=None):
         S = S[:,order_cols]
         samples = [samples[j] for j in order_cols]
 
-    exp = ExpMatrix(labels, samples, S, preserve_gene_order=True)
+    exp = ExpMatrix(labels, samples, S)
     exp.write_tsv(output_file)
     logger.info('Wrote %d signatures to "%s".', len(signatures),output_file)
 

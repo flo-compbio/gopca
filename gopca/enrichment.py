@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -31,14 +31,14 @@ import logging
 import gzip
 import cPickle as pickle
 from math import ceil
-from collection import Iterable
+from collections import Iterable
 
 import numpy as np
 from scipy.stats import hypergeom
 
 from genometools import misc
 from genometools.basic import GeneSet, GeneSetDB
-from genometools.expression impot ExpGenome
+from genometools.expression import ExpGenome
 
 import xlmhg
 
@@ -65,27 +65,27 @@ class GSEResult(object):
     #Note: Change this so that it inherits from class mHGResult?
     #     (only additional attributes: term, genes).
 
-    def __init__(self, stat, pval, N, X, L, n, k_n,
+    # TO-DO: finish documentation
+
+    def __init__(self, n, stat, pval, N, X, L,
             indices, gene_set, genes):
 
+        assert isinstance(n, int)
         assert isinstance(stat, float)
         assert isinstance(pval, float)
         assert isinstance(N, int)
         assert isinstance(X, int)
         assert isinstance(L, int)
-        assert isinstance(n, int)
-        assert isinstance(k_n, int)
         assert isinstance(indices, Iterable)
         assert isinstance(gene_set, GeneSet)
         assert isinstance(genes, Iterable)
 
+        self.n = n
         self.stat = stat
         self.pval = pval
         self.N = N
         self.X = X # XL-mHG "X" parameter
         self.L = L # XL-mHG "L" parameter
-        self.n = n
-        self.k_n = k_n
 
         self.indices = np.int32(indices).copy()
         self.indices.flags.writeable = False # makes it hashable
@@ -107,38 +107,39 @@ class GSEResult(object):
 
     def __hash__(self):
         data = []
+        data.append(self.n)
         data.append(self.stat)
         data.append(self.pval)
         data.append(self.N)
         data.append(self.X)
         data.append(self.L)
-        data.append(self.indices)
+        data.append(self.indices.data)
         data.append(self.gene_set)
         data.append(self.genes)
-        return hash(repr(self))
+        return hash(tuple(data))
 
     def __eq__(self, other):
-        if type(self) != type(other):
-            return False
-        elif repr(self) == repr(other):
+        if self is other:
             return True
-        else:
+        elif type(self) != type(other):
             return False
+        else:
+            return repr(self) == repr(other)
 
     def __ne__(self, other):
-        return (self == other)
+        return not (self == other)
 
     def __setstate__(self, d):
         self.__dict__ = d
         self.indices.flags.writeable = False
 
     @property
-    def gene_set_id(self):
-        return self.gene_set.id
-
-    @property
     def K(self):
         return self.indices.size
+
+    @property
+    def k_n(self):
+        return int(np.sum(self.indices < self.n))
 
     def calculate_escore(self, pval_thresh):
         """ Calculate XL-mHG E-score.  """
@@ -146,7 +147,7 @@ class GSEResult(object):
         K = self.K
         X = self.X
         L = self.L
-        ranks = self.ranks
+        indices = self.indices
         
         if K == 0 or L == N or K < X:
             return 0
@@ -243,7 +244,7 @@ class GSEAnalysis(object):
         # generate annotation matrix by going over all gene sets
         logger.info('Generating gene x GO term matrix...')
         self.A = np.zeros((genome.p, gene_set_db.n), dtype = np.uint8)
-        for j, gs in enumerate(db.gene_sets):
+        for j, gs in enumerate(self.gene_set_db.gene_sets):
             for g in gs.genes:
                 try:
                     idx = self.genome.index(g)
@@ -270,11 +271,11 @@ class GSEAnalysis(object):
         for g in ranked_genes:
             assert isinstance(g, (str, unicode))
         assert isinstance(pval_thresh, float)
-        assert isinstance(X_frac, int)
+        assert isinstance(X_frac, float)
         assert isinstance(X_min, int)
         assert isinstance(L, int)
 
-        if escore_pval_thersh is not None:
+        if escore_pval_thresh is not None:
             assert isinstance(escore_pval_thresh, float)
         if gene_set_ids is not None:
             assert isinstance(gene_set_ids, Iterable)
@@ -345,10 +346,10 @@ class GSEAnalysis(object):
                     # check if gene set is significantly enriched
                     if pval <= pval_thresh:
                         # generate GSEResult
-                        sel = np.nonzero(A[:,j])[0] # ranks of all the 1's
+                        sel = np.nonzero(A[:,j])[0] # indices of all the 1's
                         k_n = np.sum(sel < n) 
                         sel_genes = [ranked_genes[i] for i in sel]
-                        result = GSEResult(stat, pval, N, X, L, n, k_n, sel,
+                        result = GSEResult(n, stat, pval, N, X, L, sel, \
                                 gene_set_db[j], sel_genes)
                         enriched.append(result)
 
@@ -359,7 +360,7 @@ class GSEAnalysis(object):
             result.calculate_escore(escore_pval_thresh)
 
         # report results
-        q = len(enriched_terms)
+        q = len(enriched)
         ignored = m - tested
         if ignored > 0:
             logger.debug('%d / %d gene sets (%.1f%%) had less than X genes ' +

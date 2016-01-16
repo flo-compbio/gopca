@@ -145,15 +145,15 @@ def main(args=None):
 
     # find signature selected
     signatures = G.signatures
-    term_ids = set([sig.term[0] for sig in signatures])
+    gene_set_ids = set([s.gene_set.id for s in signatures])
     sig = None
-    if sig_name in term_ids:
-        sig = [s for s in signatures if s.term[0] == sig_name]
+    if sig_name in gene_set_ids:
+        sig = [s for s in signatures if s.gene_set.id == sig_name]
         assert len(sig) == 1
         sig = sig[0]
     else:
         sig = [s for s in signatures
-                if s.term[3].lower().startswith(sig_name.lower())]
+                if s.gene_set.name.lower().startswith(sig_name.lower())]
         if len(sig) == 0:
             logger.error('Error: signature name "%s" not found.', sig_name)
             return 1

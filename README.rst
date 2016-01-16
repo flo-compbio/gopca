@@ -68,7 +68,7 @@ __ email_
 How to Cite GO-PCA
 ------------------
 
-If you use GO-PCA in your research, please cite `Wagner (PLOS ONE, 2015)`__
+If you use GO-PCA in your research, please cite `Wagner (PLoS One, 2015)`__
 
 __ wagner_pone_
 

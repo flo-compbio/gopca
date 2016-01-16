@@ -33,7 +33,7 @@ from genometools import misc
 logger = logging.getLogger(__name__)
 
 class GOPCAConfig(object):
-    """GO-PCA configuration class.
+    """GO-PCA configuration data.
 
     GO-PCA configuration data consists of GO-PCA parameter values and the paths
     (names) of the input and output files. (Internally, the paths of the input
@@ -41,11 +41,10 @@ class GOPCAConfig(object):
 
     GO-PCA parameters can be specified upon class instantiation, or at a later
     time --- using the `set_param` and `set_params` functions. Parameters are
-    exposed as virtual attributes of the class, using the `__getattr__` magic.
+    exposed as virtual class attributes (using the `__getattr__` magic).
 
     The class also supports reading and writing of INI-style configuration
     files (see `read_config_file` and `write_config_file`).
-    [Not yet implemented!]
 
     Parameters
     ----------
@@ -247,7 +246,7 @@ class GOPCAConfig(object):
 
         """
 
-        passed = True
+        passed = [True]
 
         def check_type(attr, types):
             # checks whether the parameter has a certain type
@@ -255,7 +254,7 @@ class GOPCAConfig(object):
             if not isinstance(val, types):
                 logger.error('Parameter "%s" = %s: invalid type ' +
                         '(should be %s).', attr, val, str(types))
-                passed = False
+                passed[0] = False
 
         def check_file_exists(attr):
             # check whether the specified file exists
@@ -263,7 +262,7 @@ class GOPCAConfig(object):
             if not os.path.isfile(path):
                 logger.error('Parameter "%s" = %s: file does not exist.',
                         attr, path)
-                passed = False
+                passed[0] = False
 
         def check_file_writable(attr):
             # check whether the specified file is writable
@@ -271,7 +270,7 @@ class GOPCAConfig(object):
             if not misc.test_file_writable(path):
                 logger.error('Parameter "%s" = %s: file not writable.',
                         attr, path)
-                passed = False
+                passed[0] = False
 
         def check_range(attr, mn = None, mx = None,
                 left_open = False, right_open = False):
@@ -300,7 +299,7 @@ class GOPCAConfig(object):
                 logger.error('Parameter "%s" = %s: out of range ' +
                         '(should be %s %s %s).',
                         attr, val, left_rel, attr, right_rel)
-                passed = False
+                passed[0] = False
 
         # check if input files are strings
         # specification of gene ontology file is optional
@@ -370,7 +369,7 @@ class GOPCAConfig(object):
             check_range('pc_max', 0, np.iinfo(np.uint32).max)
 
         #check(isinstance(self.go_part_of_cc_only, bool))
-        return passed
+        return passed[0]
 
     @property
     def hash(self):
