@@ -25,7 +25,6 @@ Contents
 .. toctree::
     :maxdepth: 2
 
-    Home <self>
     Introduction <intro>
     Getting Started <getting_started>
     License <license>
@@ -34,6 +33,7 @@ Contents
     License <license>
 
 ..  intro
+    Home <self>
     tutorial
     Modules <modules>
     autodoc
