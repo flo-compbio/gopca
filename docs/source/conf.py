@@ -71,7 +71,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'GO-PCA'
-copyright = u'2015, Florian Wagner'
+copyright = u'2015, 2016 Florian Wagner'
 author = u'Florian Wagner'
 
 # The version info for the project you're documenting, acts as replacement for

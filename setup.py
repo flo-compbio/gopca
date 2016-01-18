@@ -70,7 +70,7 @@ setup(
             'setuptools', 'networkx', 'xlsxwriter >= 0.7.7',
             'configparser >= 3.2',
             'numpy', 'scipy', 'cython', 'scikit-learn', 'matplotlib',
-            'genometools >= 1.2rc4', 'goparser >= 1.1', 'xlmhg >= 1.1rc3'
+            'genometools >= 1.2rc5', 'goparser >= 1.1.3', 'xlmhg >= 1.1rc3'
     ],
 
     extras_require={

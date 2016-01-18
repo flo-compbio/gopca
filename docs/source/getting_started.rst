@@ -1,11 +1,42 @@
 Getting Started
 ===============
 
-GO-PCA is available as Python package from PyPI and has been tested under both Ubuntu Linux and Windows.
+Installation
+------------
 
-.. toctree::
-    :maxdepth: 2
+GO-PCA is availble in two versions: The latest official release, and the current development version. The official release is more stable, but the development version might contain some features that haven't made it into an official release yet.
 
-    Installation <install>
-    Preparing GO annotations <go_annotations.rst>
-    Running GO-PCA <running>
+Installing the latest GO-PCA release
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The latest GO-PCA release can be found on `PyPI`__, the Python package Index.
+
+__ pypi_
+
+The recommended installation procedure for GO-PCA differs slightly, depending
+on whether you use a Windows, Linux, or OS X operating system:
+
+- `Installation on Windows <install_windows>`
+- `Installation on Ubuntu Linux <install_ubuntu>`
+- `Installation on OS X <install_osx>`
+
+
+.. _pypi: https://pypi.python.org/pypi/gopca
+
+Installing the development version of GO-PCA
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The recommended installation procedures for the development version of GO-PCA
+are identical to those for the latest release, except for the last step.
+Instead of installing GO-PCA from PyPI, check out or download the `"develop"
+branch`__ of the GO-PCA GitHub repository, and then run (on Ubuntu):
+
+.. code-block:: bash
+
+    $(env) cd gopca
+    $(env) pip install -e .
+
+
+__ develop_
+
+.. _develop: https://github.com/flo-compbio/gopca/tree/develop
