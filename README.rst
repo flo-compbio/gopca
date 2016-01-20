@@ -44,7 +44,7 @@ __ go_enrich_
 Links
 -----
 
-- `Demos <https://github.com/flo-compbio/gopca-demo>`_
+- `Demos <https://github.com/flo-compbio/gopca-demos>`_
 - `Documentation <https://gopca.readthedocs.org/en/latest>`_
 - `PLoS One paper <https://dx.doi.org/10.1371/journal.pone.0143196>`_
 
