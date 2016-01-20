@@ -39,11 +39,11 @@ from genometools import misc
 from gopca import util
 from gopca import cli
 
-sign = lambda x:int(math.copysign(1.0,x))
+sign = lambda x:int(math.copysign(1.0, x))
 
 def get_argument_parser():
 
-    desc = 'Extract GO-PCA signatures as tab-delimited text file.'
+    desc = 'Extract GO-PCA signatures as a tab-delimited text file.'
     parser = cli.get_argument_parser(desc = desc)
     cli.add_io_args(parser)
 

@@ -21,11 +21,13 @@
 
 import sys
 import argparse
+import logging
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
 
+from genometools import expression
 from genometools import misc
 from genometools.expression import ExpMatrix
 from gopca import util
@@ -43,7 +45,7 @@ def get_argument_parser():
 
     return parser
 
-def main(args=None):
+def main(args = None):
 
     if args is None:
         parser = get_argument_parser()
@@ -87,9 +89,13 @@ def main(args=None):
         S = S[:,order_cols]
         samples = [samples[j] for j in order_cols]
 
+    exp_logger = logging.getLogger(expression.__name__)
     exp = ExpMatrix(labels, samples, S)
+    exp_logger.setLevel(logging.WARNING)
     exp.write_tsv(output_file)
-    logger.info('Wrote %d signatures to "%s".', len(signatures),output_file)
+    exp_logger.setLevel(logging.NOTSET)
+    logger.info('Wrote matrix with %d signatures and %d samples to "%s".',
+            len(signatures), len(samples), output_file)
 
     return 0
 

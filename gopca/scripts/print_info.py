@@ -104,6 +104,8 @@ def main(args=None):
 
     print 'GO-PCA Result'
     print '-------------'
+    print '- Config MD5 hash: %s' %(G.config.get_hash())
+    print '- Result MD5 hash: %s' %(G.get_hash())
     print '- Expression data: %d genes, %d samples' %(G.p, G.n)
     print '- Number of PCs tested: %d' %(G.D)
     print '- Number of signatures generated: %d' %(G.q)

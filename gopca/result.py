@@ -34,7 +34,7 @@ class GOPCAResult(object):
     Parameters
     ----------
     config: `GOPCAConfig`
-        The GO-PCA configuration data.
+        The GO-PCA configuration used.
     genes: tuple or list
         The list of genes (gene symbols) in the analysis.
     samples: tuple or list
@@ -99,6 +99,17 @@ class GOPCAResult(object):
         return '<GOPCAReult with %d signatures (%s)>' \
                 %(self.q, param_str)
 
+    def __eq__(self, other):
+        if self is other:
+            return True
+        elif type(self) != type(other):
+            return False
+        else:
+            return repr(self) == repr(other)
+
+    def __ne__(self, other):
+        return not (self == other)
+
     def __hash__(self):
         # internal hash function
         data = []
@@ -121,9 +132,10 @@ class GOPCAResult(object):
             self.Y.flags.writeable = False
         self.S.flags.writeable = False
 
-    @property
-    def hash(self):
-        """Calculates an MD5 hash value for the GO-PCA output.
+    def get_hash(self):
+        """Calculate MD5 hash value for the result.
+
+        The configuration data is excluded from the hash value calculation.
 
         Parameters
         ----------
@@ -132,10 +144,9 @@ class GOPCAResult(object):
         Returns
         -------
         str
-            MD5 hash as a hex string.
+            The MD5 hash value (as hex string).
         """
         data = []
-        data.append(hash(self.config))
         data.append(hash(self.signatures))
         data.append(hash(self.samples))
         data.append(hash(self.S.data))

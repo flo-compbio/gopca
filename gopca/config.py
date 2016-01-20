@@ -54,9 +54,6 @@ class GOPCAConfig(object):
     Attributes
     ----------
     hash: int (property)
-        MD5 hash value uniquely identifying the current configuration. The
-        paths of the input and output files are excluded from the hash value
-        calculation.
     """
 
     ### static members
@@ -371,12 +368,25 @@ class GOPCAConfig(object):
         #check(isinstance(self.go_part_of_cc_only, bool))
         return passed[0]
 
-    @property
-    def hash(self):
-        """MD5 hash value for the current configuration."""
+    def get_hash(self):
+        """Calculate MD5 hash value for the configuration.
+
+        The paths of the input and output files are excluded from the hash
+        value calculation.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            The MD5 hash value (as hex string).
+        """
         data = []
         # ignore file names and contents in hash calculation
-        hash_params = sorted(self.param_names - self.file_param_names)
+        hash_params = [n for n in self.param_names.keys()
+                if n not in self.file_param_names]
         for p in hash_params:
            data.append(str(self.__params[p]))
         data_str = ','.join(data)

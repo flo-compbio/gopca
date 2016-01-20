@@ -21,8 +21,16 @@ Changelog
 
 Version 1.1rc13
 ---------------
+- Restructured the documentation (work still ongoing).
+- The "GO annotation file" is now more accurately being referred to as
+  "gene set file"
+- Modified file format for supplying gene sets (added a "description" column)
+- GO-PCA is intended to work with arbitrary gene sets, and the code now
+  reflects this as well (parameter names, variable names, etc.)
 - Added support for INI-style GO-PCA configuration file ("go-pca.py -c ...")
 - Improved documentation of command-line pamaraters ("go-pca.py --help")
+- Improved support for config and result MD5 hash values
+  (they are now shown by "gopca_print_info.py")
 
 Version 1.1rc12
 ---------------
