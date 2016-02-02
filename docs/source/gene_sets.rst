@@ -1,7 +1,7 @@
 Obtaining a Gene Set File
 =========================
 
-Besides a gene expression matrix (see `Running GO-PCA<running>`_), GO-PCA requires a list of gene sets, typically defined based on Gene Ontology (GO) annotations. Up-to-date, high-quality GO-based gene set files for multiple species are `availble for download`__. The rest of this section describes the gene set file format used by GO-PCA. It is only important to understand this format if you want to use GO-PCA with a customized list of gene sets.
+Besides a gene expression matrix (see `Running GO-PCA<running>`_), GO-PCA requires a list of gene sets, typically defined based on Gene Ontology (GO) annotations. Up-to-date, high-quality GO-based gene set files for multiple species are `available for download`__. The rest of this section describes the gene set file format used by GO-PCA. It is only important to understand this format if you want to use GO-PCA with a customized list of gene sets.
 
 __ gene_sets_
 

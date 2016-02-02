@@ -29,6 +29,7 @@ Contents
 
     Introduction <intro>
     Installation <install>
+    Obtaining a Gene Set File <gene_sets>
     Running GO-PCA <running>
     License <license>
 
