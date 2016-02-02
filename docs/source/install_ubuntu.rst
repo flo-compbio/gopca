@@ -10,6 +10,7 @@ In a terminal window:
         $ python2.7 -V
         Python 2.7.6
     
+
     Ubuntu 14.04 (trusty) currently has Python version 2.7.6, but any Python 2.7 release should work.
 
 2. Install GO-PCA dependencies: (pip, Cython, NumPy, scikit-learn, Matplotlib, and sphinx for building this documentation locally):

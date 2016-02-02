@@ -29,6 +29,7 @@ Contents
 
     Introduction <intro>
     Installation <install>
+    Running GO-PCA <running>
     License <license>
 
 .. GO-PCA Demos <demos>
