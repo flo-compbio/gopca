@@ -46,6 +46,7 @@ Links
 
 - `Demos <https://github.com/flo-compbio/gopca-demos>`_
 - `Documentation <https://gopca.readthedocs.org/en/latest>`_
+- `Download of GO-derived gene sets <https://www.dropbox.com/sh/m0r7uqnfdr5x0xu/AADqqJ-8VzPchBRhDm50QxWaa?dl=0>`_
 - `PLoS One paper <https://dx.doi.org/10.1371/journal.pone.0143196>`_
 
 Support and Development

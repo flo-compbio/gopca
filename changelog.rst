@@ -1,5 +1,5 @@
 ..
-    Copyright (c) 2015 Florian Wagner
+    Copyright (c) 2015, 2016 Florian Wagner
     
     This file is part of GO-PCA.
     
@@ -19,8 +19,8 @@
 Changelog
 =========
 
-Version 1.1rc13
----------------
+Version 1.1.0 (2016-02-02)
+--------------------------
 - Restructured the documentation (work still ongoing).
 - The "GO annotation file" is now more accurately being referred to as
   "gene set file"
