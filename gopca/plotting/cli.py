@@ -108,4 +108,7 @@ def add_heatmap_args(parser):
             metavar = '<float>',
             help = 'The colorbar ticks.')
 
+    g.add_argument('--show-sample-labels', action = 'store_true',
+        help = 'Show sample labels.')
+
     return g

@@ -582,6 +582,7 @@ class GOPCA(object):
         logger.info('GO-PCA generated %d signatures.',
                 len(final_signatures))
 
+        # sort signatures?
         self.print_signatures(final_signatures)
 
         S = np.float64([util.get_signature_expression(E.genes, E.X, sig.genes)

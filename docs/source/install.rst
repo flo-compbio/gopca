@@ -1,88 +1,42 @@
 Installation
 ============
 
-List of Dependencies
---------------------
+Choosing a version
+------------------
 
-GO-PCA is implemented in Python 2.7, and directly depends on the following third-party Python packages:
+GO-PCA is available in two versions: The latest official release (``latest``), and the current development version (``develop``). The official release is more stable, but the development version might contain some features that haven't made it into an official release yet.
 
-- Cython
-- NumPy
-- scikit-learn (which in turn depends on SciPy)
-- matplotlib
-- sphinx (for documentation)
+Installing the latest GO-PCA release
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Both Ubuntu Linux and Windows offer convenient options for automatically satisfying these dependencies. GO-PCA further depends on three Python packages developed by me:
+The latest GO-PCA release can be `found on PyPI`__, the Python package Index.
 
-- genometools
-- goparser
-- xlmhg
+__ pypi_
 
-These packages are available from the `Python Package Index <https://pypi.python.org/pypi>`_, and can be installed using pip, the Python package manager.
+The recommended installation procedure for GO-PCA differs slightly, depending
+on whether you use a Windows, Linux, or OS X operating system:
 
-The following sections provide detailed instructions for installing GO-PCA and its dependencies on both Ubuntu Linux and Microsoft Windows.
-
-Installation Instructions for Ubuntu Linux
--------------------------------------------
-
-In a terminal window:
-
-1. Make sure you have Python 2.7 installed:
-    
-    .. code-block:: bash
-        
-        $ python2.7 -V
-        Python 2.7.6
-    
-    Ubuntu 14.04 (trusty) currently has Python version 2.7.6, but any Python 2.7 release should work.
-
-2. Install GO-PCA dependencies: (pip, Cython, NumPy, scikit-learn, Matplotlib, and sphinx for building this documentation locally):
-    
-    .. code-block:: bash
-    
-        $ sudo apt-get install python-pip cython python-numpy python-matplotlib python-scikits-learn ipython ipython-notebook
-
-.. "3. Make sure the Ubuntu package python-sphinx is *not* installed:
-    
-    .. code-block:: bash
-    
-        $ sudo apt-get remove python-sphinx
-    
-    (The reason the package needs to be uninstalled is that it is an older version that conflicts with the version required by GO-PCA.)
-
-4. Install the xlmhg python package using pip:
-
-    .. code-block:: bash
-    
-        $ sudo pip install xlmhg
-
-5. Install GO-PCA using pip (including all remaining dependencies):
-    
-    .. code-block:: bash
-    
-        $ sudo pip install gopca
+- `Installation on Windows <install_windows>`
+- `Installation on Ubuntu Linux <install_ubuntu>`
+- ``Installation on OS X`` (to-do! Install Anaconda, as for Windows. => Which C compiler?)
 
 
-Installation Instructions for Microsoft Windows
------------------------------------------------
+.. _pypi: https://pypi.python.org/pypi/gopca
 
-1. `Download`__ and install the "Anaconda" Python distribution (if you haven't already). This distribution includes all third-party packages required by GO-PCA.
+Installing the development version of GO-PCA
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-__ anaconda_
-.. _anaconda: http://continuum.io/downloads
+The recommended installation procedures for the development version of GO-PCA
+are identical to those for the latest release, except for the last step.
+Instead of installing GO-PCA from PyPI, check out or download the `"develop"
+branch`__ of the GO-PCA GitHub repository, and then run (on Ubuntu):
 
-2. `Download <http://www.microsoft.com/en-us/download/details.aspx?id=44266>`_ and install the Microsoft Visual C++ Compiler for Python 2.7. This compiler is required for installing the xlmhg python package (Step 3).
+.. code-block:: bash
 
-Then, on the command line (Start -> Run -> "cmd"):
+    $(env) cd gopca
+    $(env) pip install -e .
 
-3. Install the xlmhg python package using pip:
-    
-    .. code-block:: bat
-    
-        > pip install xlmhg
 
-4. Install GO-PCA using pip (including all remaining dependencies):
-    
-    .. code-block:: bat
-    
-        > pip install gopca
+__ develop_
+
+.. _develop: https://github.com/flo-compbio/gopca/tree/develop

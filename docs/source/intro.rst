@@ -4,12 +4,6 @@ Introduction
 What is GO-PCA?
 ---------------
 
-.. figure:: /_static/gopca.png
-    :width: 400 px
-    :align: right
-    
-    Detail from a GO-PCA *signature plot*.
-
 GO-PCA is an unsupervised method to explore gene expression data using prior
 knowledge. Briefly, GO-PCA combines `principal component analysis (PCA)`__
 with `nonparametric GO enrichment analysis`__ in order to define

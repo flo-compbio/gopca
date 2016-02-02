@@ -18,6 +18,7 @@
 """
 
 import os
+import io
 import sys
 import argparse
 import copy
@@ -158,7 +159,7 @@ def get_file_md5sum(path, mode = 'rb'):
         MD5 hash of file content, represented as a 32-digit hex string.
     """
     digest = None
-    with open(path, mode = mode) as fh:
+    with io.open(path, mode = mode) as fh:
         digest = hashlib.md5(fh.read()).hexdigest()
     return digest
     
@@ -249,7 +250,7 @@ def variance_filter(genes, E, top):
 def read_gopca_result(path):
     """Read GO-PCA result from pickle."""
     G = None
-    with open(path, 'rb') as fh:
+    with io.open(path, 'rb') as fh:
         G = pickle.load(fh)
     if isinstance(G, gopca.GOPCARun):
         G = G.result
@@ -258,7 +259,7 @@ def read_gopca_result(path):
 
 def read_go_annotations(fn):
     ann = {}
-    with open(fn, 'rb') as fh:
+    with io.open(fn, 'rb') as fh:
         reader = csv.reader(fh, dialect='excel-tab')
         for l in reader:
             ann[tuple(l[:4])] = l[4].split(',')

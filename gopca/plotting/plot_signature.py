@@ -142,6 +142,7 @@ def main(args=None):
 
     # read GO-PCA output
     G = util.read_gopca_result(gopca_file)
+    samples = G.samples
 
     # find signature selected
     signatures = G.signatures
@@ -152,15 +153,16 @@ def main(args=None):
         assert len(sig) == 1
         sig = sig[0]
     else:
+        #for s in signatures:
+        #    logger.info(s.gene_set.name.lower())
         sig = [s for s in signatures
                 if s.gene_set.name.lower().startswith(sig_name.lower())]
         if len(sig) == 0:
-            logger.error('Error: signature name "%s" not found.', sig_name)
+            logger.error('Signature name "%s" not found.', sig_name)
             return 1
         elif len(sig) > 1:
-            logger.error('Error: signature name not unique, matched: %s',
-                    ', '.join([s.term[3] for s in sig]))
-            return 1
+            logger.warning('Signature name not unique, matched: %s',
+                    ', '.join([s.gene_set.name for s in sig]))
         sig = sig[0]
 
     # get signature gene expression matrix and cluster rows
@@ -190,11 +192,13 @@ def main(args=None):
     #    a = a[::-1]
     #    sig_expr = sig_expr[a]
     #    E_std = E_std[:,a]
+    sample_labels = samples
     if (not sample_no_clustering):
         S = G.S
         order_cols = util.cluster_samples(S, metric = sample_cluster_metric)
         sig_expr = sig_expr[order_cols]
         X_std = X_std[:,order_cols]
+        sample_labels = [sample_labels[j] for j in order_cols]
 
     # plotting
     logger.info('Plotting...')
@@ -224,14 +228,19 @@ def main(args=None):
     plt.sca(ax)
     plt.imshow(X_std, interpolation='none', aspect='auto',
             vmin = vmin, vmax = vmax, cmap = cmap)
+    q, n = S.shape
+    plt.xticks(())
+    if args.show_sample_labels:
+        plt.xticks(np.arange(n), sample_labels, size = 'x-small', rotation = 30, ha = 'right')
     plt.yticks(np.arange(len(sig_genes)), sig_genes , size = gene_label_size)
     plt.xlabel('Samples')
     plt.ylabel('Genes')
-    plt.xticks(())
 
     minint = int(vmin)
     maxint = int(vmax)
     cbticks = np.arange(minint, maxint + 0.01, 1.0)
+    if args.show_sample_labels:
+        cbar_pad += 0.1
     cb = plt.colorbar(orientation = cbar_orient, shrink = cbar_scale,
             pad = cbar_pad, ticks = cbticks, use_gridspec = False,
             anchor = cbar_anchor)

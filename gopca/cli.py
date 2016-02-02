@@ -186,7 +186,4 @@ def add_sample_args(parser):
             metavar = name_mv, help = textwrap.dedent("""\
                 The metric used in the hierarchical clustering algorithm."""))
 
-    g.add_argument('--show-sample-labels', action = 'store_true',
-            help = 'Show sample labels.')
-
     return g

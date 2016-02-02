@@ -3,9 +3,11 @@ GO-PCA |version| User Manual
 
 .. "**Exploring Gene Expression Data Using Prior Knowledge**
 
-.. "image:: /_static/gopca.png
-    :width: 500 px
+.. figure:: /_static/gopca.png
+    :width: 400 px
     :align: right
+    
+    Detail from a GO-PCA *signature plot*.
 
 GO-PCA (`Wagner, 2015`__) is an unsupervised method to **explore gene
 expression data using prior knowledge**.
@@ -26,7 +28,7 @@ Contents
     :maxdepth: 2
 
     Introduction <intro>
-    Getting Started <getting_started>
+    Installation <install>
     License <license>
 
 .. GO-PCA Demos <demos>

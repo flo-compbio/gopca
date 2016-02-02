@@ -163,7 +163,6 @@ def main(args=None):
         rc('text', usetex = True)
         rc('text.latex', unicode = True)
     rc('font', family = font_family, size = font_size)
-
     rc('figure', figsize = (fig_size[0], fig_size[1]))
     rc('savefig', dpi = fig_res)
 
@@ -180,7 +179,7 @@ def main(args=None):
 
     minint = int(vmin)
     maxint = int(vmax)
-    cbticks = np.arange(minint, maxint+0.01, 1.0)
+    cbticks = np.arange(minint, maxint + 0.01, 1.0)
     if args.show_sample_labels:
         cbar_pad += 0.1
     cb = plt.colorbar(orientation = cbar_orient, shrink = cbar_scale,
@@ -191,8 +190,8 @@ def main(args=None):
 
     q,n = S.shape
     if args.show_sample_labels:
-        plt.xticks(np.arange(n), sample_labels, size='x-small', rotation = 30, ha = 'right')
-    plt.yticks(np.arange(q), labels, size='x-small')
+        plt.xticks(np.arange(n), sample_labels, size = 'x-small', rotation = 30, ha = 'right')
+    plt.yticks(np.arange(q), labels, size = 'x-small')
     plt.xlabel(u'Samples (n=%d)' %(n))
     plt.ylabel(u'Signatures')
 
