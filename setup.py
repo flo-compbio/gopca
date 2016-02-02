@@ -18,7 +18,7 @@ import sys
 import os
 
 from setuptools import setup, find_packages, Extension
-from codecs import open
+import codecs
 from os import path
 
 here = path.abspath(path.dirname(__file__))
@@ -26,26 +26,26 @@ description = 'GO-PCA: An Unsupervised Method to Explore Gene Expression ' + \
         'Data Using Prior Knowledge'
 
 long_description = ''
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+with codecs.open(path.join(here, 'README.rst'), encoding = 'utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='gopca',
+    name = 'gopca',
 
-    version='1.1rc12',
+    version = '1.1.0',
 
-    description=description,
-    long_description=long_description,
+    description = description,
+    long_description = long_description,
 
-    url='https://github.com/flo-compbio/gopca',
+    url = 'https://github.com/flo-compbio/gopca',
 
-    author='Florian Wagner',
-    author_email='florian.wagner@duke.edu',
+    author = 'Florian Wagner',
+    author_email = 'florian.wagner@duke.edu',
 
-    license='GPLv3',
+    license = 'GPLv3',
 
     # see https://pypi.python.org/pypi?%3Aaction=list_classifiers
-    classifiers=[
+    classifiers = [
         'Development Status :: 3 - Alpha',
 
         'Intended Audience :: Developers',
@@ -57,8 +57,8 @@ setup(
         'Programming Language :: Python :: 2.7',
     ],
 
-    keywords='unsupervised analysis gene expression data transcriptomics ' + \
-        'prior knowledge',
+    keywords = 'unsupervised analysis gene expression data ' + \
+        'transcriptomics prior knowledge',
 
     #packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     packages= ['gopca', 'gopca.scripts', 'gopca.plotting'],
@@ -66,12 +66,16 @@ setup(
 
     #libraries = [],
 
-    install_requires=['setuptools', 'networkx', 'xlsxwriter',
-            'numpy', 'scipy', 'matplotlib', 'cython', 'scikit-learn',
-            'genometools>=1.2rc4', 'goparser>=1.1', 'xlmhg>=1.1rc3'],
+    install_requires = [
+            'setuptools', 'networkx', 'xlsxwriter >= 0.7.7',
+            'configparser >= 3.2',
+            'numpy', 'scipy', 'cython', 'scikit-learn', 'matplotlib',
+            'genometools >= 1.2rc5', 'goparser >= 1.1.3', 'xlmhg >= 1.1rc3'
+    ],
 
     extras_require={
-            'docs': ['sphinx','sphinx-bootstrap-theme','sphinx-argparse','mock']
+            'docs': ['sphinx', 'sphinx-bootstrap-theme', 'sphinx-argparse',
+                     'mock']
     },
 
     # data
@@ -84,7 +88,7 @@ setup(
     entry_points={
         'console_scripts': [
             # pre-processing scripts
-            'gopca_extract_go_annotations.py = gopca.extract_go_annotations:main',
+            'gopca_extract_go_gene_sets.py = gopca.extract_go_gene_sets:main',
 
             # GO-PCA scripts
             'go-pca.py = gopca.main:main',
@@ -95,13 +99,14 @@ setup(
             'gopca_extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
             'gopca_convert_to_matlab.py = gopca.scripts.convert_to_matlab:main',
             'gopca_filter_signatures.py = gopca.scripts.filter_signatures:main',
-            'gopca_combine_outputs.py = gopca.scripts.combine_outputs:main',
+            'gopca_combine_signatures.py = gopca.scripts.combine_signatures:main',
             'gopca_print_info.py = gopca.scripts.print_info:main',
 
             # plotting scripts
             'gopca_plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
             'gopca_plot_signature.py = gopca.plotting.plot_signature:main',
             'gopca_plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
+            #'gopca_plot_pc_scores.py = gopca.plotting.plot_pc_scores:main',
         ],
     },
 )

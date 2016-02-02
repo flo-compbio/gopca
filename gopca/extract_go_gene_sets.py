@@ -19,20 +19,19 @@
 """Script for determining the set of genes annotated with each GO term.
 
 This script (see `main` function) uses the :mod:`goparser` package to parse
-GO annotation data from the `UniProt-GOA database`__, extracting a list of all
+GO annotation data from the `UniProt-GOA database`__, extracts a list of all
 genes annotated with each GO term, and stores the results in a tab-delimited
 text file.
 
-The five columns of the output file are:
+The output file format is specified in the
+`genometools.basic.geneset.GeneSetDB` class, and contains six colums:
 
-1. GO term ID (e.g., "GO\:0006260").
-2. "GO" (constant).
-3. Abbreviated domain of the GO term (e.g., "BP" for
-   ``biological_process``).
-4. GO term name (e.g., "DNA replication").
-5. Comma-separated list of genes (represented by their gene symbols) associated
-   with the GO term.
-
+1. Gene set ID - here: GO term ID (e.g., "GO\:0006260").
+2  Source - here: Gene Ontology ("GO").
+3. Collection - here: GO domain (e.g., "BP" for ``biological_process``).
+4. Gene set name - here: GO term name (e.g., "DNA replication").
+5. Comma-separated list of genes - here: all genes annotated with the GO term.
+6. Gene set description - here: definition of the GO term
 
 __ uniprot_goa_
 
@@ -41,16 +40,16 @@ __ uniprot_goa_
 Examples
 --------
 
--   Extract the GO annotations from UniProt-GOA release 149, for all
-    human protein coding genes from `Ensembl`__ release 82, retaining only GO terms
-    that have at least 5 and no more than 200 genes annotated with them.
+-   Extract gene set basde on the GO annotations from UniProt-GOA release 149,
+    for all human protein coding genes from `Ensembl`__ release 82, retaining
+    only GO terms that have at least 5 and no more than 200 genes annotated
+    with them.
 
     __ ensembl_
 
     In a first step, extract a list of all protein-coding genes from the
-    `Ensembl GTF file`__, using the script `extract_protein_coding_genes.py` from
-    the :mod:`genometools` package:
-
+    `Ensembl GTF file`__, using the script `extract_protein_coding_genes.py`
+    from the :mod:`genometools` package:
 
     __ gtf_file
 
@@ -60,8 +59,8 @@ Examples
             -a Homo_sapiens.GRCh38.82.gtf.gz \\
             -o protein_coding_genes_human.tsv
 
-    In the second step, extract the GO annotations, based on the human
-    `gene association file `__ (in GAF 2.0 format) from UniProt-GOA, and the
+    In the second step, extract the gene sets, based on the human
+    `GO annotation file `__ (in GAF 2.0 format) from UniProt-GOA, and the
     corresponding version of the `gene ontology file`__ (in OBO 1.2 format)
     from the Gene Ontology Consortium:
 
@@ -69,10 +68,10 @@ Examples
 
     .. code-block:: bash
 
-        $ gopca_extract_go_annotations.py -g protein_coding_genes_human.tsv \\
+        $ gopca_extract_go_gene_sets.py -g protein_coding_genes_human.tsv \\
             -t go-basic.obo -a gene_association.goa_human.149.gz \\
             --min-genes-per-term 5 --max-genes-per-term 200 \\
-            -o go_annotations_human.tsv
+            -o go_gene_sets_human.tsv
 
 .. _ensembl: http://www.ensembl.org
 .. _gtf_file: ftp://ftp.ensembl.org/pub/release-82/gtf/homo_sapiens/Homo_sapiens.GRCh38.82.gtf.gz
@@ -126,13 +125,13 @@ def get_argument_parser():
             help="""Path of tab-delimited file containing all "valid" gene
                     symbols.""")
 
-    g.add_argument('-t', '--ontology-file', required = True,
+    g.add_argument('-t', '--gene-ontology-file', required = True,
             metavar = cli.file_mv,
             help='Path of ontology file (in OBO format).')
 
-    g.add_argument('-a', '--gene-association-file', required = True,
+    g.add_argument('-a', '--go-annotation-file', required = True,
             metavar = cli.file_mv,
-            help='Path of gene association file (in GAF format).')
+            help='Path of GO annotation file (in GAF format).')
 
     # output file
     g.add_argument('-o', '--output-file', required = True,
@@ -190,8 +189,8 @@ def main(args = None):
         args = parser.parse_args()
 
     gene_file = args.gene_file
-    ontology_file = args.ontology_file
-    gene_association_file = args.gene_association_file
+    gene_ontology_file = args.gene_ontology_file
+    go_annotation_file = args.go_annotation_file
     output_file = args.output_file
 
     select_evidence = args.select_evidence
@@ -211,8 +210,8 @@ def main(args = None):
 
     # checks
     assert os.path.isfile(gene_file)
-    assert os.path.isfile(ontology_file)
-    assert os.path.isfile(gene_association_file)
+    assert os.path.isfile(gene_ontology_file)
+    assert os.path.isfile(go_annotation_file)
 
     # read genes and sort them
     genes = sorted(misc.read_single(args.gene_file))
@@ -221,81 +220,17 @@ def main(args = None):
 
     # Read GO term definitions and parse UniProtKB GO annotations
     GO = GOParser()
-    GO.parse_ontology(ontology_file, part_of_cc_only = False)
-    GO.parse_annotations(gene_association_file, gene_file,
+
+    logger.info('Parsing gene ontology file...')
+    GO.parse_ontology(gene_ontology_file, part_of_cc_only = False)
+
+    logger.info('Parsing GO annotation file...')
+    genes = misc.read_single(gene_file)
+    GO.parse_annotations(go_annotation_file, genes,
             select_evidence = select_evidence)
 
-    #with open(go_pickle_file) as fh:
-    #   GO = pickle.load(fh)
-
-    # Get sorted list of GO term IDs
-    all_term_ids = sorted(GO.terms.keys())
-
-    logger.info('Obtaining GO term associations...')
-    n = len(all_term_ids)
-    term_gene_counts = []
-    term_ids = []
-    term_genes = []
-    for j,id_ in enumerate(all_term_ids):
-        tg = GO.get_goterm_genes(id_)
-        assert isinstance(tg,set)
-        c = len(tg)
-        if c >= min_genes and c <= max_genes:
-            term_gene_counts.append(c)
-            term_ids.append(id_)
-            term_genes.append(tg)
-    term_gene_counts = np.int64(term_gene_counts)
-
-    # remove GO terms that are perfectly redundant, keep descendant terms
-    logger.info('Testing for perfect overlap...')
-    m = len(term_ids)
-    #genesets = [set(np.nonzero(A[:,j])[0]) for j in range(m)]
-    #term_gene_count = np.sum(A,axis=0,dtype=np.int64)
-    G = nx.Graph()
-    G.add_nodes_from(range(m))
-    for j1 in range(m):
-        #if (j1+1) % 1000 == 0: print j1+1, ; sys.stdout.flush()
-        c = term_gene_counts[j1]
-        tg = term_genes[j1]
-        for j2 in range(m):
-            if j2 >= j1: break
-            if c == term_gene_counts[j2] and tg == term_genes[j2]:
-                G.add_edge(j1,j2)
-
-    sel = np.ones(m, dtype=np.bool_)
-    affected = 0
-    for k,cc in enumerate(nx.connected_components(G)):
-        if len(cc) == 1: # singleton
-            continue
-        affected += len(cc)
-        for j1 in cc:
-            keep = True
-            term = GO.terms[term_ids[j1]]
-            for j2 in cc:
-                if j1 == j2: continue
-                if term_ids[j2] in term.descendants:
-                    keep = False
-                    break
-            if not keep:
-                sel[j1] = False
-    logger.info('# affected terms: %d', affected)
-    logger.info('# perfectly redundant descendant terms: %d', np.sum(np.invert(sel)))
-
-    sel = np.nonzero(sel)[0]
-    term_ids = [term_ids[j] for j in sel]
-    term_genes = [term_genes[j] for j in sel]
-    logger.info('Selected %d / %d non-redundant GO terms.', sel.size,m)
-
-    # write output file
-    logger.info('Writing output file...')
-    p = len(genes)
-    with open(output_file, 'wb') as ofh:
-        writer = csv.writer(ofh, dialect = 'excel-tab',
-                lineterminator = os.linesep, quoting = csv.QUOTE_NONE)
-        for j, (id_, tg) in enumerate(zip(term_ids, term_genes)):
-            term = list(GO.terms[id_].get_tuple())
-            writer.writerow(term + [','.join(sorted(tg))])
-    logger.info('done!');
+    D = GO.get_gene_sets(min_genes = min_genes, max_genes = max_genes)
+    D.write_tsv(output_file)
 
     return 0
 

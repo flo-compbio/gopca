@@ -83,6 +83,10 @@ def main(args=None):
             conf[k] = ''
     mat['config'] = conf
 
+    # fix signature gene sets (savemat does not handle frozenset)
+    for s in G.signatures:
+        s.enr.gene_set.genes = tuple(sorted(s.enr.gene_set.genes))
+
     # gene and sample names
     mat['genes'] = np.asarray(G.genes, dtype = np.object)
     mat['samples'] = np.asarray(G.samples, dtype = np.object)

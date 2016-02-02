@@ -16,7 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""Script to combine multiple GO-PCA outputs.
+"""Script to combine the signatures from multiple GO-PCA analyses.
+
+Assumes that the sample names are identical in all analyses.
 """
 
 import sys
@@ -28,12 +30,12 @@ import numpy as np
 from genometools import misc
 from gopca import util
 from gopca import cli
-from gopca import GOPCAOutput
+#from gopca import GOPCAResult
 
 def get_argument_parser():
 
-    desc ='Combine multiple GO-PCA outputs.'
-    parser = cli.get_argument_parser(description = desc)
+    desc ='Combine the signatures from multiple GO-PCA analyses.'
+    parser = cli.get_argument_parser(desc = desc)
 
     str_type = cli.str_type
     file_mv = cli.file_mv
@@ -41,10 +43,12 @@ def get_argument_parser():
     g = parser.add_argument_group('Input and output files')
 
     g.add_argument('-g', '--gopca-files', nargs = '+', required = True,
-            type = str_type, metavar = file_mv)
+            type = str_type, metavar = file_mv,
+            help = 'List of GO-PCA output files with signatures to be merged.')
 
     g.add_argument('-o', '--output-file', required = True,
-            type = str_type, metavar = file_mv)
+            type = str_type, metavar = file_mv,
+            help = 'The output file.')
 
     cli.add_reporting_args(parser)
 
@@ -67,27 +71,24 @@ def main(args = None):
     logger = util.get_logger(log_file = log_file, quiet = quiet,
             verbose = verbose)
 
-    # read first output
-    G = util.read_gopca_output(gopca_files[0])
+    # read first result
+    G = util.read_gopca_result(gopca_files[0])
 
-    config = G.config
-    signatures = G.signatures
-    S = G.S
-    genes = G.genes
-    samples = G.samples
-    W = G.W
-    Y = G.Y
+    # set all GOPCAResult attributes to None,
+    # except ``samples``, ``S`` and ``signatures``
+    G.config = None
+    G.genes = None
+    G.W = None
+    G.Y = None
 
     # append other outputs
     for i in range(1, len(gopca_files)):
-        G = util.read_gopca_output(gopca_files[i])
-        assert tuple(G.genes) == tuple(genes)
-        assert tuple(G.samples) == tuple(samples)
+        G_other = util.read_gopca_result(gopca_files[i])
+        assert tuple(G.samples) == tuple(G_other.samples)
 
-        signatures = signatures + G.signatures
-        S = np.vstack([S,G.S])
+        G.signatures = G.signatures + G_other.signatures
+        G.S = np.vstack([G.S, G_other.S])
 
-    G = GOPCAOutput(config, genes, samples, W, Y, signatures, S)
     G.write_pickle(output_file)
 
     return 0

@@ -38,23 +38,27 @@ class GOPCARun(object):
         The timestamp.
     result: `GOPCAResult`
         The result (signatures).
+    exec_time: float
+        The execution time (in seconds).
     """
 
-    def __init__(self, version, user_config, timestamp, result):
+    def __init__(self, version, user_config, timestamp, result, exec_time):
         # checks
         assert isinstance(version, (str, unicode))
         assert isinstance(user_config, GOPCAConfig)
         assert isinstance(timestamp, (str, unicode))
         assert isinstance(result, GOPCAResult)
+        assert isinstance(exec_time, float)
         # initialization
         self.version = version
         self.user_config = deepcopy(user_config)
         self.timestamp = timestamp
         self.result = result
+        self.exec_time = exec_time
 
     ### magic functions
     def __repr__(self):
-        return '<GOPCARun (version=%s; timestamp=%s; hash=%d)>' \
+        return '<GOPCARun (version=%s; timestamp=%s; exec_time=%.1f; hash=%d)>' \
                 %(self.version, self.timestamp, hash(self))
 
     def __str__(self):
@@ -69,10 +73,11 @@ class GOPCARun(object):
 
     def __hash__(self):
         data = []
-        data.append(hash(self.user_config))
+        data.append(self.user_config)
         data.append(self.version)
         data.append(self.timestamp)
-        data.append(hash(self.result))
+        data.append(self.result)
+        data.append(self.exec_time)
         return hash(tuple(data))
     ### end magic functions
 
@@ -88,6 +93,5 @@ class GOPCARun(object):
         -------
         None
         """
-        logger.info('Writing GO-PCA run to pickle file "%s"...', path)
         with open(path, 'wb') as ofh:
             pickle.dump(self, ofh, pickle.HIGHEST_PROTOCOL)

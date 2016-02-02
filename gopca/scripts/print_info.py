@@ -92,8 +92,9 @@ def main(args=None):
     if R is not None:
         print 'GO-PCA Run'
         print '----------'
-        print '- Version: %s' %(R.version)
+        print '- GO-PCA version: %s' %(R.version)
         print '- Timestamp: %s' %(R.timestamp)
+        print '- Exec. time: %.1f s' %(R.exec_time)
 
         if print_user_config:
             print '- User-provided config data:'
@@ -103,6 +104,8 @@ def main(args=None):
 
     print 'GO-PCA Result'
     print '-------------'
+    print '- Config MD5 hash: %s' %(G.config.get_hash())
+    print '- Result MD5 hash: %s' %(G.get_hash())
     print '- Expression data: %d genes, %d samples' %(G.p, G.n)
     print '- Number of PCs tested: %d' %(G.D)
     print '- Number of signatures generated: %d' %(G.q)

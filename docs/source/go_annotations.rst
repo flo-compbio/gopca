@@ -1,11 +1,11 @@
-Preparing GO annotations
-========================
+Preparing Gene Ontology gene sets
+=================================
 
-GO annotation file format
--------------------------
+Gene set file format
+--------------------
 
-GO-PCA relies on GO annotations, consisting of associations of genes with
-specific GO terms. Therefore, one of the inputs to GO-PCA is a "GO annotation
+GO-PCA relies on gene sets derived from GO annotations (associations of genes
+with specific GO terms). Therefore, one of the inputs to GO-PCA is a "GO annotation
 file", which is a tab-delimited text file that contains a list of of GO terms
 and the sets of genes annotated with them. An example snippet of a valid GO
 annotation file is shown below:
@@ -28,19 +28,20 @@ comma-separated list of genes that are annotated with that term.
 Generating the GO annotation file
 ---------------------------------
 
-GO-PCA comes with an auxilliary script, named
-"`gopca_extract_go_annotations.py`", that can be used to generate GO annotation
-files as described above. The inputs to this script include the Gene Ontology
-data (in "OBO" format), as well as species-specific GO annotation data from the
-UniProt-GOA database (in "GAF" format). The command-line parameters of this
+GO-PCA comes with an auxilliary script, named "`gopca_extract_go_gene_sets.py`",
+that can be used to generate a gene set file as described above.
+
+The inputs to this script include the Gene Ontology itself (in "OBO" format),
+as well as species-specific GO annotation data from the UniProt-GOA database
+(in "GAF" format). The command-line parameters of this
 script are described below. For additional documentation, please see the
-`extract_go_annotations` module and the `demos`.
+`extract_go_gene_sets` module and the `demos`.
 
-.. _gopca_extract_go_annotations.py:
+.. _gopca_extract_go_gene_sets.py:
 
-gopca_extract_go_annotations.py
+gopca_extract_go_gene_sets.py
 -------------------------------
 
 .. argparse::
-   :ref: gopca.extract_go_annotations.get_argument_parser
-   :prog: gopca_extract_go_annotations.py
+   :ref: gopca.extract_go_gene_sets.get_argument_parser
+   :prog: gopca_extract_go_gene_sets.py

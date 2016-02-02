@@ -18,12 +18,15 @@
 """
 
 import os
+import io
 import sys
 import argparse
+import copy
 import cPickle as pickle
 import hashlib
 import logging
 from pkg_resources import parse_version
+from collections import Iterable
 
 import unicodecsv as csv
 
@@ -36,6 +39,19 @@ import gopca
 from genometools import misc
 
 #logger = logging.getLogger(__name__)
+
+def combine_signatures(*results):
+    """Combines signatures from multiple GO-PCA results."""
+    #assert len(results
+    G = copy.deepcopy(args[0])
+    G.config = None
+    G.genes = None
+    G.W = None
+    G.Y = None
+    for i, G_other in range(results[1:]):
+        G.signatures = G.signatures + G_other.signatures
+        G.S = np.vstack([G.S, G_other.S])
+    return G
 
 def get_logger(name = '', log_stream = sys.stdout, log_file = None,
     quiet = False, verbose = False):
@@ -71,7 +87,9 @@ def filter_signatures(signatures, S, corr_thresh):
     a = a[::-1]
 
     sig_abs_pcs = np.absolute(np.int64([sig.pc for sig in signatures]))
-    a = np.lexsort([-info, sig_abs_pcs])
+    sig_escore = np.float64([sig.escore for sig in signatures])
+    #a = np.lexsort([-info, sig_abs_pcs])
+    a = np.lexsort([-sig_escore, sig_abs_pcs])
     #print '\n'.join(['%.3f: %s' %(info[i],str(G.signatures[i])) for i in a[:5]])
 
     # filtering
@@ -141,7 +159,7 @@ def get_file_md5sum(path, mode = 'rb'):
         MD5 hash of file content, represented as a 32-digit hex string.
     """
     digest = None
-    with open(path, mode = mode) as fh:
+    with io.open(path, mode = mode) as fh:
         digest = hashlib.md5(fh.read()).hexdigest()
     return digest
     
@@ -160,36 +178,37 @@ def print_signatures(signatures):
         sig = signatures[i]
         print sig.get_label(max_name_length=maxlength,include_pval=True)
 
-def get_centered(e):
-    e = e.copy()
-    e -= np.mean(e)
-    return e
+def get_centered(x):
+    x = x.copy()
+    x -= np.mean(x)
+    return x
 
-def get_centered_matrix(E):
-    return np.float64([get_centered(e) for e in E])
+def get_centered_matrix(X):
+    return np.float64([get_centered(x) for x in X])
 
-def get_standardized(e):
-    e = e.copy()
-    e -= np.mean(e)
-    e /= np.std(e,ddof=1)
-    return e
+def get_standardized(x):
+    x = x.copy()
+    x -= np.mean(x)
+    x /= np.std(x, ddof = 1)
+    return x
 
-def get_standardized_matrix(E):
-    return np.float64([get_standardized(e) for e in E])
+def get_standardized_matrix(X):
+    return np.float64([get_standardized(x) for x in X])
 
 #def get_mean_standardized_(E):
 #   return np.mean(np.float64([get_standardized(e) for e in E]),axis=0)
 
-def get_signature_expression(genes,E,sig_genes):
+def get_signature_expression(genes, X, sig_genes, standardize = True):
     p_sig = len(sig_genes)
-    p,n = E.shape
+    p,n = X.shape
     S = np.zeros((p_sig,n),dtype=np.float64)
     for i,g in enumerate(sig_genes):
         idx = genes.index(g)
-        S[i,:] = E[idx,:]
+        S[i,:] = X[idx,:]
         S[i,:] -= np.mean(S[i,:])
-        S[i,:] /= np.std(S[i,:],ddof=1)
-    sig = np.mean(S,axis=0)
+        if standardize:
+            S[i,:] /= np.std(S[i,:],ddof=1)
+    sig = np.mean(S, axis = 0)
     return sig
 
 def get_signature_expression_robust(genes,E,sig_genes):
@@ -231,7 +250,7 @@ def variance_filter(genes, E, top):
 def read_gopca_result(path):
     """Read GO-PCA result from pickle."""
     G = None
-    with open(path, 'rb') as fh:
+    with io.open(path, 'rb') as fh:
         G = pickle.load(fh)
     if isinstance(G, gopca.GOPCARun):
         G = G.result
@@ -240,7 +259,7 @@ def read_gopca_result(path):
 
 def read_go_annotations(fn):
     ann = {}
-    with open(fn, 'rb') as fh:
+    with io.open(fn, 'rb') as fh:
         reader = csv.reader(fh, dialect='excel-tab')
         for l in reader:
             ann[tuple(l[:4])] = l[4].split(',')

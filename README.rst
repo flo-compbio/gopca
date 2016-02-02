@@ -41,12 +41,12 @@ __ go_enrich_
 .. _pca: https://en.wikipedia.org/wiki/Principal_component_analysis
 .. _go_enrich: https://dx.doi.org/10.1186/1471-2105-10-48
 
-Documentation
--------------
+Links
+-----
 
-- `Homepage <https://gopca.readthedocs.org/en/latest>`_
-- `"DMAP" Demo <http://nbviewer.ipython.org/url/gopca.readthedocs.org/en/latest/_downloads/Demo_DMAP.ipynb>`_
-- `Getting Started <https://gopca.readthedocs.org/en/latest/getting_started.html>`_
+- `Demos <https://github.com/flo-compbio/gopca-demos>`_
+- `Documentation <https://gopca.readthedocs.org/en/latest>`_
+- `PLoS One paper <https://dx.doi.org/10.1371/journal.pone.0143196>`_
 
 Support and Development
 -----------------------
@@ -68,7 +68,7 @@ __ email_
 How to Cite GO-PCA
 ------------------
 
-If you use GO-PCA in your research, please cite `Wagner (PLOS ONE, 2015)`__
+If you use GO-PCA in your research, please cite `Wagner (PLoS One, 2015)`__
 
 __ wagner_pone_
 
@@ -77,7 +77,7 @@ __ wagner_pone_
 Copyright and License
 ---------------------
 
-Copyright (c) 2015 Florian Wagner
+Copyright (c) 2015, 2016 Florian Wagner
 
 ::
 

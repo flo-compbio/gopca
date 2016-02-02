@@ -1,12 +1,12 @@
 License
 =======
 
-GO-PCA Documentation
---------------------
+GO-PCA User Manual
+------------------
 
-Copyright (c) 2015 Florian Wagner.
+Copyright (c) 2015, 2016 Florian Wagner.
 
-The GO-PCA Documentation is licensed under a
+The GO-PCA User Manual is licensed under a
 `Creative Commons BY-NC-SA 4.0 License`__.
 
 __ cc_license_
@@ -16,11 +16,11 @@ __ cc_license_
 GO-PCA
 ------
 
-Copyright (c) 2015 Florian Wagner.
+Copyright (c) 2015, 2016 Florian Wagner.
 
 ::
     
-    The source code of this documentation is part of GO-PCA.
+    The source code of the GO-PCA User Manual is part of GO-PCA.
 
     GO-PCA is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License, Version 3,
