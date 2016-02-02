@@ -45,12 +45,16 @@ The key features of GO-PCA are:
 - Flexible visualization tools: GO-PCA uses the `matplotlib`__ library to
   generate various high-quality visualizations (in PNG format) that are
   suitable for inclusion in research publications.
-- Speed: The most computationally intensive part of GO-PCA (GO enrichment
-  analysis using the XL-mHG test) is implemented in `Cython`__, a Python
-  extension which produces efficient C code.
-- Reproducibility: GO-PCA calculates `MD5 hash values`__ for all of its input,
-  configuration, and output data. These values make it easy to
-  establish e.g. whether two GO-PCA runs used identical parameter settings.
+- Speed: GO-PCA takes about 60 seconds to run on the ``DMAP`` dataset,
+  consisting  of ~8,000 genes and ~200 samples. The most computationally
+  intensive part of GO-PCA (GO enrichment analysis using the XL-mHG test)
+  is implemented in `Cython`__, a Python extension which produces efficient
+  C code.
+- Reproducibility: GO-PCA is a deterministic algorithm (except for the estimation
+  of the number of PCs to test), and supports the calculation of
+  `MD5 hash values`__ for all input, configuration, and output data. These
+  values make it easy to establish e.g. whether two GO-PCA runs used identical
+  parameter settings.
 - Extensibility: GO-PCA's code is modular and well-documented, making it
   straightforward to implement modifications, new features and extensions.
 
