@@ -1,7 +1,12 @@
 Obtaining a Gene Set File
 =========================
 
-Besides a gene expression matrix (see `Running GO-PCA<running>`_), GO-PCA requires a list of gene sets, typically defined based on Gene Ontology (GO) annotations. Up-to-date, high-quality GO-based gene set files for multiple species are `available for download`__. The rest of this section describes the gene set file format used by GO-PCA. It is only important to understand this format if you want to use GO-PCA with a customized list of gene sets.
+Besides a gene expression matrix (see `Running GO-PCA <running>`_), GO-PCA
+requires a list of gene sets, typically defined based on Gene Ontology (GO)
+annotations. Up-to-date, high-quality GO-based gene set files for multiple
+species are `available for download`__. The rest of this section describes the
+gene set file format used by GO-PCA. It is only important to understand this
+format if you want to use GO-PCA with a customized list of gene sets.
 
 __ gene_sets_
 
@@ -10,16 +15,24 @@ __ gene_sets_
 The gene set file format
 ------------------------
 
-GO-PCA expects gene sets to be defined in a tab-delimited plain-text file, with each row corresponding to one gene set. There are six columns, defined as follows:
+GO-PCA expects gene sets to be defined in a tab-delimited plain-text file,
+with each row corresponding to one gene set. There are six columns, defined as
+follows:
 
-1. **Gene Set ID** - A unique identifier for the gene set. In the case of GO-based gene sets, this should be a GO term ID.
-2. **Source** - A string indicating the source of the gene set (e.g., "GO" for Gene Ontology).
-3. **Collection** - A string indicating the sub-category or group the gene set belongs to (e.g., "CC" for the "cellular component" domain of the Gene Ontology).
+1. **Gene Set ID** - A unique identifier for the gene set. In the case of
+   GO-based gene sets, this should be a GO term ID.
+2. **Source** - A string indicating the source of the gene set (e.g., "GO" for
+   Gene Ontology).
+3. **Collection** - A string indicating the sub-category or group the gene set
+   belongs to (e.g., "CC" for the "cellular component" domain of the Gene
+   Ontology).
 4. **Name** - The name of the gene set.
 5. **Genes** - A comma-separated list of genes that are in the gene set.
 6. **Description** - A short description of the gene set.
 
-Currently, GO-PCA ignores fields 2 and 6, but it may use the information in those fields in future releases. Here is a small example of a valid gene set file containing only five gene sets:
+Currently, GO-PCA ignores fields 2 and 6, but it may use the information in
+those fields in future releases. Here is a small example of a valid gene set
+file containing only five gene sets:
 
 ::
     
