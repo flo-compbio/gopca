@@ -19,6 +19,11 @@
 Changelog
 =========
 
+Version 1.1.2 (2016-02-04)
+--------------------------
+
+- Fixed a bug in the local filter that resulted in incorrect filtering
+
 Version 1.1.0 (2016-02-02)
 --------------------------
 - Restructured the documentation (work still ongoing).

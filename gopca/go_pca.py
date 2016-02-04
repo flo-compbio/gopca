@@ -264,9 +264,6 @@ class GOPCA(object):
             ranked_genes = new_ranked_genes
             L = new_L
 
-            # next!
-            todo = todo[1:]
-
         # stop suppressing log messages from the enrichment module
         enr_logger.setLevel(logging.NOTSET)
 
