@@ -9,7 +9,7 @@ GO-PCA |version| User Manual
     
     Detail from a GO-PCA *signature plot*.
 
-GO-PCA (`Wagner, 2015`__) is an unsupervised method to **explore gene
+:dfn:`GO-PCA` (`Wagner, 2015`__) is an unsupervised method to **explore gene
 expression data using prior knowledge**.
 
 This is the user manual for the `Python implementation of GO-PCA`__,

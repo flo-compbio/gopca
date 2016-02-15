@@ -1,10 +1,10 @@
 Introduction
 ============
 
-What is GO-PCA?
----------------
+What is :dfn:`GO-PCA`?
+----------------------
 
-GO-PCA is an unsupervised method to explore gene expression data using prior
+:dfn:`GO-PCA` is an unsupervised method to explore gene expression data using prior
 knowledge. Briefly, GO-PCA combines `principal component analysis (PCA)`__
 with `nonparametric GO enrichment analysis`__ in order to define
 **signatures**, i.e., small sets of genes that are both strongly correlated and
@@ -28,18 +28,18 @@ __ go_pca_paper_
 .. _go_pca_paper: https://dx.doi.org/10.1371/journal.pone.0143196
 
 
-Key features of GO-PCA
-----------------------
+Key features of this implementation
+-----------------------------------
 
-GO-PCA is implemented in Python 2.7. Python is a
+This is an implementation of GO-PCA in Python 2.7, a
 `high-level programming language`__ that is widely used in both scientific and
 non-scientific settings.
 
-The key features of GO-PCA are:
+The key features of this implementation are:
 
 - Accessibility and transparency: GO-PCA is `free and open-source software`__.
 - Cross-platform compatibility: GO-PCA can be easily
-  `installed and run <getting_started>` on Windows, OS X, and Linux.
+  `installed <install>` on Windows, OS X, and Linux.
 - Simple command-line API: All of GO-PCA's functionalities can be accessed
   directly from the command line.
 - Flexible visualization tools: GO-PCA uses the `matplotlib`__ library to
@@ -50,11 +50,10 @@ The key features of GO-PCA are:
   intensive part of GO-PCA (GO enrichment analysis using the XL-mHG test)
   is implemented in `Cython`__, a Python extension which produces efficient
   C code.
-- Reproducibility: GO-PCA is a deterministic algorithm (except for the estimation
-  of the number of PCs to test), and supports the calculation of
-  `MD5 hash values`__ for all input, configuration, and output data. These
-  values make it easy to establish e.g. whether two GO-PCA runs used identical
-  parameter settings.
+- Reproducibility: GO-PCA is a deterministic algorithm, and supports the
+  calculation of `MD5 hash values`__ for all input, configuration, and output
+  data. These values make it easy to establish e.g. whether two GO-PCA runs
+  used identical parameter settings.
 - Extensibility: GO-PCA's code is modular and well-documented, making it
   straightforward to implement modifications, new features and extensions.
 
