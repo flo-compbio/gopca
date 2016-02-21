@@ -1,11 +1,14 @@
 Introduction
 ============
 
-What is :dfn:`GO-PCA`?
-----------------------
+This section provides a brief summary of *GO-PCA*, a list of key features of
+the Python implementation, and a link to Demo notebooks.
 
-:dfn:`GO-PCA` is an unsupervised method to explore gene expression data using prior
-knowledge. Briefly, GO-PCA combines `principal component analysis (PCA)`__
+What is *GO-PCA*?
+-----------------
+
+*GO-PCA* is an unsupervised method to explore gene expression data using prior
+knowledge. Briefly, *GO-PCA* combines `principal component analysis (PCA)`__
 with `nonparametric GO enrichment analysis`__ in order to define
 **signatures**, i.e., small sets of genes that are both strongly correlated and
 closely functionally related.
@@ -17,9 +20,9 @@ The expression profiles of all signatures generated can be conveniently
 visualized as a heat map. This visualization, referred to as the
 **signature matrix**, aims to provide a systematic and easily interpretable
 view of biologically relevant expression patterns in the data. Together with
-other GO-PCA outputs, it can serve as a powerful starting point for exploratory
-data analysis and hypothesis generation. The `GO-PCA paper`__ contains a
-detailed description of the method.
+other *GO-PCA* visualizations, it can serve as a powerful starting point for
+exploratory data analysis and hypothesis generation. The method is described in
+detail in an `open-access research article`__.
 
 __ go_pca_paper_
 
@@ -28,14 +31,12 @@ __ go_pca_paper_
 .. _go_pca_paper: https://dx.doi.org/10.1371/journal.pone.0143196
 
 
-Key features of this implementation
------------------------------------
+Key features
+------------
 
-This is an implementation of GO-PCA in Python 2.7, a
-`high-level programming language`__ that is widely used in both scientific and
-non-scientific settings.
-
-The key features of this implementation are:
+GO-PCA is implemented in Python 2.7, a `high-level programming language`__ that
+is widely used in both scientific and non-scientific settings. The key features
+of GO-PCA are:
 
 - Accessibility and transparency: GO-PCA is `free and open-source software`__.
 - Cross-platform compatibility: GO-PCA can be easily
@@ -70,10 +71,10 @@ __ md5
 .. _md5: https://en.wikipedia.org/wiki/MD5
 
 
-GO-PCA Demos
-------------
+Demos
+-----
 
-GO-PCA demos can be found in a `separate GitHub repository`__.
+Demos of GO-PCA in action can be found in a `separate GitHub repository`__.
 
 __ demos_
 

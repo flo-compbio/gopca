@@ -1,10 +1,10 @@
-Running GO-PCA
-==============
+Running *GO-PCA*
+================
 
 This section describes the expression file format used by GO-PCA, and documents the `go-pca.py` command that is used to run GO-PCA.
 
-Expression file format
-----------------------
+The expression file format
+--------------------------
 
 The main input to GO-PCA is an expression matrix, with rows representing genes, and columns representing samples. GO-PCA expects the expression matrix to be described in a tab-delimited text file that contains the gene expression values in a matrix layout. The first row contains the sample names, and the first column represents gene names (the content of the top left cell is ignored). A mini-example of a valid expression file with only five genes and three samples is shown below:
 
