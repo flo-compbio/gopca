@@ -121,6 +121,9 @@ def main(args = None):
     cmap = args.colormap
     vmin = args.val_coolest
     vmax = args.val_hottest
+    sample_font_size = args.sample_label_font_size
+    if sample_font_size is None:
+        sample_font_size = int(0.75*font_size)
 
     # figure colorbar
     cbar_orient = args.cbar_orient
@@ -211,10 +214,15 @@ def main(args = None):
             #plt.gcf().subplots_adjust(left=0.30)
             #plt.gcf().subplots_adjust(right=0.95)
 
+            #plt.subplots_adjust(left=None, bottom=0, right=None, top=None,
+            #    wspace=None, hspace=0)
 
             # subgrid layout
             ax = plt.subplot2grid((subgrid_ratio, 1), (0, 0))
             plt.sca(ax)
+
+            #plt.gcf().subplots_adjust(bottom = 0.1)
+            #print plt.subplots_adjust()
 
             plt.imshow(np.atleast_2d(sig_expr), aspect = 'auto',\
                     interpolation = 'none', vmin = vmin, vmax = vmax, cmap = cmap)
@@ -223,13 +231,16 @@ def main(args = None):
 
             ax = plt.subplot2grid((subgrid_ratio, 1), (1, 0),
                     rowspan = subgrid_ratio - 1)
+            #print 'Position:', ax.get_position()
+            #print 'Window extent', ax.get_window_extent()
             plt.sca(ax)
+
             plt.imshow(X_std, interpolation='none', aspect='auto',
                     vmin = vmin, vmax = vmax, cmap = cmap)
             q, n = S.shape
             plt.xticks(())
             if args.show_sample_labels:
-                plt.xticks(np.arange(n), sample_labels, size = 'x-small', rotation = 30, ha = 'right')
+                plt.xticks(np.arange(n), sample_labels, size = sample_font_size, rotation = 30, ha = 'right')
             plt.yticks(np.arange(len(sig_genes)), sig_genes , size = gene_label_size)
             plt.xlabel('Samples')
             plt.ylabel('Genes')
@@ -254,7 +265,7 @@ def main(args = None):
 
             pdf.savefig(bbox_inches = 'tight')
             #plt.savefig(output_file, bbox_inches='tight')
-            #if k >= 1:
+            #if k >= 4:
             #    break
 
     logger.info('Saving to file...')

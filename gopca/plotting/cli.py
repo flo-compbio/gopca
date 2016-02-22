@@ -111,4 +111,8 @@ def add_heatmap_args(parser):
     g.add_argument('--show-sample-labels', action = 'store_true',
         help = 'Show sample labels.')
 
+    g.add_argument('--sample-label-font-size', type = float, default = None,
+                   metavar = float_mv,
+                   help = 'Sample label font size (in points).')
+
     return g
