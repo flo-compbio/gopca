@@ -64,7 +64,7 @@ terms of what PCs appear associated with which GO terms.
 This visualization was originally proposed by Dr. Meromit Singer from Dr. Aviv
 Regev's group at the Broad Institute.
 
-.. #argparse::
+.. argparse::
    :ref: gopca.plotting.plot_term_by_pc_matrix.get_argument_parser
    :prog: gopca_plot_term_by_pc_matrix.py
 
