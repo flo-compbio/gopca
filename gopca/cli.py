@@ -105,7 +105,7 @@ def add_io_args(parser):
 
     g.add_argument('-g', '--gopca-file', required = True,
             metavar = file_mv, type = str_type,
-            help = 'The GO-PCA output file.')
+            help = 'The GO-PCA result file.')
 
     g.add_argument('-o', '--output-file', required = True,
             metavar = file_mv, type = str_type,

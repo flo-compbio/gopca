@@ -45,14 +45,6 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
 
-import matplotlib as mpl
-#from matplotlib.backends.backend_pdf import PdfPages
-import matplotlib.pyplot as plt
-from matplotlib import cm
-from matplotlib import rc
-
-import xlmhg
-
 from genometools import misc
 
 import gopca
@@ -90,6 +82,8 @@ def get_argument_parser():
     return parser
 
 def main(args=None):
+
+    import xlmhg
 
     if args is None:
         # read command line arguments
@@ -199,7 +193,13 @@ def main(args=None):
             threshold,_,pval = xlmhg.test(v_sorted,X,L,K,mat=matrix)
             A[i,pc*2+1] = -np.log10(pval)
 
-    # prepare for plotting
+    # plotting
+    import matplotlib as mpl
+    #from matplotlib.backends.backend_pdf import PdfPages
+    import matplotlib.pyplot as plt
+    from matplotlib import cm
+    from matplotlib import rc
+
     rc('font',family = font_family, size = font_size)
     rc('figure', figsize = fig_size)
     rc('savefig', dpi = fig_res)

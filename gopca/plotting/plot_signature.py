@@ -126,6 +126,9 @@ def main(args=None):
     cmap = args.colormap
     vmin = args.val_coolest
     vmax = args.val_hottest
+    sample_font_size = args.sample_label_font_size
+    if sample_font_size is None:
+        sample_font_size = int(0.75*font_size)
 
     # figure colorbar
     cbar_orient = args.cbar_orient
@@ -231,7 +234,7 @@ def main(args=None):
     q, n = S.shape
     plt.xticks(())
     if args.show_sample_labels:
-        plt.xticks(np.arange(n), sample_labels, size = 'x-small', rotation = 30, ha = 'right')
+        plt.xticks(np.arange(n), sample_labels, size = sample_font_size, rotation = 30, ha = 'right')
     plt.yticks(np.arange(len(sig_genes)), sig_genes , size = gene_label_size)
     plt.xlabel('Samples')
     plt.ylabel('Genes')
