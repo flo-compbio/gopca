@@ -19,6 +19,12 @@
 Changelog
 =========
 
+Version 1.1.3 (2016-02-23)
+--------------------------
+
+- Added a lot more documentation (see `http://gopca.readthedocs.org`_).
+- Added ``gopca_plot_all_signatures.py`` command.
+
 Version 1.1.2 (2016-02-04)
 --------------------------
 
