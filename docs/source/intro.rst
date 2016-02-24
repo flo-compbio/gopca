@@ -41,8 +41,8 @@ of GO-PCA are:
 - Accessibility and transparency: GO-PCA is `free and open-source software`__.
 - Cross-platform compatibility: GO-PCA can be easily
   `installed <install>` on Windows, OS X, and Linux.
-- Simple command-line API: All of GO-PCA's functionalities can be accessed
-  directly from the command line.
+- Simple command-line interface: All of GO-PCA's functionalities can be
+  accessed directly from the command line, without knowledge of Python.
 - Flexible visualization tools: GO-PCA uses the `matplotlib`__ library to
   generate various high-quality visualizations (in PNG format) that are
   suitable for inclusion in research publications.

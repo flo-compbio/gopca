@@ -28,6 +28,8 @@ Contents
     Installation <install>
     Obtaining Gene Sets <gene_sets>
     running
+    process
+    visualize
     Citing GO-PCA <citing>
     License <license>
 
@@ -40,10 +42,10 @@ Contents
 
 __ go_pca_paper_
 
-.. rubric:: Recently Updated:
-
-* 2/15/2016: Expanded documentation on obtaining gene sets (see
-  :doc:`gene_sets`)
+.. #rubric:: Recently Updated:
+  
+  * 2/15/2016: Expanded documentation on obtaining gene sets (see
+    :doc:`gene_sets`)
 
 .. _go_pca_paper: https://dx.doi.org/10.1371/journal.pone.0143196
 
