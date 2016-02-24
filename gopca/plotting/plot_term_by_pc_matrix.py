@@ -51,8 +51,6 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib import rc
 
-import xlmhg
-
 from genometools import misc
 
 import gopca
@@ -90,6 +88,8 @@ def get_argument_parser():
     return parser
 
 def main(args=None):
+
+    import xlmhg
 
     if args is None:
         # read command line arguments
