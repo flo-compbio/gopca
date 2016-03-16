@@ -99,7 +99,7 @@ class GSEResult(object):
 
     def __repr__(self):
         return '<%s object (gene_set_id=%s; pval=%.1e; hash=%d)' \
-                %(self.__class__.__name__, self.gene_set_id, hash(self))
+                %(self.__class__.__name__, self.gene_set.id, self.pval, hash(self))
 
     def __str__(self):
         return '<%s object (gene_set=%s; pval=%.1e)>' \
@@ -172,11 +172,11 @@ class GSEResult(object):
 
     def get_pretty_format(self,omit_param=True,max_name_length=0):
         # TO-DO: clean up, commenting
-        term_name = self.term[3]
-        if max_name_length > 0 and len(term_name) > max_name_length:
+        gs_name = self.gene_set.name
+        if max_name_length > 0 and len(gs_name) > max_name_length:
             assert max_name_length >= 3
-            term_name = term_name[:(max_name_length-3)] + '...'
-        term_str = term_name + ' (%d)' %(len(self.genes))
+            gs_name = gs_name[:(max_name_length-3)] + '...'
+        gs_str = gs_name + ' (%d / %d @ %d)' %(self.k_n, len(self.genes), self.n)
         param_str = ''
         if not omit_param:
             param_str = ' [X=%d,L=%d,N=%d]' %(self.X,self.L,self.N)
@@ -184,7 +184,7 @@ class GSEResult(object):
         if self.escore is not None:
             escore_str = ', e=%.1fx' %(self.escore)
         details = ', p=%.1e%s%s' %(self.pval,escore_str,param_str)
-        return '%s%s' %(term_str,details)
+        return '%s%s' %(gs_str, details)
         
     def get_pretty_GO_format(self,GO,omit_acc=False,omit_param=True,max_name_length=0):
         # accepts a GOParser object ("GO")
