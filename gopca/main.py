@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -31,7 +31,12 @@ import sys
 import os
 import argparse
 import textwrap
+import logging
 
+from genometools.expression import ExpMatrix
+from genometools.basic import GeneSetDB
+import goparser
+from goparser import GOParser
 from gopca import util
 from gopca import cli
 from gopca import GOPCAConfig, GOPCA
@@ -52,46 +57,61 @@ def get_argument_parser():
     # separate config file
     g = parser.add_argument_group('Separate configuration file')
     
-    g.add_argument('-c', '--config-file', type = str_type, metavar = file_mv,
-            help = textwrap.dedent("""\
-                GO-PCA configuration file. Note: The parameter values specified
-                as command line arguments (see below) overwrite the
-                corresponding values in the configuration file."""))
+    g.add_argument(
+        '-c', '--config-file',
+        type = str_type, metavar = file_mv,
+        help = textwrap.dedent("""\
+            GO-PCA configuration file. Note: The parameter values specified
+            as command line arguments (see below) overwrite the
+            corresponding values in the configuration file.""")
+    )
 
     # input and output files
     g = parser.add_argument_group('Input and output files')
 
-    g.add_argument('-e', '--expression-file', type = str_type,
-            metavar = file_mv, help = textwrap.dedent("""\
-                Tab-separated text file containing the gene expression matrix.
-                """))
+    g.add_argument(
+        '-e', '--expression-file', required = True,
+        type = str_type, metavar = file_mv,
+        help = 'Tab-separated text file containing the gene expression matrix.'
+    )
 
-    g.add_argument('-s', '--gene-set-file', type = str_type,
-            metavar = file_mv, help = textwrap.dedent("""\
-                Tab-separated text file containing the gene sets.
-                """))
+    g.add_argument(
+        '-s', '--gene-set-file', required = True,
+        type = str_type, metavar = file_mv,
+        help = 'Tab-separated text file containing the gene sets.'
+    )
 
-    g.add_argument('-t', '--gene-ontology-file', required = False,
-            metavar = file_mv, type = str_type,
-            help = 'OBO file containing the Gene Ontology.')
+    g.add_argument(
+        '-t', '--gene-ontology-file',
+        type = str_type, metavar = file_mv,
+        help = 'OBO file containing the Gene Ontology.'
+    )
 
-    g.add_argument('-o', '--output-file', type = str_type, metavar = file_mv,
-            help = 'Output pickle file (extension ".pickle" is recommended).')
+    g.add_argument(
+        '-o', '--output-file', required = True,
+        type = str_type, metavar = file_mv,
+        help = 'Output pickle file (extension ".pickle" is recommended).'
+    )
 
     # input file hash values
-    g = parser.add_argument_group('Input file hash values (can be used for validation purposes)')
+    """
+    g = parser.add_argument_group(
+        'Input file hash values (can be used for validation purposes)'
+    )
 
     g.add_argument('-he', '--expression-file-hash', metavar = str_mv,
-            help = 'MD5 hash for the experssion file.')
+            help = 'MD5 hash for the expression file.')
 
     g.add_argument('-hs', '--gene-set-file-hash', metavar = str_mv,
             help = 'MD5 hash for the gene set file.')
 
     g.add_argument('-ht', '--gene-ontology-file-hash', metavar = str_mv,
             help = 'MD5 hash for the gene ontology file.')
+    """
 
     # GO-PCA parameters
     g = parser.add_argument_group('GO-PCA parameters ([] = default value)')
+
     g.add_argument('-D', '--n-components', type = int,
             metavar = int_mv, help = textwrap.dedent("""\
                 Number of principal components to test
@@ -151,7 +171,6 @@ def get_argument_parser():
     g.add_argument('--go-part-of-cc-only', action = 'store_true',
             help = 'Only propagate "part of" GO relations for the CC domain.')
 
-
     # for automatically determining the number of PCs
     # (only used if -D is not specified)
     g = parser.add_argument_group('Parameters for automatically determining the number of PCs to test ([] = default value)')
@@ -173,8 +192,12 @@ def get_argument_parser():
                 Maximum number of PCs to test (0 = no maximum). [%s]
                 """ %('%(default)d')))
 
+    # check that the GO-PCA parameter names match the argument names
     #for p in GOPCAConfig.param_defaults:
     #    assert p in dir(args)
+
+    # set the argument default values to the parameter defaults stored in
+    # the GOPCAConfig class
     parser.set_defaults(**GOPCAConfig.param_defaults)
 
     # reporting options
@@ -225,45 +248,65 @@ def main(args = None):
     logger = util.get_logger(log_file = log_file, quiet = quiet,
             verbose = verbose)
 
-    # generate configuration
-    config = None
-
-    if args.config_file is not None:
-        # read parameter values from config file
-        config = GOPCAConfig.read_config(args.config_file)
-
-    if config is None:
-        # start with default configuration
-        config = GOPCAConfig()
-
-    # overwrite parameters specified on the command line
-    for p in GOPCAConfig.param_names:
-        v = getattr(args, p)
-        if v is not None:
-            logger.debug('Parameter "%s" specified on command line!', p)
-            config.set_param(p, v)
-
     # check if required parameters were specified
     passed = True
-    if config.expression_file is None:
+    if args.expression_file is None:
         logger.error('No expression file specified!')
         passed = False
-    if config.gene_set_file is None:
+    if args.gene_set_file is None:
         logger.error('No gene set file specified!')
         passed = False
-    if config.output_file is None:
+    if args.output_file is None:
         logger.error('No output file specified!')
         passed = False
     if not passed:
         logger.error('Not all required parameters were specified.')
         return 1
 
-    M = GOPCA(config)
-    R = M.run()
+    # generate configuration
+    config = None
+    if args.config_file is not None:
+        # read parameter values from config file
+        config = GOPCAConfig.read_config(args.config_file)
+    else:
+        # start with default configuration
+        config = GOPCAConfig()
 
-    if R is None:
+    # overwrite parameters specified on the command line
+    for p in GOPCAConfig.param_defaults:
+        v = getattr(args, p)
+        if v is not None:
+            logger.debug('Parameter "%s" specified on command line!', p)
+            config.set_param(p, v)
+
+    # read expression file
+    E = ExpMatrix.read_tsv(args.expression_file)
+    logger.info('Expression matrix size: ' +
+            '(p = %d genes) x (n = %d samples).', E.p, E.n)
+    
+    # read gene set file
+    gene_sets = GeneSetDB.read_tsv(args.gene_set_file)
+    
+    # read ontology file (if supplied)
+    go_parser = None
+    if args.gene_ontology_file is not None:
+        p_logger = logging.getLogger(goparser.__name__)
+        p_logger.setLevel(logging.ERROR)
+        go_parser = GOParser()
+        go_parser.parse_ontology(args.gene_ontology_file,
+                                 part_of_cc_only = config.go_part_of_cc_only)
+        p_logger.setLevel(logging.NOTSET)
+        
+    M = GOPCA(config, gene_sets, go_parser)
+    run = M.run(E)
+
+    if run is None:
         logger.error('GO-PCA run failed!')
         return 1
+
+    # write run to pickle file
+    logger.info('Storing GO-PCA run in file "%s"...', args.output_file)
+    run.write_pickle(args.output_file)
 
     return 0
 

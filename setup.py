@@ -32,7 +32,7 @@ with codecs.open(path.join(here, 'README.rst'), encoding = 'utf-8') as f:
 setup(
     name = 'gopca',
 
-    version = '1.1.4rc1',
+    version = '1.2rc1',
 
     description = description,
     long_description = long_description,
@@ -69,8 +69,9 @@ setup(
     install_requires = [
             'setuptools', 'networkx', 'xlsxwriter >= 0.7.7',
             'configparser >= 3.2',
-            'numpy', 'scipy', 'cython', 'scikit-learn', 'matplotlib',
-            'genometools >= 1.2rc5', 'goparser >= 1.1.3', 'xlmhg >= 1.1rc3'
+            'numpy', 'scipy', 'cython', 'scikit-learn',
+            'matplotlib >= 1.4.3', 'bokeh >= 0.11.1',
+            'genometools >= 2.0rc1', 'goparser >= 1.1.3', 'xlmhg >= 1.1rc3'
     ],
 
     extras_require={

@@ -30,6 +30,8 @@ from scipy.cluster.hierarchy import linkage, dendrogram
 from genometools import expression
 from genometools import misc
 from genometools.expression import ExpMatrix
+from genometools.expression import cluster
+
 from gopca import util
 from gopca import cli
 
@@ -71,31 +73,25 @@ def main(args = None):
     G = util.read_gopca_result(gopca_file)
     
     signatures = G.signatures
-    labels = [sig.get_label(include_id=False) for sig in signatures]
+    sig_labels = [sig.get_label(max_name_length = sig_max_len, include_id=False) for sig in signatures]
     samples = list(G.samples)
-    S = G.S
 
-    # clustering of rows (signatures)
-    order_rows = util.cluster_signatures(S, reverse = sig_reverse_order)
-    S = S[order_rows,:]
-    labels = [labels[idx] for idx in order_rows]
+    # generate expression matrix
+    E = ExpMatrix(genes = sig_labels, samples = samples, X = G.S)
+
+    # clustering of signatures (rows)
+    E, _ = cluster.cluster_genes(E, reverse = sig_reverse_order)
 
     if not sample_no_clustering:
-        # clustering of columns (samples)
-        #distxy = squareform(pdist(S.T, metric='euclidean'))
-        distxy = squareform(pdist(S.T, metric = sample_cluster_metric))
-        R = dendrogram(linkage(distxy, method='average'), no_plot=True)
-        order_cols = np.int64([int(l) for l in R['ivl']])
-        S = S[:,order_cols]
-        samples = [samples[j] for j in order_cols]
+        # clustering of samples (columns)
+        E, _ = cluster.cluster_samples(E, metric = sample_cluster_metric)
 
     exp_logger = logging.getLogger(expression.__name__)
-    exp = ExpMatrix(labels, samples, S)
     exp_logger.setLevel(logging.WARNING)
-    exp.write_tsv(output_file)
+    E.write_tsv(output_file)
     exp_logger.setLevel(logging.NOTSET)
-    logger.info('Wrote matrix with %d signatures and %d samples to "%s".',
-            len(signatures), len(samples), output_file)
+    logger.info('Wrote %d x %d signature matrix to "%s".',
+                E.p, E.n, output_file)
 
     return 0
 

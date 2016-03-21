@@ -145,8 +145,10 @@ def get_pc_explained_variance_threshold(E, z, t, seed):
 
     return thresh
 
-def get_file_md5sum(path, mode = 'rb'):
+def get_file_md5sum(path):
     """Get MD5 hash of file content.
+
+    Reads the file in binary mode.
 
     Parameters
     ----------
@@ -159,7 +161,7 @@ def get_file_md5sum(path, mode = 'rb'):
         MD5 hash of file content, represented as a 32-digit hex string.
     """
     digest = None
-    with io.open(path, mode = mode) as fh:
+    with io.open(path, mode = 'rb') as fh:
         digest = hashlib.md5(fh.read()).hexdigest()
     return digest
     

@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -18,8 +18,10 @@
 """
 
 import logging
+import io
 from copy import deepcopy
 import cPickle as pickle
+from collections import OrderedDict
 
 from gopca import GOPCAConfig, GOPCAResult
 
@@ -42,19 +44,31 @@ class GOPCARun(object):
         The execution time (in seconds).
     """
 
-    def __init__(self, version, user_config, timestamp, result, exec_time):
+    def __init__(self, version, user_config, expression_hash, gene_sets_hash,
+                 ontology_hash, timestamp, exec_time, result):
+
         # checks
         assert isinstance(version, (str, unicode))
         assert isinstance(user_config, GOPCAConfig)
+        assert isinstance(expression_hash, (str, unicode))
+        assert isinstance(gene_sets_hash, (str, unicode))
+        if ontology_hash is not None:
+            assert isinstance(ontology_hash, (str, unicode))
         assert isinstance(timestamp, (str, unicode))
         assert isinstance(result, GOPCAResult)
         assert isinstance(exec_time, float)
+
         # initialization
         self.version = version
         self.user_config = deepcopy(user_config)
+
+        self.expression_hash = expression_hash
+        self.gene_sets_hash = gene_sets_hash
+        self.ontology_hash = ontology_hash
+
         self.timestamp = timestamp
-        self.result = result
         self.exec_time = exec_time
+        self.result = result
 
     ### magic functions
     def __repr__(self):
@@ -65,16 +79,21 @@ class GOPCARun(object):
         return '<GOPCARun (version %s; %d signatures; %s)>' \
                 %(self.result.q, self.timestamp)
 
-    def __eq__(self,other):
-        if type(self) is not type(other):
+    def __eq__(self, other):
+        if self is other:
+            return True
+        elif type(self) != type(other):
             return False
         else:
             return repr(self) == repr(other)
 
     def __hash__(self):
         data = []
-        data.append(self.user_config)
         data.append(self.version)
+        data.append(self.user_config)
+        data.append(self.expression_hash)
+        data.append(self.gene_sets_hash)
+        data.append(self.ontology_hash)
         data.append(self.timestamp)
         data.append(self.result)
         data.append(self.exec_time)
@@ -93,5 +112,5 @@ class GOPCARun(object):
         -------
         None
         """
-        with open(path, 'wb') as ofh:
+        with io.open(path, 'wb') as ofh:
             pickle.dump(self, ofh, pickle.HIGHEST_PROTOCOL)

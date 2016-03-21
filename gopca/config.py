@@ -19,8 +19,8 @@
 """
 
 import os
+import io
 import hashlib
-import codecs
 import logging
 from collections import OrderedDict
 
@@ -77,27 +77,27 @@ class GOPCAConfig(object):
     ])
     """GO-PCA parameter default values."""
 
-    input_file_param_names = OrderedDict.fromkeys([
-        'expression_file',
-        'gene_ontology_file',
-        'gene_set_file',
-    ])
-    """Names of all GO-PCA input file parameters."""
-
-    hash_param_names = OrderedDict.fromkeys([n + '_hash'
-            for n in input_file_param_names])
-    """Names of all GO-PCA file hash parameters."""
-
-    output_file_param_name = 'output_file'
-
-    file_param_names = OrderedDict.fromkeys(input_file_param_names.keys() +
-            [output_file_param_name])
-    """Names of all GO-PCA file parameters."""
-
-    param_names = OrderedDict.fromkeys(misc.flatten(
-            zip(input_file_param_names, hash_param_names)) +
-            [output_file_param_name] + param_defaults.keys())
-    """Names of all GO-PCA parameters."""
+    #input_file_param_names = OrderedDict.fromkeys([
+    #    'expression_file',
+    #    'gene_ontology_file',
+    #    'gene_set_file',
+    #])
+    #"""Names of all GO-PCA input file parameters."""
+    #
+    #hash_param_names = OrderedDict.fromkeys([n + '_hash'
+    #        for n in input_file_param_names])
+    #"""Names of all GO-PCA file hash parameters."""
+    #
+    #output_file_param_name = 'output_file'
+    #
+    #file_param_names = OrderedDict.fromkeys(input_file_param_names.keys() +
+    #        [output_file_param_name])
+    #"""Names of all GO-PCA file parameters."""
+    #
+    #param_names = OrderedDict.fromkeys(misc.flatten(
+    #        zip(input_file_param_names, hash_param_names)) +
+    #        [output_file_param_name] + param_defaults.keys())
+    #"""Names of all GO-PCA parameters."""
     ### end static members
 
     def __init__(self, params = {}):
@@ -112,12 +112,15 @@ class GOPCAConfig(object):
 
         Note: This function is only called for non-existing attributes.
         """
-        if name in self.param_names:
+        if name in self.param_defaults:
             return self.__params[name]
         else:
             raise AttributeError('There is no GO-PCA parameter called "%s"!' \
                     %(name))
 
+    def __getitem__(self, key):
+        return self.__getattr__(key)
+    
     def __repr__(self):
         return '<GOPCAConfig object (hash=%d)>' %(hash(self))
 
@@ -153,7 +156,7 @@ class GOPCAConfig(object):
         bool
             Whether or not the parameter exists.
         """
-        return name in self.param_names
+        return name in self.param_defaults
 
     def get_param(self, name):
         """Returns the value of a GO-PCA parameter.
@@ -200,8 +203,8 @@ class GOPCAConfig(object):
         value: ?
             The parameter value.
         """
-        if name not in self.param_names:
-            raise ValueError('No GO-PCA parameter named "%s"!' %(param))
+        if name not in self.param_defaults:
+            raise ValueError('No GO-PCA parameter named "%s"!' %(name))
         self.__params[name] = value
 
     def set_params(self, params):
@@ -221,20 +224,16 @@ class GOPCAConfig(object):
 
     def reset_params(self):
         """Reset all parameters to their default values."""
-        self.__params = OrderedDict([p, None]
-                for p in self.param_names)
+        #self.__params = OrderedDict([p, None]
+        #        for p in self.param_names)
         self.set_params(self.param_defaults)
 
-    def check(self, test_if_input_exists = True,
-                test_if_output_writable = True):
+    def check(self):
         """Check if the current configuration is valid.
 
         Parameters:
         -----------
-        test_if_input_exists: bool
-            If True (default), test if the input files exist.
-        test_if_output_writable: bool
-            If True (default), test if output directory is writable.
+        None
 
         Returns
         -------
@@ -253,6 +252,7 @@ class GOPCAConfig(object):
                         '(should be %s).', attr, val, str(types))
                 passed[0] = False
 
+        """
         def check_file_exists(attr):
             # check whether the specified file exists
             path = getattr(self, attr)
@@ -268,6 +268,7 @@ class GOPCAConfig(object):
                 logger.error('Parameter "%s" = %s: file not writable.',
                         attr, path)
                 passed[0] = False
+        """
 
         def check_range(attr, mn = None, mx = None,
                 left_open = False, right_open = False):
@@ -297,36 +298,6 @@ class GOPCAConfig(object):
                         '(should be %s %s %s).',
                         attr, val, left_rel, attr, right_rel)
                 passed[0] = False
-
-        # check if input files are strings
-        # specification of gene ontology file is optional
-        check_type('expression_file', (str, unicode))
-        check_type('gene_set_file', (str, unicode))
-        if self.gene_ontology_file is not None:
-            check_type('gene_ontology_file', (str, unicode))
-
-        if test_if_input_exists:
-            # check if input files exist
-            check_file_exists('expression_file')
-            check_file_exists('gene_set_file')
-            if self.gene_ontology_file is not None:
-                check_file_exists('gene_ontology_file')
-            
-        # check if hash values are strings
-        if self.expression_file_hash is not None:
-            check_type('expression_file_hash', str)
-        if self.gene_set_file_hash is not None:
-            check_type('gene_set_file_hash', str)
-        if self.gene_ontology_file is not None and \
-                self.gene_ontology_file_hash is not None:
-            check_type('gene_ontology_file_hash', str)
-
-        if self.output_file is not None:
-            # check if output file is a string
-            check_type('output_file', (str, unicode))
-            if test_if_output_writable:
-                # check if output files are writable
-                check_file_writable('output_file')
 
         # check types and ranges of GO-PCA parameters
         check_type('n_components', int)
@@ -360,7 +331,7 @@ class GOPCAConfig(object):
             check_type('pc_permutations', int)
             check_range('pc_permutations', 0, left_open = True)
 
-            check_type('pc_zscore_thresh', (int,float))
+            check_type('pc_zscore_thresh', (int, float))
 
             check_type('pc_max', int)
             check_range('pc_max', 0, np.iinfo(np.uint32).max)
@@ -370,9 +341,6 @@ class GOPCAConfig(object):
 
     def get_hash(self):
         """Calculate MD5 hash value for the configuration.
-
-        The paths of the input and output files are excluded from the hash
-        value calculation.
 
         Parameters
         ----------
@@ -384,14 +352,11 @@ class GOPCAConfig(object):
             The MD5 hash value (as hex string).
         """
         data = []
-        # ignore file names and contents in hash calculation
-        hash_params = [n for n in self.param_names.keys()
-                if n not in self.file_param_names]
-        for p in hash_params:
-           data.append(str(self.__params[p]))
+        for p in self.param_defaults:
+           data.append(unicode(self.__params[p]))
         data_str = ','.join(data)
         logger.debug('Configuration data string: %s', data_str)
-        return hashlib.md5(data_str).hexdigest()
+        return hashlib.md5(data_str.encode('UTF-8')).hexdigest()
 
     @classmethod
     def read_config(cls, path):
@@ -408,7 +373,7 @@ class GOPCAConfig(object):
             The GO-PCA configuration data.
         """
         params = {}
-        with codecs.open(path, 'rb', encoding = 'utf-8') as fh:
+        with io.open(path, mode = 'r', encoding = 'UTF-8') as fh:
             config = ConfigParser()
             config.optionxform = lambda x: x
             config.read_file(fh)
@@ -425,7 +390,10 @@ class GOPCAConfig(object):
                         v = d.getfloat(p)
                     elif t == int:
                         v = d.getint(p)
-                params[p] = v
+                    params[p] = v
+                else:
+                    logger.warning('Ignoring parameter with unknown name '
+                                   '"%s".', p)
         return cls(params)
 
     def write_config(self, path):
@@ -448,5 +416,5 @@ class GOPCAConfig(object):
             if v is not None:
                 g[p] = unicode(v)
 
-        with codecs.open(path, 'wb', encoding = 'utf-8') as ofh:
+        with io.open(path, mode = 'w', encoding = 'UTF-8') as ofh:
             config.write(ofh)

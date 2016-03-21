@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -24,6 +24,9 @@ import copy
 from collections import OrderedDict
 
 import numpy as np
+
+from genometools.expression import ExpMatrix
+from genometools.expression import cluster
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +54,10 @@ class GOPCASignature(object):
 
     Parameters
     ----------
-    genes: list or tuple of str
+    genes: list or tuple of (str or unicode)
         See :attr:`genes` attribute.
+    samples: list or tuple of (str or unicode)
+        See :attr:`samples` attribute.
     X: ndarray
         See :attr:`X` attribute.
     pc: int
@@ -62,9 +67,11 @@ class GOPCASignature(object):
 
     Attributes
     ----------
-    genes: tuple of str
+    genes: tuple of (str or unicode)
         The list of genes in the signature. The ordering of the genes must
-        correspond to the ordering of the rows in ``S``.
+        correspond to the ordering of the rows in ``X``.
+    samples: tuple of (str or unicode)
+        The list of sample labels (the same as GOPCAResult.samples).
     X: `numpy.ndarray`
         A matrix containing the expression profiles of the ``genes``. Each gene
         corresponds to one row in the matrix, so ``E.shape`` should be
@@ -87,8 +94,10 @@ class GOPCASignature(object):
             ('signaling', 'signal.')]
     """Abbreviations used in generating signature labels."""
 
-    def __init__(self, genes, X, pc, enr):
+    def __init__(self, genes, samples, X, pc, enr):
+
         self.genes = tuple(genes) # genes in the signature (!= self.enr.genes)
+        self.samples = tuple(samples) # samples in the data
 
         self.X = X.copy()
         self.X.flags.writeable = False
@@ -130,6 +139,11 @@ class GOPCASignature(object):
         self.X.flags.writeable = False
 
     @property
+    def expression_matrix(self):
+        E, _, _ = self.get_expression_matrix()
+        return E
+
+    @property
     def gene_set(self):
         """ The gene set that the signature is based on. """
         return self.enr.gene_set
@@ -152,19 +166,28 @@ class GOPCASignature(object):
         """ The number of genes in the signature. """
         return len(self.genes)
 
-    @property
-    def K(self):
-        """ The number of genes annotated with the GO term whose enrichment led to the generation of the signature. """
-        return self.enr.K
+    def n(self):
+        """ The number of samples. """
+        return len(self.samples)
 
     @property
-    def n(self):
-        """ The threshold used to generate the signature. """
+    def mHG_n(self):
+        """ The cutoff at which the XL-mHG test statistic was attained. """
         return self.enr.n
 
     @property
-    def N(self):
-        """ The total number of genes in the data. """
+    def mHG_k_n(self):
+        """ The number of genes within the gene set above the mHG cutoff. """
+        return self.enr.k_n
+
+    @property
+    def mHG_K(self):
+        """ The total number of genes in the gene set. """
+        return self.enr.K
+
+    @property
+    def mHG_N(self):
+        """ The total number of genes in the analysis. """
         return self.enr.N
 
     @property
@@ -184,6 +207,37 @@ class GOPCASignature(object):
     @property
     def gene_list(self):
         return ','.join(sorted(self.genes))
+
+    def get_expression_matrix(
+            self, center = True, standardize = False,
+            cluster_genes = True, cluster_samples = True,
+            gene_cluster_metric = 'correlation',
+            sample_cluster_metric = 'euclidean',
+            cluster_method = 'average'):
+        """Returns the gene expression matrix for a signature.
+
+        Can perform centering, standardization, and clustering, depending
+        on the parameters provided (standardization includes centering).
+        """
+        E = ExpMatrix(genes = self.genes, samples = self.samples, X = self.X,
+                      copy = True)
+
+        if standardize:
+            E.standardize_genes()
+        elif center:
+            E.center_genes()
+
+        if cluster_genes:
+            E, order_genes = cluster.cluster_genes(
+                    E, metric = gene_cluster_metric, method = cluster_method
+            )
+
+        if cluster_samples:
+            E, order_samples = cluster.cluster_samples(
+                    E, metric = sample_cluster_metric, method = cluster_method
+            )
+
+        return E, order_genes, order_samples
 
     def get_ordered_dict(self):
         elements = OrderedDict([
@@ -233,7 +287,7 @@ class GOPCASignature(object):
                     e_str = ', e=%.1f' %(self.escore)
 
             stats_str = ' [%d:%d/%d%s%s]' \
-                    %(self.pc,self.k,self.K,e_str,p_str)
+                    %(self.pc, self.mHG_k_n, self.mHG_K, e_str, p_str)
 
         label = label + stats_str
         return label

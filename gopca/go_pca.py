@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -59,13 +59,37 @@ class GOPCA(object):
     Parameters
     ----------
     config: `go_pca.GOPCAConfig`
+        See :attr:`config` attribute.
+    E: `genometools.expression.ExpMatrix`
+        See :attr:`E` attribute.
+        The expression matrix.
+    gene_sets: `genometools.basics.GeneSetDB`
+        See :attr:`gene_sets` attribute.
+    go_parser: `goparser.GOParser`, optional
+        See :attr:`go_parser` attribute.
+
+    Attributes
+    ----------
+    config: `GOPCAConfig`
         GO-PCA configuration data.
+    E: `genometools.expression.ExpMatrix`
+        The expression matrix.
+    gene_sets: `genometools.basics.GeneSetDB`
+        The gene sets.
+    go_parser: `goparser.GOParser` or None
+        The gene ontology.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, gene_sets, go_parser = None):
         # store configuration
         assert isinstance(config, GOPCAConfig)
+        assert isinstance(gene_sets, GeneSetDB)
+        if go_parser is not None:
+            assert isinstance(go_parser, GOParser)
+        
         self.config = deepcopy(config)
+        self.gene_sets = gene_sets
+        self.go_parser = go_parser
 
     @staticmethod
     def print_signatures(signatures, maxlength = 50, debug = False):
@@ -84,69 +108,54 @@ class GOPCA(object):
                 logger.info(sig_label)
 
     @staticmethod
-    def _read_expression(config):
-        """Read expression data and perform variance filtering."""
-
-        E = ExpMatrix.read_tsv(config.expression_file)
-        # ExpMatrix constructor automatically sorts genes alphabetically
-
-        p,n = E.shape
-        logger.info('Expression matrix size: ' +
-                '(p = %d genes) x (n = %d samples).', p,n)
+    def _variance_filter(config, E):
+        """Perform variance filtering. Return a copy of E."""
+        assert isinstance(config, GOPCAConfig)
+        assert isinstance(E, ExpMatrix)
 
         sel_var_genes = config.sel_var_genes
-        if sel_var_genes > 0:
-            # perform variance filtering
+        if sel_var_genes == 0:
+            # variance filter is disabled
+            return E
 
-            if sel_var_genes >= p:
-                # the number of genes to retain is equal or larger the number
-                # of genes in the expresison matrix
-                logger.warning('Variance filtering has no effect ' +
-                        '(sel_var_genes = %d, p = %d).', sel_var_genes, p)
-                return E
+        p, n = E.shape
 
-            #genes,samples,E = (exp.genes,exp.samples,exp.E)
+        if sel_var_genes > p:
+            logger.warning('Variance filter parameter G = %d has no effect, '
+                           'since there are only p = %d genes.'
+                           %(sel_var_genes, p))
+            return E.copy()
 
-            # select most variable genes
-            var = np.var(E.X, axis=1, ddof=1)
-            total_var = np.sum(var) # total sum of variance
-            a = np.argsort(var)
-            a = a[::-1]
-            sel = np.zeros(p, dtype = np.bool_)
-            sel[a[:sel_var_genes]] = True
-            sel = np.nonzero(sel)[0]
+        # perform variance filtering
 
-            # report some information about the excluded genes
-            lost_p = p - sel.size
-            lost_var = total_var - np.sum(var[sel])
-            logger.info('Selected the %d most variable genes ' +
-                    '(excluded %.1f%% of genes, representing %.1f%% ' +
-                    'of total variance).',
-                    sel_var_genes, 100 * (lost_p / float(p)),
-                    100 * (lost_var / total_var))
+        #genes,samples,E = (exp.genes,exp.samples,exp.E)
 
-            # filtering
-            E.genes = [E.genes[i] for i in sel]
-            E.X = E.X[sel,:]
+        # select most variable genes
+        var = np.var(E.X, axis = 1, ddof = 1)
+        total_var = np.sum(var) # total sum of variance
+        a = np.argsort(var)
+        a = a[::-1]
+        sel = np.zeros(p, dtype = np.bool_)
+        sel[a[:sel_var_genes]] = True
+        sel = np.nonzero(sel)[0]
 
-            p,n = E.shape
-            logger.info('Expression matrix size, after variance filtering: ' +
-                    'p = %d genes x n = %d samples.', p, n)
+        # report some information about the excluded genes
+        lost_p = p - sel.size
+        lost_var = total_var - np.sum(var[sel])
+        logger.info('Selected the %d most variable genes ' +
+                '(excluded %.1f%% of genes, representing %.1f%% ' +
+                'of total variance).',
+                sel_var_genes, 100 * (lost_p / float(p)),
+                100 * (lost_var / total_var))
+
+        # filtering (this creates a copy)
+        E = E.iloc[sel]
+
+        p,n = E.shape
+        logger.info('Expression matrix size, after variance filtering: ' +
+                'p = %d genes x n = %d samples.', p, n)
 
         return E
-
-    @staticmethod
-    def _read_gene_ontology(config):
-        """Read the Gene Ontology data."""
-
-        p_logger = logging.getLogger(goparser.__name__)
-        p_logger.setLevel(logging.ERROR)
-        P = GOParser()
-        P.parse_ontology(config.gene_ontology_file,
-                part_of_cc_only = config.go_part_of_cc_only)
-        p_logger.setLevel(logging.NOTSET)
-
-        return P
 
     @staticmethod
     def _estimate_n_components(config, X):
@@ -273,8 +282,9 @@ class GOPCA(object):
         return kept
 
     @staticmethod
-    def _generate_signature(config, genes, X, pc, result):
-        """Algorithm for generating a signature based on an enriched gene set.
+    def _generate_signature(config, genes, samples, X, pc, result):
+        """
+        Algorithm for generating a signature based on an enriched gene set.
         """
 
         # select genes above cutoff giving rise to XL-mHG test statistic
@@ -298,10 +308,10 @@ class GOPCA(object):
         sig_genes = [enr_genes[i] for i in sel]
         sig_X = X_enr[sel,:]
 
-        return GOPCASignature(sig_genes, sig_X, pc, result)
+        return GOPCASignature(sig_genes, samples, sig_X, pc, result)
 
     @staticmethod
-    def _generate_pc_signatures(config, genes, E, M, W, pc):
+    def _generate_pc_signatures(config, genes, samples, E, M, W, pc):
         """Generate signatures for a specific principal component and ordering.
 
         The absolute value of ``pc`` determines the principal component (PC).
@@ -354,7 +364,7 @@ class GOPCA(object):
         signatures = []
         q = len(enriched)
         for j, enr in enumerate(enriched):
-            signatures.append(GOPCA._generate_signature(config, genes, E, pc, enr))
+            signatures.append(GOPCA._generate_signature(config, genes, samples, E, pc, enr))
         logger.info('Generated %d signatures based on the enriched gene sets.',
                 q)
 
@@ -415,18 +425,21 @@ class GOPCA(object):
         """
         self.config.set_param(name, value)
 
-    def run(self):
+    def run(self, E):
         """Run GO-PCA.
 
         Parameters
         ----------
-        None
+        E: `genometools.expression.ExpMatrix`
+            The expression matrix.
 
         Returns
         -------
-        `gopca.GOPCARun`
-            The GO-PCA run.
+        `gopca.GOPCARun` or None
+            The GO-PCA run, or "None" if the run failed.
         """
+        assert isinstance(E, ExpMatrix)
+
         t0 = time.time()
         # check the configuration
         if not self.config.check():
@@ -440,56 +453,28 @@ class GOPCA(object):
         # make a copy of the configuration
         config = deepcopy(self.config)
 
-        if config.gene_ontology_file is None and (not config.no_global_filter):
-            # no ontology file => disable global filter
+        if self.go_parser is None and (not config.no_global_filter):
+            # no ontology data => disable global filter
             logger.warning('Disabling global filter, since no gene ontology ' +
-                    'file was provided.')
+                    'data was provided.')
             config.set_param('no_global_filter', True)
 
-        # read expression
-        logger.info('Reading expression data...')
-        hashval = util.get_file_md5sum(config.expression_file)
-        logger.info('Expression file hash: %s', hashval)
-        if config.expression_file_hash is not None:
-            if config.expression_file_hash == hashval:
-                logging.info('MD5 hash of expression file matches specified value.')
-            else:
-                logging.error('MD5 hash of expression file does not match!')
-                return None
-        else:
-            config.set_param('expression_file_hash', hashval)
-        E = self._read_expression(config)
+        # generate expression hash
+        #logger.info('Reading expression data...')
+        #hashval = util.get_file_md5sum(config.expression_file)
+        expression_hash = hashlib.md5(str(hash(E))).hexdigest()
+        logger.info('Expression data hash value: %s', expression_hash)
 
-        # read ontology
-        go_parser = None
-        if config.gene_ontology_file is not None:
-            logger.info('Reading gene ontology...')
-            logger.debug('part_of_cc_only: %s', str(config.go_part_of_cc_only))
-            hashval = util.get_file_md5sum(config.gene_ontology_file)
-            logger.info('Gene ontology file hash: %s', hashval)
-            if config.gene_ontology_file_hash is not None:
-                if config.gene_ontology_file_hash == hashval:
-                    logging.info('MD5 hash of gene ontology file matches specified value.')
-                else:
-                    logging.error('MD5 hash of gene ontology file does not match specified value!')
-                    return None
-            else:
-                config.set_param('gene_ontology_file_hash', hashval)
-            go_parser = self._read_gene_ontology(config)
+        # generate ontology hash
+        # => not implemented
+        ontology_hash = None
 
-        # read gene sets
-        logger.info('Reading gene sets...')
-        hashval = util.get_file_md5sum(config.gene_set_file)
-        logger.info('Gene set file hash: %s', hashval)
-        if config.gene_set_file_hash is not None:
-            if config.gene_set_file_hash == hashval:
-                logging.info('MD5 hash of gene set file matches specified value.')
-            else:
-                logging.error('MD5 hash of gene set file does not match specified value!')
-                return None
-        else:
-            config.set_param('gene_set_file_hash', hashval)
-        D = GeneSetDB.read_tsv(config.gene_set_file)
+        # generate gene sets hash
+        gene_sets_hash = hashlib.md5(str(hash(self.gene_sets))).hexdigest()
+        logger.info('Gene set data hash value: %s', gene_sets_hash)
+
+        # perform variance filtering (this creates a copy of E)
+        E = self._variance_filter(config, E)
 
         # determine mHG_L, if -1 or 0
         if config.mHG_L == -1:
@@ -526,7 +511,7 @@ class GOPCA(object):
 
         # create GSEAnalysis object
         genome = ExpGenome([ExpGene(g) for g in E.genes])
-        M_enrich = GSEAnalysis(genome, D)
+        M_enrich = GSEAnalysis(genome, self.gene_sets)
 
         # run PCA
         logger.info('Performing PCA...')
@@ -555,15 +540,15 @@ class GOPCA(object):
                     'is %.1f%%.', 100 * var_expl)
 
             signatures = []
-            signatures_dsc = self._generate_pc_signatures(config, E.genes, E.X, M_enrich, W, pc+1)
-            signatures_asc = self._generate_pc_signatures(config, E.genes, E.X, M_enrich, W, -pc-1)
+            signatures_dsc = self._generate_pc_signatures(config, E.genes, E.samples, E.X, M_enrich, W, pc+1)
+            signatures_asc = self._generate_pc_signatures(config, E.genes, E.samples, E.X, M_enrich, W, -pc-1)
             signatures = signatures_dsc + signatures_asc
 
             logger.info('# signatures: %d', len(signatures))
             before = len(signatures)
 
             if not config.no_global_filter:
-                signatures = self._global_filter(config, signatures, final_signatures, go_parser)
+                signatures = self._global_filter(config, signatures, final_signatures, self.go_parser)
                 logger.info('Global filter: kept %d / %d signatures.',
                         len(signatures),before)
         
@@ -589,11 +574,8 @@ class GOPCA(object):
         t1 = time.time()
         run_time = t1 - t0
         logger.info('This GO-PCA run took %.2f s.', run_time)
-        run = GOPCARun(gopca.__version__, self.config, timestamp, result, run_time)
-
-        if config.output_file is not None:
-            logger.info('Storing GO-PCA run in file "%s"...',
-                    config.output_file)
-            run.write_pickle(config.output_file)
+        run = GOPCARun(gopca.__version__, self.config,
+                       expression_hash, gene_sets_hash, ontology_hash,
+                       timestamp, run_time, result)
 
         return run

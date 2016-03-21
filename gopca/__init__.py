@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -16,12 +16,13 @@
 
 import pkg_resources
 
-from gopca.config import GOPCAConfig
-from gopca.signature import GOPCASignature
-from gopca.result import GOPCAResult
-from gopca.run import GOPCARun
-from gopca.go_pca import GOPCA
+from .config import GOPCAConfig
+from .signature import GOPCASignature
+from .result import GOPCAResult
+from .run import GOPCARun
+from .go_pca import GOPCA
+from .plotter import GOPCAPlotter
 
 __version__ = pkg_resources.require('gopca')[0].version
 
-__all__ = ['GOPCAInput','GOPCA','GOPCAResult', 'GOPCARun']
+__all__ = ['GOPCAInput','GOPCA','GOPCAResult', 'GOPCARun', 'GOPCAPlot']

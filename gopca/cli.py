@@ -182,7 +182,7 @@ def add_sample_args(parser):
     g.add_argument('--sample-no-clustering', action = 'store_true',
             help = 'Disable clustering of the samples.')
 
-    g.add_argument('--sample-cluster-metric', default='correlation',
+    g.add_argument('--sample-cluster-metric', default = 'euclidean',
             metavar = name_mv, help = textwrap.dedent("""\
                 The metric used in the hierarchical clustering algorithm."""))
 
