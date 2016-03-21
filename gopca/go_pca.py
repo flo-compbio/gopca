@@ -38,12 +38,12 @@ from goparser import GOParser
 
 from genometools.basic import GeneSetDB
 from genometools.expression import ExpMatrix, ExpGene, ExpGenome
+from genometools import enrichment
+from genometools.enrichment import GSEAnalysis, GSEResult
 
 import gopca
-from gopca import util
-from gopca import enrichment
-from gopca.enrichment import GSEAnalysis, GSEResult
-from gopca import GOPCAConfig, GOPCASignature, GOPCAResult, GOPCARun
+from . import util
+from . import GOPCAConfig, GOPCASignature, GOPCAResult, GOPCARun
 
 logger = logging.getLogger(__name__)
 

@@ -37,8 +37,7 @@ from genometools.expression import ExpMatrix
 from genometools.basic import GeneSetDB
 import goparser
 from goparser import GOParser
-from gopca import util
-from gopca import cli
+from gopca import util, cli
 from gopca import GOPCAConfig, GOPCA
 
 def get_argument_parser():
