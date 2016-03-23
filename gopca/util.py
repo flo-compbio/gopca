@@ -43,12 +43,12 @@ from genometools import misc
 def combine_signatures(*results):
     """Combines signatures from multiple GO-PCA results."""
     #assert len(results
-    G = copy.deepcopy(args[0])
+    G = copy.deepcopy(results[0])
     G.config = None
     G.genes = None
     G.W = None
     G.Y = None
-    for i, G_other in range(results[1:]):
+    for i, G_other in enumerate(results[1:]):
         G.signatures = G.signatures + G_other.signatures
         G.S = np.vstack([G.S, G_other.S])
     return G
