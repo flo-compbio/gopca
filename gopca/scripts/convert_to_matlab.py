@@ -1,6 +1,6 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -15,6 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+"""Script to convert GO-PCA result to matlab file format."""
+
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
 
 import sys
 import argparse
@@ -40,6 +46,11 @@ def get_argument_parser():
     return parser
 
 def main(args=None):
+
+    vinfo = sys.version_info
+    if not (vinfo >= (2, 7)):
+        raise SystemError('Python interpreter version >= 2.7 required, '
+                          'found %d.%d instead.' %(vinfo.major, vinfo.minor))
 
     if args is None:
         parser = get_argument_parser()
@@ -70,7 +81,7 @@ def main(args=None):
     sig_genes = [np.asarray(sig.genes, dtype = np.object) for sig in signatures]
     sig_term_genes = [np.asarray(sig.enr.genes, dtype = np.object) for sig in signatures]
     #sig_genes = dict([sig.term[0].replace(':','_'),sorted(sig.genes)] for sig in signatures)
-    #print sig_genes
+    #print(sig_genes)
 
     #common.write_expression(output_file,labels,samples,S)
 

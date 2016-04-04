@@ -18,6 +18,10 @@
 
 """
 
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
+
 import re
 import logging
 import copy
@@ -27,6 +31,7 @@ import numpy as np
 
 from genometools.expression import ExpMatrix
 from genometools.expression import cluster
+from genometools.enrichment import GSEResult
 
 logger = logging.getLogger(__name__)
 
@@ -54,11 +59,11 @@ class GOPCASignature(object):
 
     Parameters
     ----------
-    genes: list or tuple of (str or unicode)
+    genes: list or tuple of str
         See :attr:`genes` attribute.
-    samples: list or tuple of (str or unicode)
+    samples: list or tuple of str
         See :attr:`samples` attribute.
-    X: ndarray
+    X: `numpy.ndarray`
         See :attr:`X` attribute.
     pc: int
         See :attr:`pc` attribute.
@@ -67,10 +72,10 @@ class GOPCASignature(object):
 
     Attributes
     ----------
-    genes: tuple of (str or unicode)
+    genes: tuple of str
         The list of genes in the signature. The ordering of the genes must
         correspond to the ordering of the rows in ``X``.
-    samples: tuple of (str or unicode)
+    samples: tuple of str
         The list of sample labels (the same as GOPCAResult.samples).
     X: `numpy.ndarray`
         A matrix containing the expression profiles of the ``genes``. Each gene
@@ -84,7 +89,7 @@ class GOPCASignature(object):
         positive, then the signature was derived based on an ascending order.
         Conversely, if the sign is negative, then the signature was dervied
         based on a descending ranking.
-    enr: `enrichment.GSEResult`
+    enr: `GSEResult`
         The result of the XL-mHG test that was conducted after ranking the
         genes based on their principal component loadings.
     """
@@ -96,14 +101,26 @@ class GOPCASignature(object):
 
     def __init__(self, genes, samples, X, pc, enr):
 
+        assert isinstance(genes, (list, tuple))
+        for g in genes:
+            assert isinstance(g, str)
+        
+        assert isinstance(samples, (list, tuple))
+        for s in samples:
+            assert isinstance(s, str)
+
+        assert isinstance(X, np.ndarray)
+        assert isinstance(pc, int)
+        assert isinstance(enr, GSEResult)
+
         self.genes = tuple(genes) # genes in the signature (!= self.enr.genes)
         self.samples = tuple(samples) # samples in the data
 
-        self.X = X.copy()
-        self.X.flags.writeable = False
+        self.X = X
 
         self.pc = pc
-        self.enr = copy.deepcopy(enr)
+        #self.enr = copy.deepcopy(enr)
+        self.enr = enr
 
     def __repr__(self):
         return '<%s "%s" (k=%d; p=%.1e; e=%.1f; hash=%d)>' \
@@ -118,7 +135,8 @@ class GOPCASignature(object):
     def __hash__(self):
         data = []
         data.append(self.genes)
-        data.append(self.X.data)
+        data.append(self.samples)
+        data.append(self.X.tobytes())
         data.append(self.pc)
         data.append(self.enr)
         return hash(tuple(data))

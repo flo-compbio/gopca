@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -17,6 +17,10 @@
 """Functions for configuring command-line parameters of GO-PCA scripts.
 """
 
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
+
 import sys
 import argparse
 import textwrap
@@ -29,7 +33,7 @@ float_mv = '<float>'
 name_mv = '<name>'
 str_mv = '<str>'
 
-str_type = lambda s: unicode(s, sys.getfilesystemencoding())
+str_type = lambda s: str(s, sys.getfilesystemencoding())
 
 def get_argument_parser(prog = None, desc = None, formatter_class = None):
     """Create an argument parser.

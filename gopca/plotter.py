@@ -16,13 +16,15 @@
 
 """Module containing the GOPCAPlotter class."""
 
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
+
 import logging
 from collections import OrderedDict
 
 import pandas as pd
 import numpy as np
-
-from bokeh.models import HoverTool
 
 from genometools.expression import ExpMatrix
 from genometools.expression import plot as eplt
@@ -34,46 +36,51 @@ logger = logging.getLogger(__name__)
 class GOPCAPlotter(object):
     """A plotter for GO-PCA results."""
 
-    def __init__(self):
-        pass
+    def __init__(self, result):
+        assert isinstance(result, GOPCAResult)
+
+        self.result = result
 
     def plot_signature_matrix(
-            self, result, sig_max_name_length = 50, sig_include_id = False,
-            width = 800, height = 400,
-            cmap = None, vmin = None, vmax = None,
-            font = None, font_size = None,
-            show_sample_labels = False, matrix_kw = None):
+            self, sig_max_name_length = 50, sig_include_id = False,
+            emin = -3.0, emax = 3.0, margin_left = 150, margin_bottom = 50,
+            show_sample_labels = False, matrix_kw = None, **kwargs):
         """Plot a GO-PCA signature matrix as a heat map."""
 
-        assert isinstance(result, GOPCAResult)
+        if matrix_kw is not None:
+            assert isinstance(matrix_kw, (dict, OrderedDict))
 
         if matrix_kw is None:
             matrix_kw = {}
 
-        assert isinstance(matrix_kw, (dict, OrderedDict))
-
         matrix_kw['max_name_length'] = sig_max_name_length
         matrix_kw['include_id'] = sig_include_id
 
+        result = self.result
+
         # generate signature matrix
-        S, _, _ = result.get_signature_matrix(**matrix_kw)
+        S, a_signatures, a_samples = result.get_signature_matrix(**matrix_kw)
 
         # plot heat map
-        hm = eplt.plot_heatmap(
-                S, cmap = cmap, yaxis_label = 'Signatures', 
-                width = width, height = height,
-                vmin = -3.0, vmax = 3.0, font_size = '8pt'
+        fig = eplt.get_heatmap(
+            S, yaxis_label='Signatures',
+            colorbar_label='Standardized Expression',
+            emin=emin, emax=emax,
+            show_sample_labels=show_sample_labels,
+            margin_left=margin_left, margin_bottom=margin_bottom,
+            **kwargs
         )
 
-        return hm
+        return fig, S, a_signatures, a_samples
 
+    """
     def plot_signature(
             self, sig, include_id = False,
             cmap = None, vmin = None, vmax = None,
             width = 800, height = 400,
             font = None, font_size = None,
             show_sample_labels = False, sig_kw = None):
-        """Plot the gene expression matrix of a GO-PCA signature as a heat map."""
+        #Plot the gene expression matrix of a GO-PCA signature as a heat map.
 
         assert isinstance(sig, GOPCASignature)
 
@@ -95,4 +102,4 @@ class GOPCAPlotter(object):
         # extract expression matrix for signature genes
         
         return hm
-
+    """

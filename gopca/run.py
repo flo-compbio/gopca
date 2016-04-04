@@ -17,6 +17,10 @@
 """Module containing the `GOPCARun` class.
 """
 
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
+
 import logging
 import io
 from copy import deepcopy
@@ -48,13 +52,13 @@ class GOPCARun(object):
                  ontology_hash, timestamp, exec_time, result):
 
         # checks
-        assert isinstance(version, (str, unicode))
+        assert isinstance(version, str)
         assert isinstance(user_config, GOPCAConfig)
-        assert isinstance(expression_hash, (str, unicode))
-        assert isinstance(gene_sets_hash, (str, unicode))
+        assert isinstance(expression_hash, str)
+        assert isinstance(gene_sets_hash, str)
         if ontology_hash is not None:
-            assert isinstance(ontology_hash, (str, unicode))
-        assert isinstance(timestamp, (str, unicode))
+            assert isinstance(ontology_hash, str)
+        assert isinstance(timestamp, str)
         assert isinstance(result, GOPCAResult)
         assert isinstance(exec_time, float)
 

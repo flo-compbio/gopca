@@ -14,6 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
+
 import pkg_resources
 
 from .config import GOPCAConfig
@@ -25,4 +29,4 @@ from .plotter import GOPCAPlotter
 
 __version__ = pkg_resources.require('gopca')[0].version
 
-__all__ = ['GOPCAInput','GOPCA','GOPCAResult', 'GOPCARun', 'GOPCAPlot']
+__all__ = ['GOPCAInput', 'GOPCA', 'GOPCAResult', 'GOPCARun', 'GOPCAPlot']

@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -16,6 +16,10 @@
 
 """Functions used by various GO-PCA scripts.
 """
+
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
 
 import os
 import io
@@ -35,21 +39,22 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
 import sklearn
 
-import gopca
 from genometools import misc
+import gopca
+from gopca import GOPCASignature
 
-#logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 def combine_signatures(*results):
     """Combines signatures from multiple GO-PCA results."""
     #assert len(results
-    G = copy.deepcopy(results[0])
-    G.config = None
-    G.genes = None
-    G.W = None
-    G.Y = None
+    G = copy.copy(results[0])
+    #G.config = None
+    #G.genes = None
+    #G.W = None
+    #G.Y = None
     for i, G_other in enumerate(results[1:]):
-        G.signatures = G.signatures + G_other.signatures
+        G.signatures = tuple(G.signatures) + tuple(G_other.signatures)
         G.S = np.vstack([G.S, G_other.S])
     return G
 
@@ -68,11 +73,24 @@ def get_logger(name = '', log_stream = sys.stdout, log_file = None,
     return new_logger
 
 def filter_signatures(signatures, S, corr_thresh):
+    """Remove "redundant" signatures."""
+
+    # checks
+    assert isinstance(signatures, (list, tuple))
+    for s in signatures:
+        assert isinstance(s, GOPCASignature)
+
+    assert isinstance(S, np.ndarray)
+    assert isinstance(corr_thresh, (float, int))
+    assert 0 < corr_thresh <= 1.0
+
+    assert len(signatures) == S.shape[0]
 
     if corr_thresh == 1.0:
         # no filtering
         return signatures, S
 
+    """
     q, n = S.shape
     info = np.zeros(q, dtype = np.float64)
     # sort signatures by information content?
@@ -85,14 +103,17 @@ def filter_signatures(signatures, S, corr_thresh):
         info[i] = max_ent - ent
     a = np.argsort(info)
     a = a[::-1]
+    #a = np.lexsort([-info, sig_abs_pcs])
+    #print('\n'.join(['%.3f: %s' %(info[i],str(G.signatures[i])) for i in a[:5]]))
+    """
 
+    # sort signatures first by PC, then by E-score
     sig_abs_pcs = np.absolute(np.int64([sig.pc for sig in signatures]))
     sig_escore = np.float64([sig.escore for sig in signatures])
-    #a = np.lexsort([-info, sig_abs_pcs])
     a = np.lexsort([-sig_escore, sig_abs_pcs])
-    #print '\n'.join(['%.3f: %s' %(info[i],str(G.signatures[i])) for i in a[:5]])
 
     # filtering
+    q, n = S.shape
     sel = np.ones(q, dtype = np.bool_)
     for i in a:
 
@@ -103,8 +124,10 @@ def filter_signatures(signatures, S, corr_thresh):
         for i2, sig in enumerate(signatures):
             if i == i2 or not sel[i2]:
                 continue
-            assert np.corrcoef(np.vstack([S[i,:],S[i2,:]])).shape == (2,2)
+            #assert np.corrcoef(np.vstack([S[i,:],S[i2,:]])).shape == (2,2)
             if np.corrcoef(np.vstack([S[i,:],S[i2,:]]))[0,1] >= corr_thresh:
+                logger.info('Excluding signature: %s',
+                            signatures[i].get_label())
                 sel[i2] = False
 
     sel = np.nonzero(sel)[0]
@@ -174,11 +197,11 @@ def simpleaxis(ax):
 def print_signatures(signatures):
     a = None
     maxlength = 40
-    a = sorted(range(len(signatures)),key=lambda i: -signatures[i].msfe)
+    a = sorted(range(len(signatures)),key=lambda i: -signatures[i].escore)
 
     for i in a:
         sig = signatures[i]
-        print sig.get_label(max_name_length=maxlength,include_pval=True)
+        print(sig.get_label(max_name_length=maxlength,include_pval=True))
 
 def get_centered(x):
     x = x.copy()

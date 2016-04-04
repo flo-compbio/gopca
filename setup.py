@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -16,18 +16,42 @@
 
 import sys
 import os
+import io
 
 from setuptools import setup, find_packages, Extension
-import codecs
 from os import path
 
 here = path.abspath(path.dirname(__file__))
-description = 'GO-PCA: An Unsupervised Method to Explore Gene Expression ' + \
-        'Data Using Prior Knowledge'
+description = ('GO-PCA: An Unsupervised Method to Explore Gene Expression '
+               'Data Using Prior Knowledge')
 
+# get long description from file
 long_description = ''
-with codecs.open(path.join(here, 'README.rst'), encoding = 'utf-8') as f:
-    long_description = f.read()
+with io.open(path.join(here, 'README.rst'), mode = 'r', encoding = 'UTF-8') as fh:
+    long_description = fh.read()
+
+install_requires = [
+    'future >= 0.15.2, < 1',
+    'six >= 1.10.0, < 2',
+    'unicodecsv >= 0.14.1, < 1',
+    'xlsxwriter >= 0.7.7, < 1',
+    'configparser >= 3.2, < 4',
+]
+
+# do not require installation if built by ReadTheDocs
+# (we mock these modules in docs/source/conf.py)
+if 'READTHEDOCS' not in os.environ or \
+        os.environ['READTHEDOCS'] != 'True':
+    install_requires.extend([
+        'numpy >= 1.8, < 2',
+        'pandas >= 0.18, < 1',
+        'scipy >= 0.14, < 1',
+        'scikit-learn >= 0.14, < 1',
+        'matplotlib >= 1.4.3, < 2',
+        'plotly >= 1.9.6, < 2',
+        'genometools >= 2.0rc1',
+        'goparser >= 1.1.3, < 2',
+    ])
 
 setup(
     name = 'gopca',
@@ -66,13 +90,7 @@ setup(
 
     #libraries = [],
 
-    install_requires = [
-            'setuptools', 'networkx', 'xlsxwriter >= 0.7.7',
-            'configparser >= 3.2',
-            'numpy', 'scipy', 'cython', 'scikit-learn',
-            'matplotlib >= 1.4.3', 'bokeh >= 0.11.1',
-            'genometools >= 2.0rc1', 'goparser >= 1.1.3', 'xlmhg >= 1.1rc3'
-    ],
+    install_requires = install_requires,
 
     extras_require={
             'docs': ['sphinx', 'sphinx-bootstrap-theme', 'sphinx-argparse',

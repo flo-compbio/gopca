@@ -18,6 +18,10 @@
 
 """
 
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
+
 import sys
 import os
 import logging
@@ -25,8 +29,7 @@ import re
 import cPickle as pickle
 import time
 import hashlib
-from copy import deepcopy
-from collections import OrderedDict, Iterable
+import copy
 import datetime
 
 import numpy as np
@@ -87,7 +90,7 @@ class GOPCA(object):
         if go_parser is not None:
             assert isinstance(go_parser, GOParser)
         
-        self.config = deepcopy(config)
+        self.config = config
         self.gene_sets = gene_sets
         self.go_parser = go_parser
 
@@ -451,7 +454,7 @@ class GOPCA(object):
         logger.info('Timestamp: %s', timestamp)
 
         # make a copy of the configuration
-        config = deepcopy(self.config)
+        config = copy.deepcopy(self.config)
 
         if self.go_parser is None and (not config.no_global_filter):
             # no ontology data => disable global filter
@@ -574,7 +577,8 @@ class GOPCA(object):
         t1 = time.time()
         run_time = t1 - t0
         logger.info('This GO-PCA run took %.2f s.', run_time)
-        run = GOPCARun(gopca.__version__, self.config,
+        run_config = copy.deepcopy(self.config)
+        run = GOPCARun(gopca.__version__, run_config,
                        expression_hash, gene_sets_hash, ontology_hash,
                        timestamp, run_time, result)
 

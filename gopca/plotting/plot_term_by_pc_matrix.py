@@ -1,6 +1,6 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -32,6 +32,9 @@ Example
 
 """
 
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
 
 import sys
 import os
@@ -51,6 +54,8 @@ import gopca
 from gopca import util
 from gopca import cli
 from gopca.plotting import cli as plot_cli
+
+from xlmhg import xlmhg_test
 
 def get_argument_parser():
 
@@ -83,7 +88,10 @@ def get_argument_parser():
 
 def main(args=None):
 
-    import xlmhg
+    vinfo = sys.version_info
+    if not (vinfo >= (2, 7)):
+        raise SystemError('Python interpreter version >= 2.7 required, '
+                          'found %d.%d instead.' %(vinfo.major, vinfo.minor))
 
     if args is None:
         # read command line arguments
@@ -186,19 +194,20 @@ def main(args=None):
                 v[idx] = 1
 
             v_sorted = np.ascontiguousarray(v[a_dsc])
-            threshold,_,pval = xlmhg.test(v_sorted,X,L,K,mat=matrix)
+            stat, n_star, pval = xlmhg_test(v_sorted,X,L,K,mat=matrix)
             A[i,pc*2] = -np.log10(pval)
 
             v_sorted = np.ascontiguousarray(v[a_asc])
-            threshold,_,pval = xlmhg.test(v_sorted,X,L,K,mat=matrix)
+            stat, n_star, pval = xlmhg_test(v_sorted,X,L,K,mat=matrix)
             A[i,pc*2+1] = -np.log10(pval)
 
-    # plotting
     import matplotlib as mpl
+    if mpl_backend is not None:
+        mpl.use(mpl_backend)
     #from matplotlib.backends.backend_pdf import PdfPages
     import matplotlib.pyplot as plt
-    from matplotlib import cm
     from matplotlib import rc
+    #from matplotlib import cm
 
     rc('font',family = font_family, size = font_size)
     rc('figure', figsize = fig_size)

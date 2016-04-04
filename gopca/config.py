@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -17,6 +17,10 @@
 """Module containing the GOPCAConfig class.
 
 """
+
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
 
 import os
 import io
@@ -176,7 +180,7 @@ class GOPCAConfig(object):
     def get_param_strings(self):
         d = []
         for k in sorted(self.__params.keys()):
-            d.append(u'%s=%s' %(k, unicode(self.__params[k])))
+            d.append(u'%s=%s' %(k, self.__params[k]))
         return d
 
     def get_dict(self):
@@ -353,7 +357,7 @@ class GOPCAConfig(object):
         """
         data = []
         for p in self.param_defaults:
-           data.append(unicode(self.__params[p]))
+           data.append(self.__params[p])
         data_str = ','.join(data)
         logger.debug('Configuration data string: %s', data_str)
         return hashlib.md5(data_str.encode('UTF-8')).hexdigest()
@@ -364,7 +368,7 @@ class GOPCAConfig(object):
 
         Parameters
         ----------
-        path: str or unicode
+        path: str
             The file path.
 
         Returns
@@ -401,7 +405,7 @@ class GOPCAConfig(object):
 
         Parameters
         ----------
-        path: str or unicode
+        path: str
             The file path
 
         Returns
@@ -412,9 +416,9 @@ class GOPCAConfig(object):
         config.optionxform = lambda x: x
         config['GO-PCA'] = OrderedDict()
         g = config['GO-PCA']
-        for p,v in self.__params.iteritems():
+        for p, v in self.__params.iteritems():
             if v is not None:
-                g[p] = unicode(v)
+                g[p] = str(v)
 
         with io.open(path, mode = 'w', encoding = 'UTF-8') as ofh:
             config.write(ofh)

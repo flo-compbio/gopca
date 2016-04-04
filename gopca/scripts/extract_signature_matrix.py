@@ -1,6 +1,6 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -18,6 +18,10 @@
 
 """Script to extract the GO-PCA signature matrix as a tab-delimited text file.
 """
+
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
 
 import sys
 import argparse
@@ -48,6 +52,11 @@ def get_argument_parser():
     return parser
 
 def main(args = None):
+
+    vinfo = sys.version_info
+    if not (vinfo >= (2, 7)):
+        raise SystemError('Python interpreter version >= 2.7 required, '
+                          'found %d.%d instead.' %(vinfo.major, vinfo.minor))
 
     if args is None:
         parser = get_argument_parser()

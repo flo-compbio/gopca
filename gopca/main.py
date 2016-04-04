@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 # Copyright (c) 2015, 2016 Florian Wagner
 #
@@ -26,6 +26,10 @@ Example
     $ go-pca.py -e [expression_file] -a [annotation_file] -t [ontology-file] -o [output-file]
 
 """
+
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
 
 import sys
 import os
@@ -218,9 +222,17 @@ def main(args = None):
     int
         Exit code (0 if no error occurred).
  
+    Raises
+    ------
+    SystemError
+        If the version of the Python interpreter is not >= 2.7.
     """
-    config = None
+    vinfo = sys.version_info
+    if not (vinfo >= (2, 7)):
+        raise SystemError('Python interpreter version >= 2.7 required, '
+                          'found %d.%d instead.' %(vinfo.major, vinfo.minor))
 
+    config = None
     if args is None:
         # read arguments from the command line
         parser = get_argument_parser()

@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -16,6 +16,10 @@
 
 """Functions for adding command-line parameters to GO-PCA plotting scripts.
 """
+
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
 
 int_mv = '<int>'
 float_mv = '<float>'

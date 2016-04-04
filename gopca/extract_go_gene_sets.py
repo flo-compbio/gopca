@@ -1,6 +1,6 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -80,6 +80,10 @@ Examples
 
 """
 
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
+
 import sys
 import os
 import argparse
@@ -89,7 +93,6 @@ import cPickle as pickle
 import textwrap
 
 import numpy as np
-import networkx as nx
 
 import unicodecsv as csv
 
@@ -181,9 +184,17 @@ def main(args = None):
     int
         Exit code (0 if no error occurred).
  
+    Raises
+    ------
+    SystemError
+        If the version of the Python interpreter is not >= 2.7.
     """
+    vinfo = sys.version_info
+    if not (vinfo >= (2, 7)):
+        raise SystemError('Python interpreter version >= 2.7 required, '
+                          'found %d.%d instead.' %(vinfo.major, vinfo.minor))
 
-
+    config = None
     if args is None:
         parser = get_argument_parser()
         args = parser.parse_args()
