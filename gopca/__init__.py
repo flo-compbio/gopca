@@ -27,6 +27,6 @@ from .run import GOPCARun
 from .go_pca import GOPCA
 from .plotter import GOPCAPlotter
 
-__version__ = pkg_resources.require('gopca')[0].version
+__version__ = str(pkg_resources.require('gopca')[0].version)
 
 __all__ = ['GOPCAInput', 'GOPCA', 'GOPCAResult', 'GOPCARun', 'GOPCAPlot']

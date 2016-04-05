@@ -357,10 +357,10 @@ class GOPCAConfig(object):
         """
         data = []
         for p in self.param_defaults:
-           data.append(self.__params[p])
+           data.append(str(self.__params[p]))
         data_str = ','.join(data)
         logger.debug('Configuration data string: %s', data_str)
-        return hashlib.md5(data_str.encode('UTF-8')).hexdigest()
+        return str(hashlib.md5(data_str).hexdigest())
 
     @classmethod
     def read_config(cls, path):

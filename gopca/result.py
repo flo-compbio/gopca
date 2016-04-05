@@ -174,13 +174,13 @@ class GOPCAResult(object):
         data = []
         data.append(hash(self.signatures))
         data.append(hash(self.samples))
-        data.append(hash(self.S.data))
+        data.append(hash(self.S.tobytes()))
         data.append(hash(self.genes))
-        data.append(hash(self.W.data))
-        data.append(hash(self.Y.data))
+        data.append(hash(self.W.tobytes()))
+        data.append(hash(self.Y.tobytes()))
 
         hash_str = ','.join(str(d) for d in data)
-        h = hashlib.md5(hash_str).hexdigest()
+        h = str(hashlib.md5(hash_str).hexdigest())
 
         return h
 

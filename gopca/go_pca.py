@@ -235,7 +235,7 @@ class GOPCA(object):
         K_max = max([enr.K for enr in todo])
         p = len(ranked_genes)
         # initialize matrix for XL-mHG test
-        mat = np.zeros((K_max + 1, p + 1), dtype = np.longdouble)
+        mat = np.empty((K_max + 1, p + 1), dtype = np.float64)
         while todo:
             most_enriched = todo[0]
             gs_id = most_enriched.gene_set.id
@@ -465,7 +465,7 @@ class GOPCA(object):
         # generate expression hash
         #logger.info('Reading expression data...')
         #hashval = util.get_file_md5sum(config.expression_file)
-        expression_hash = hashlib.md5(str(hash(E))).hexdigest()
+        expression_hash = str(hashlib.md5(str(hash(E))).hexdigest())
         logger.info('Expression data hash value: %s', expression_hash)
 
         # generate ontology hash
@@ -473,7 +473,7 @@ class GOPCA(object):
         ontology_hash = None
 
         # generate gene sets hash
-        gene_sets_hash = hashlib.md5(str(hash(self.gene_sets))).hexdigest()
+        gene_sets_hash = str(hashlib.md5(str(hash(self.gene_sets))).hexdigest())
         logger.info('Gene set data hash value: %s', gene_sets_hash)
 
         # perform variance filtering (this creates a copy of E)

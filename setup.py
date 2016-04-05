@@ -32,7 +32,7 @@ with io.open(path.join(here, 'README.rst'), mode = 'r', encoding = 'UTF-8') as f
 
 install_requires = [
     'future >= 0.15.2, < 1',
-    'six >= 1.10.0, < 2',
+    #'six >= 1.10.0, < 2',
     'unicodecsv >= 0.14.1, < 1',
     'xlsxwriter >= 0.7.7, < 1',
     'configparser >= 3.2, < 4',
