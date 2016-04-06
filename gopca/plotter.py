@@ -42,9 +42,10 @@ class GOPCAPlotter(object):
         self.result = result
 
     def plot_signature_matrix(
-            self, sig_max_name_length = 50, sig_include_id = False,
-            emin = -3.0, emax = 3.0, margin_left = 150, margin_bottom = 50,
-            show_sample_labels = False, matrix_kw = None, **kwargs):
+            self, sig_max_name_length=50, sig_include_id=False,
+            emin=-3.0, emax=3.0,
+            margin_left=150, margin_bottom=50,
+            show_sample_labels=False, matrix_kw=None, **kwargs):
         """Plot a GO-PCA signature matrix as a heat map."""
 
         if matrix_kw is not None:
@@ -62,7 +63,7 @@ class GOPCAPlotter(object):
         S, a_signatures, a_samples = result.get_signature_matrix(**matrix_kw)
 
         # plot heat map
-        fig = eplt.get_heatmap(
+        fig = eplt.plot_heatmap(
             S, yaxis_label='Signatures',
             colorbar_label='Standardized Expression',
             emin=emin, emax=emax,
@@ -73,21 +74,41 @@ class GOPCAPlotter(object):
 
         return fig, S, a_signatures, a_samples
 
-    """
     def plot_signature(
-            self, sig, include_id = False,
-            cmap = None, vmin = None, vmax = None,
-            width = 800, height = 400,
-            font = None, font_size = None,
-            show_sample_labels = False, sig_kw = None):
-        #Plot the gene expression matrix of a GO-PCA signature as a heat map.
+            self, name=None, pc=None, i=None, sig=None,
+            standardize=False, center=True, cluster_samples=True,
+            include_id=False,
+            emin=None, emax=None,
+            margin_left = 70, margin_bottom = 50, margin_top=50,
+            show_sample_labels=False, matrix_kw=None, **kwargs):
 
-        assert isinstance(sig, GOPCASignature)
+        if sig is not None:
+            assert isinstance(sig, GOPCASignature)
+        else:
+            assert name is not None, 'No signature and no signature name given!'
+            assert isinstance(name, str)
 
-        if sig_kw is None:
-            sig_kw = {}
+        if sig is None:
+            # look up signature
+            sig = self.result.get_signature(name, pc, i)
 
-        E, _, _ = sig.get_expression_matrix(**sig_kw) # clustering etc.
+        if matrix_kw is None:
+            matrix_kw = {}
+
+        # get signature expression matrix
+        E, a_genes, _ = sig.get_expression_matrix(
+            standardize=standardize,
+            center=center,
+            **matrix_kw)
+
+        cb_label = 'Centered Expression'
+        if standardize:
+            cb_label = 'Standardized Expression'
+    
+        if cluster_samples:
+            # use entire signature matrix as the basis for clustering
+            S, _, a_samples = self.result.get_signature_matrix()
+            E = E.iloc[:,a_samples]
 
         # add a "Signature" row to the top
         # (representing the signature expression)
@@ -96,10 +117,15 @@ class GOPCAPlotter(object):
         header_row = ExpMatrix(genes = ['Signature'], samples = E.samples, X = np.atleast_2d(mean))
         E = pd.concat([header_row, E], axis = 0)
 
-        hm = eplt.plot_heatmap(
-                E, cmap = cmap, title = title, width = width, height = height
+        # plot heat map
+        fig = eplt.plot_heatmap(
+            E, title=title, yaxis_label='Genes',
+            colorbar_label=cb_label,
+            emin=emin, emax=emax,
+            show_sample_labels=show_sample_labels,
+            margin_left=margin_left,
+            margin_bottom=margin_bottom, margin_top=margin_top,
+            **kwargs
         )
-        # extract expression matrix for signature genes
-        
-        return hm
-    """
+
+        return fig

@@ -227,32 +227,42 @@ class GOPCASignature(object):
         return ','.join(sorted(self.genes))
 
     def get_expression_matrix(
-            self, center = True, standardize = False,
-            cluster_genes = True, cluster_samples = True,
-            gene_cluster_metric = 'correlation',
-            sample_cluster_metric = 'euclidean',
-            cluster_method = 'average'):
+            self, standardize=False, center=True,
+            cluster_genes=True, cluster_samples=False,
+            gene_cluster_metric='correlation',
+            sample_cluster_metric='euclidean',
+            cluster_method='average'):
         """Returns the gene expression matrix for a signature.
 
         Can perform centering, standardization, and clustering, depending
         on the parameters provided (standardization includes centering).
+
+        By default, we don't perform sample clustering, since this is best
+        done globally (based on the entire signature expression matrix), so
+        that the sample order remains constant between different signature
+        plots.
         """
-        E = ExpMatrix(genes = self.genes, samples = self.samples, X = self.X,
-                      copy = True)
+        E = ExpMatrix(genes=self.genes, samples=self.samples, X=self.X,
+                      copy=True)
 
         if standardize:
             E.standardize_genes()
         elif center:
             E.center_genes()
 
+        order_genes = None
         if cluster_genes:
             E, order_genes = cluster.cluster_genes(
-                    E, metric = gene_cluster_metric, method = cluster_method
+                    E, metric=gene_cluster_metric, method=cluster_method
             )
 
+        # make sure we perform clustering of samples after clustering of the
+        # genes, so that enabling sample clustering doesn't change the order of
+        # the genes
+        order_samples = None
         if cluster_samples:
             E, order_samples = cluster.cluster_samples(
-                    E, metric = sample_cluster_metric, method = cluster_method
+                    E, metric=sample_cluster_metric, method=cluster_method
             )
 
         return E, order_genes, order_samples
