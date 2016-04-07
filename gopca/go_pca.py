@@ -235,7 +235,7 @@ class GOPCA(object):
         K_max = max([enr.K for enr in todo])
         p = len(ranked_genes)
         # initialize matrix for XL-mHG test
-        mat = np.empty((K_max + 1, p + 1), dtype = np.float64)
+        mat = np.empty((K_max + 1, p + 1), dtype = np.longdouble)
         while todo:
             most_enriched = todo[0]
             gs_id = most_enriched.gene_set.id
