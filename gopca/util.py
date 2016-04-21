@@ -48,13 +48,6 @@ if six.PY2:
 else:
     import pickle
 
-# RandomizedPCA does not work in Scikit-learn 0.14.1,
-# but it works in Scikit-learn 0.16.1
-if parse_version(sklearn.__version__) >= parse_version('0.16.1'):
-    from sklearn.decomposition import RandomizedPCA as PCA
-else:
-    from sklearn.decomposition import PCA
-
 logger = logging.getLogger(__name__)
 
 
@@ -155,6 +148,13 @@ def filter_signatures(signatures, S, corr_thresh):
 
 
 def get_pc_explained_variance_threshold(E, z, t, seed):
+    # RandomizedPCA does not work in Scikit-learn 0.14.1,
+    # but it works in Scikit-learn 0.16.1
+    if parse_version(sklearn.__version__) >= parse_version('0.16.1'):
+        from sklearn.decomposition import RandomizedPCA as PCA
+    else:
+        from sklearn.decomposition import PCA
+
     # initialize random number generator
     np.random.seed(seed)
 
