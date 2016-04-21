@@ -99,16 +99,16 @@ Copyright (c) 2015, 2016 Florian Wagner
   You should have received a copy of the GNU General Public License
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-.. |pypi| image:: https://img.shields.io/pypi/v/genometools.svg
-    :target: https://pypi.python.org/pypi/genometools
+.. |pypi| image:: https://img.shields.io/pypi/v/gopca.svg
+    :target: https://pypi.python.org/pypi/gopca
     :alt: PyPI version
 
-.. |versions| image:: https://img.shields.io/pypi/pyversions/genometools.svg
-    :target: https://pypi.python.org/pypi/genometools
+.. |versions| image:: https://img.shields.io/pypi/pyversions/gopca.svg
+    :target: https://pypi.python.org/pypi/gopca
     :alt: Python versions supported
 
-.. |license| image:: https://img.shields.io/pypi/l/genometools.svg
-    :target: https://pypi.python.org/pypi/genometools
+.. |license| image:: https://img.shields.io/pypi/l/gopca.svg
+    :target: https://pypi.python.org/pypi/gopca
     :alt: License
 
 .. |docs-latest| image:: https://readthedocs.org/projects/gopca/badge/?version=latest
