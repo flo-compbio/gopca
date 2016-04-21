@@ -1,3 +1,5 @@
+six
+future
 sphinx
 sphinx-bootstrap-theme
 sphinx-argparse
