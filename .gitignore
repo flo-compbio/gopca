@@ -1,5 +1,6 @@
 # project-specific
 xlmhg/*.c
+/.idea/
 
 # sphinx
 docs/build/

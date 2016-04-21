@@ -32,27 +32,31 @@ from __future__ import (absolute_import, division,
 from builtins import *
 
 import sys
-import os
-import argparse
-import cPickle as pickle
+# import os
+# import argparse
+# import cPickle as pickle
 
 import numpy as np
 
 from genometools import misc
 
-import gopca
+# import gopca
 from gopca import util
-from gopca import cli
-from gopca.plotting import cli as plot_cli
+from gopca.cli import arguments
+
 
 def get_argument_parser():
 
     desc = 'Plot a GO-PCA signature.'
-    parser = cli.get_argument_parser(desc = desc)
+    parser = arguments.get_argument_parser(desc=desc)
 
-    g = cli.add_io_args(parser)
+    int_mv = arguments.int_mv
+    float_mv = arguments.float_mv
 
-    g = cli.add_signature_args(parser)
+    g = arguments.add_io_args(parser)
+
+    g = arguments.add_signature_args(parser)
+
 
     g.add_argument('--no-standardization', action = 'store_true',
             help = 'Do not standardize the signature expression values.')
@@ -60,15 +64,15 @@ def get_argument_parser():
     g = parser.add_argument_group('Layout options')
 
     g.add_argument('-p', '--fig-title-pos', type = float, default = 0.95,
-            metavar = cli.float_mv,
+            metavar = float_mv,
             help = 'The position of the figure title.')
 
     g.add_argument('--fig-subgrid-ratio', type = int, default = 10,
-            metavar = cli.int_mv,
+            metavar = int_mv,
             help = 'The size ratio between signature and heat map panels.')
 
     g.add_argument('-gs', '--gene-label-size', type = float, default = None,
-            metavar = cli.float_mv,
+            metavar = float_mv,
             help = 'The size of the gene labels (in pt).')
 
     g.add_argument('-gr', '--gene-reverse-order', action = 'store_true',
@@ -77,13 +81,13 @@ def get_argument_parser():
     g.add_argument('--hide-id', action = 'store_true',
             help = 'Do not show the ID of the GO term.')
 
-    plot_cli.add_fig_args(parser)
-    plot_cli.add_heatmap_args(parser)
-    cli.add_sample_args(parser)
+    arguments.add_fig_args(parser)
+    arguments.add_heatmap_args(parser)
+    arguments.add_sample_args(parser)
 
     return parser
 
-def main(args = None):
+def main(args=None):
 
     vinfo = sys.version_info
     if not (vinfo >= (2, 7)):
@@ -176,7 +180,7 @@ def main(args = None):
             # get signature gene expression matrix and cluster rows
             sig_genes = sig.genes
             X = sig.X
-            logger.debug('Expression matrix shape', str(X.shape))
+            logger.debug('Expression matrix shape: %s', str(X.shape))
             order_rows = util.cluster_rows(X, metric = 'correlation',
                     method = 'average')
             if gene_reverse_order:

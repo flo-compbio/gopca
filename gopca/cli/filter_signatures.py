@@ -24,41 +24,44 @@ from __future__ import (absolute_import, division,
 from builtins import *
 
 import sys
-import cPickle as pickle
+# import cPickle as pickle
 import textwrap
 
-import numpy as np
+# import numpy as np
 
-from genometools import misc
+# from genometools import misc
 from gopca import util
-from gopca import cli
+from gopca.cli import arguments
 from gopca import GOPCAResult
+
 
 def get_argument_parser():
 
-    desc ='Filter redundant GO-PCA signatures.'
-    parser = cli.get_argument_parser(desc = desc)
+    desc = 'Filter redundant GO-PCA signatures.'
+    parser = arguments.get_argument_parser(desc=desc)
 
     g = parser.add_argument_group('Filtering options')
 
-    cli.add_io_args(parser)
+    arguments.add_io_args(parser)
+    float_mv = arguments.float_mv
 
-    g.add_argument('-r', '--corr-thresh', type = float, required = True,
-            metavar = cli.float_mv,
-            help = textwrap.dedent("""\
-                Correlation threshold for filtering signatures
-                (1.0 = off)."""))
+    g.add_argument(
+        '-r', '--corr-thresh', type=float, required=True, metavar=float_mv,
+        help=textwrap.dedent("""\
+            Correlation threshold for filtering signatures
+            (1.0 = off)."""))
 
     cli.add_reporting_args(parser)
 
     return parser
 
-def main(args = None):
+
+def main(args=None):
 
     vinfo = sys.version_info
     if not (vinfo >= (2, 7)):
         raise SystemError('Python interpreter version >= 2.7 required, '
-                          'found %d.%d instead.' %(vinfo.major, vinfo.minor))
+                          'found %d.%d instead.' % (vinfo.major, vinfo.minor))
 
     if args is None:
         parser = get_argument_parser()
@@ -74,22 +77,23 @@ def main(args = None):
     verbose = args.verbose
 
     # configure root logger
-    logger = util.get_logger(log_file = log_file, quiet = quiet,
-            verbose = verbose)
+    logger = util.get_logger(log_file=log_file, quiet=quiet,
+                             verbose=verbose)
 
-    G = util.read_gopca_result(gopca_file)
+    result = util.read_gopca_result(gopca_file)
 
-    signatures = G.signatures
-    S = G.S
+    signatures = result.signatures
+    S = result.S
 
     if corr_thresh < 1.0:
-        q_before = G.q
+        q_before = result.q
         signatures, S = util.filter_signatures(signatures, S, corr_thresh)
         q = len(signatures)
-        logger.info('Filtered %d / %d signatures.', q_before - q, q_before)
+        logger.info('Filtered %d / %d signatures.', q_before-q, q_before)
 
-    F = GOPCAResult(G.config, G.genes, G.samples, G.W, G.Y, signatures, S)
-    F.write_pickle(output_file)
+    filtered = GOPCAResult(result.config, result.genes, result.samples,
+                           result.W, result.Y, signatures, S)
+    filtered.write_pickle(output_file)
 
     return 0
 

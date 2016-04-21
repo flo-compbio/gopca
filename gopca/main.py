@@ -23,7 +23,8 @@ Example
 
 ::
 
-    $ go-pca.py -e [expression_file] -a [annotation_file] -t [ontology-file] -o [output-file]
+    $ go-pca.py -e [expression_file] -a [annotation_file] -t [ontology-file] \
+            -o [output-file]
 
 """
 
@@ -32,8 +33,8 @@ from __future__ import (absolute_import, division,
 from builtins import *
 
 import sys
-import os
-import argparse
+# import os
+# import argparse
 import textwrap
 import logging
 
@@ -44,6 +45,7 @@ from goparser import GOParser
 from gopca import util, cli
 from gopca import GOPCAConfig, GOPCA
 
+
 def get_argument_parser():
 
     prog = 'go-pca.py'
@@ -51,19 +53,17 @@ def get_argument_parser():
     parser = cli.get_argument_parser(prog, description)
 
     file_mv = cli.file_mv
-    name_mv = cli.name_mv
+    # name_mv = cli.name_mv
     int_mv = cli.int_mv
     float_mv = cli.float_mv
-    str_mv = cli.str_mv
-    str_type = cli.str_type
+    # str_mv = cli.str_mv
 
     # separate config file
     g = parser.add_argument_group('Separate configuration file')
     
     g.add_argument(
-        '-c', '--config-file',
-        type = str_type, metavar = file_mv,
-        help = textwrap.dedent("""\
+        '-c', '--config-file', type=str, metavar=file_mv,
+        help=textwrap.dedent("""\
             GO-PCA configuration file. Note: The parameter values specified
             as command line arguments (see below) overwrite the
             corresponding values in the configuration file.""")
@@ -73,27 +73,23 @@ def get_argument_parser():
     g = parser.add_argument_group('Input and output files')
 
     g.add_argument(
-        '-e', '--expression-file', required = True,
-        type = str_type, metavar = file_mv,
-        help = 'Tab-separated text file containing the gene expression matrix.'
+        '-e', '--expression-file', type=str, required=True, metavar=file_mv,
+        help='Tab-separated text file containing the gene expression matrix.'
     )
 
     g.add_argument(
-        '-s', '--gene-set-file', required = True,
-        type = str_type, metavar = file_mv,
-        help = 'Tab-separated text file containing the gene sets.'
+        '-s', '--gene-set-file', type=str, required=True, metavar=file_mv,
+        help='Tab-separated text file containing the gene sets.'
     )
 
     g.add_argument(
-        '-t', '--gene-ontology-file',
-        type = str_type, metavar = file_mv,
-        help = 'OBO file containing the Gene Ontology.'
+        '-t', '--gene-ontology-file', type=str, metavar=file_mv,
+        help='OBO file containing the Gene Ontology.'
     )
 
     g.add_argument(
-        '-o', '--output-file', required = True,
-        type = str_type, metavar = file_mv,
-        help = 'Output pickle file (extension ".pickle" is recommended).'
+        '-o', '--output-file', type=str, required=True, metavar=file_mv,
+        help='Output pickle file (extension ".pickle" is recommended).'
     )
 
     # input file hash values
@@ -115,88 +111,106 @@ def get_argument_parser():
     # GO-PCA parameters
     g = parser.add_argument_group('GO-PCA parameters ([] = default value)')
 
-    g.add_argument('-D', '--n-components', type = int,
-            metavar = int_mv, help = textwrap.dedent("""\
-                Number of principal components to test
-                (-1 = determine automatically using a permutation test). [%s]
-                """ %('%(default)d')))
+    g.add_argument(
+        '-D', '--n-components', type=int, metavar=int_mv,
+        help=textwrap.dedent("""\
+            Number of principal components to test
+            (-1 = determine automatically using a permutation test). [%s]
+            """ % '%(default)d'))
 
-    g.add_argument('-G', '--sel-var-genes', type = int,
-            metavar = int_mv, help = textwrap.dedent("""\
-                Variance filter: Keep G most variable genes (0 = off). [%s]
-                """ %('%(default)d')))
+    g.add_argument(
+        '-G', '--sel-var-genes', type=int, metavar=int_mv,
+        help=textwrap.dedent("""\
+            Variance filter: Keep G most variable genes (0 = off). [%s]
+            """ % '%(default)d'))
 
-    g.add_argument('-P', '--pval-thresh', type = float,
-            metavar = float_mv, help = textwrap.dedent("""\
-                P-value threshold for GO enrichment test. [%s]
-                """ %('%(default).1e')))
+    g.add_argument(
+        '-P', '--pval-thresh', type=float, metavar=float_mv,
+        help=textwrap.dedent("""\
+            P-value threshold for GO enrichment test. [%s]
+            """ % '%(default).1e'))
 
-    g.add_argument('-E', '--escore-thresh', type = float,
-            metavar = float_mv, help = textwrap.dedent("""\
-                E-score threshold for GO enrichment test. [%s]
-                """ %('%(default).1f')))
+    g.add_argument(
+        '-E', '--escore-thresh', type=float, metavar=float_mv,
+        help=textwrap.dedent("""\
+            E-score threshold for GO enrichment test. [%s]
+            """ % '%(default).1f'))
 
-    g.add_argument('-R', '--sig-corr-thresh', type = float,
-            metavar = float_mv, help = textwrap.dedent("""\
-                Correlation threshold used in generating signatures. [%s]
-                """ %('%(default).2f')))
+    g.add_argument(
+        '-R', '--sig-corr-thresh', type=float, metavar=float_mv,
+        help=textwrap.dedent("""\
+            Correlation threshold used in generating signatures. [%s]
+            """ % '%(default).2f'))
 
-    g.add_argument('-Xf', '--mHG-X-frac', type = float,
-            metavar = float_mv, help = textwrap.dedent("""\
-                X_frac parameter for GO enrichment test. [%s]
-                """ %('%(default).2f')))
+    g.add_argument(
+        '-Xf', '--mHG-X-frac', type=float, metavar=float_mv,
+        help=textwrap.dedent("""\
+            X_frac parameter for GO enrichment test. [%s]
+            """ % '%(default).2f'))
 
-    g.add_argument('-Xm', '--mHG-X-min', type = int,
-            metavar = int_mv, help = textwrap.dedent("""\
-                X_min parameter for GO enrichment test. [%s]
-                """ %('%(default)d')))
+    g.add_argument(
+        '-Xm', '--mHG-X-min', type=int, metavar=int_mv,
+        help=textwrap.dedent("""\
+            X_min parameter for GO enrichment test. [%s]
+            """ % '%(default)d'))
 
-    g.add_argument('-L', '--mHG-L', type = int,
-            metavar = int_mv, help = textwrap.dedent("""\
-                L parameter for GO enrichment test
-                (0 = "off"; -1 = # genes / 8). [%s]""" %('%(default)d')))
+    g.add_argument(
+        '-L', '--mHG-L', type=int, metavar=int_mv,
+        help=textwrap.dedent("""\
+            L parameter for GO enrichment test
+            (0 = "off"; -1 = # genes / 8). [%s]""" % '%(default)d'))
 
-    g.add_argument('--escore-pval-thresh', type = float,
-            metavar = float_mv, help = textwrap.dedent("""\
-                P-value threshold for XL-mHG E-score calculation ("psi"). [%s]
-                """ %('%(default).1e')))
+    g.add_argument(
+        '--escore-pval-thresh', type=float, metavar=float_mv,
+        help=textwrap.dedent("""\
+            P-value threshold for XL-mHG E-score calculation ("psi"). [%s]
+            """ % '%(default).1e'))
 
     g = parser.add_argument_group('Manually disable the GO-PCA filters')
-    g.add_argument('--no-local-filter', action = 'store_true',
-            help = 'Disable the "local" filter.')
 
-    g.add_argument('--no-global-filter', action = 'store_true',
-            help = 'Disable the "global" filter (if -t is specified).')
+    g.add_argument(
+        '--no-local-filter', action='store_true',
+        help='Disable the "local" filter.')
+
+    g.add_argument(
+        '--no-global-filter', action='store_true',
+        help='Disable the "global" filter (if -t is specified).')
 
     # legacy options
     g = parser.add_argument_group('Legacy options')
 
-    g.add_argument('--go-part-of-cc-only', action = 'store_true',
-            help = 'Only propagate "part of" GO relations for the CC domain.')
+    g.add_argument(
+        '--go-part-of-cc-only', action='store_true',
+        help='Only propagate "part of" GO relations for the CC domain.')
 
     # for automatically determining the number of PCs
     # (only used if -D is not specified)
-    g = parser.add_argument_group('Parameters for automatically determining the number of PCs to test ([] = default value)')
-    g.add_argument('-ps', '--pc-seed', type = int,
-            metavar = int_mv, help = textwrap.dedent("""\
+    g = parser.add_argument_group(
+        'Parameters for automatically determining the number of PCs '
+        'to test ([] = default value)')
+
+    g.add_argument(
+        '-ps', '--pc-seed', type=int, metavar=int_mv,
+        help=textwrap.dedent("""\
             Random number generator seed (-1 = arbitrary value). [%s]
-            """ %('%(default)d')))
+            """ % '%(default)d'))
 
-    g.add_argument('-pp', '--pc-permutations', type = int,
-            metavar = int_mv, help = 'Number of permutations. [%s]'
-            %('%(default)d'))
+    g.add_argument(
+        '-pp', '--pc-permutations', type=int, metavar=int_mv,
+        help='Number of permutations. [%s]' % '%(default)d')
 
-    g.add_argument('-pz', '--pc-zscore-thresh', type = float,
-            metavar = float_mv, help = 'Z-score threshold. [%s]'
-            %('%(default).2f'))
+    g.add_argument(
+        '-pz', '--pc-zscore-thresh', type=float, metavar=float_mv,
+        help='Z-score threshold. [%s]' % '%(default).2f')
 
-    g.add_argument('-pm', '--pc-max', type = int,
-            metavar = int_mv, help = textwrap.dedent("""\
-                Maximum number of PCs to test (0 = no maximum). [%s]
-                """ %('%(default)d')))
+    g.add_argument(
+        '-pm', '--pc-max', type=int, metavar=int_mv,
+        help=textwrap.dedent("""\
+            Maximum number of PCs to test (0 = no maximum). [%s]
+            """ % '%(default)d'))
 
     # check that the GO-PCA parameter names match the argument names
-    #for p in GOPCAConfig.param_defaults:
+    # for p in GOPCAConfig.param_defaults:
     #    assert p in dir(args)
 
     # set the argument default values to the parameter defaults stored in
@@ -208,7 +222,8 @@ def get_argument_parser():
 
     return parser
 
-def main(args = None):
+
+def main(args=None):
     """Run GO-PCA and store the result in a `pickle` file.
 
     Parameters
@@ -230,9 +245,8 @@ def main(args = None):
     vinfo = sys.version_info
     if not (vinfo >= (2, 7)):
         raise SystemError('Python interpreter version >= 2.7 required, '
-                          'found %d.%d instead.' %(vinfo.major, vinfo.minor))
+                          'found %d.%d instead.' % (vinfo.major, vinfo.minor))
 
-    config = None
     if args is None:
         # read arguments from the command line
         parser = get_argument_parser()
@@ -256,8 +270,8 @@ def main(args = None):
     # test if we can write to log_file?
 
     # configure root logger
-    logger = util.get_logger(log_file = log_file, quiet = quiet,
-            verbose = verbose)
+    logger = util.get_logger(log_file=log_file, quiet=quiet,
+                             verbose=verbose)
 
     # check if required parameters were specified
     passed = True
@@ -275,7 +289,6 @@ def main(args = None):
         return 1
 
     # generate configuration
-    config = None
     if args.config_file is not None:
         # read parameter values from config file
         config = GOPCAConfig.read_config(args.config_file)
@@ -293,7 +306,7 @@ def main(args = None):
     # read expression file
     E = ExpMatrix.read_tsv(args.expression_file)
     logger.info('Expression matrix size: ' +
-            '(p = %d genes) x (n = %d samples).', E.p, E.n)
+                '(p = %d genes) x (n = %d samples).', E.p, E.n)
     
     # read gene set file
     gene_sets = GeneSetDB.read_tsv(args.gene_set_file)
@@ -305,7 +318,7 @@ def main(args = None):
         p_logger.setLevel(logging.ERROR)
         go_parser = GOParser()
         go_parser.parse_ontology(args.gene_ontology_file,
-                                 part_of_cc_only = config.go_part_of_cc_only)
+                                 part_of_cc_only=config.go_part_of_cc_only)
         p_logger.setLevel(logging.NOTSET)
         
     M = GOPCA(config, gene_sets, go_parser)

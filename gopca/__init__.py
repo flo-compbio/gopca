@@ -1,19 +1,3 @@
-# Copyright (c) 2015, 2016 Florian Wagner
-#
-# This file is part of GO-PCA.
-#
-# GO-PCA is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License, Version 3,
-# as published by the Free Software Foundation.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
 from builtins import *
@@ -21,12 +5,13 @@ from builtins import *
 import pkg_resources
 
 from .config import GOPCAConfig
-from .signature import GOPCASignature
-from .result import GOPCAResult
-from .run import GOPCARun
 from .go_pca import GOPCA
+from .run import GOPCARun
+from .result import GOPCAResult
+from .signature import GOPCASignature
 from .plotter import GOPCAPlotter
 
 __version__ = str(pkg_resources.require('gopca')[0].version)
 
-__all__ = ['GOPCAInput', 'GOPCA', 'GOPCAResult', 'GOPCARun', 'GOPCAPlot']
+__all__ = ['GOPCAConfig', 'GOPCA', 'GOPCARun', 'GOPCAPlotter',
+           'GOPCAResult', 'GOPCASignature']

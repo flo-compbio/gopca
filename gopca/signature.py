@@ -24,7 +24,7 @@ from builtins import *
 
 import re
 import logging
-import copy
+# import copy
 from collections import OrderedDict
 
 import numpy as np
@@ -34,6 +34,7 @@ from genometools.expression import cluster
 from genometools.enrichment import GSEResult
 
 logger = logging.getLogger(__name__)
+
 
 class GOPCASignature(object):
     """A GO-PCA signature.
@@ -95,8 +96,8 @@ class GOPCASignature(object):
     """
 
     _abbrev = [('positive ', 'pos. '), ('negative ', 'neg. '),
-            ('interferon-', 'IFN-'), ('proliferation', 'prolif.'),
-            ('signaling', 'signal.')]
+               ('interferon-', 'IFN-'), ('proliferation', 'prolif.'),
+               ('signaling', 'signal.')]
     """Abbreviations used in generating signature labels."""
 
     def __init__(self, genes, samples, X, pc, enr):
@@ -113,33 +114,34 @@ class GOPCASignature(object):
         assert isinstance(pc, int)
         assert isinstance(enr, GSEResult)
 
-        self.genes = tuple(genes) # genes in the signature (!= self.enr.genes)
-        self.samples = tuple(samples) # samples in the data
+        self.genes = tuple(genes)  # genes in the signature (!= self.enr.genes)
+        self.samples = tuple(samples)  # samples in the data
 
         self.X = X
 
         self.pc = pc
-        #self.enr = copy.deepcopy(enr)
+        # self.enr = copy.deepcopy(enr)
         self.enr = enr
 
     def __repr__(self):
         return '<%s "%s" (k=%d; p=%.1e; e=%.1f; hash=%d)>' \
-                %(self.__class__.__name__, self.label,
-                self.k, self.pval, self.escore, hash(self))
+                % (self.__class__.__name__, self.label,
+                   self.k, self.pval, self.escore, hash(self))
 
     def __str__(self):
         return '<%s "%s" (%d genes; p-value %.1e / E-score %.1fx)>' \
-                %(self.__class__.__name__, self.label,
-                self.k, self.pval, self.escore)
+                % (self.__class__.__name__, self.label,
+                   self.k, self.pval, self.escore)
 
     def __hash__(self):
-        data = []
-        data.append(self.genes)
-        data.append(self.samples)
-        data.append(self.X.tobytes())
-        data.append(self.pc)
-        data.append(self.enr)
-        return hash(tuple(data))
+        data = (
+            self.genes,
+            self.samples,
+            self.X.tobytes(),
+            self.pc,
+            self.enr,
+        )
+        return hash(data)
         
     def __eq__(self, other):
         if self is other:
@@ -172,7 +174,7 @@ class GOPCASignature(object):
 
     @property
     def pval(self):
-        """ The enrichment p-value of the GO term that the signature is based on. """
+        """ The enrichment p-value of the underlying gene set."""
         return self.enr.pval
 
     @property
@@ -210,12 +212,12 @@ class GOPCASignature(object):
 
     @property
     def label(self):
-        return self.get_label(include_id = False)
+        return self.get_label(include_id=False)
 
     @property
     def median_correlation(self):
         C = np.corrcoef(self.X)
-        ind = np.triu_indices(self.k,k=1)
+        ind = np.triu_indices(self.k, k=1)
         return np.median(C[ind])
 
     @property
@@ -269,24 +271,26 @@ class GOPCASignature(object):
 
     def get_ordered_dict(self):
         elements = OrderedDict([
-                ['label',['Label',r'%s']],
-                ['pc',['PC',r'%d']],
-                ['gene_set_id',['Gene set ID',r'%s']],
-                ['k',['k',r'%d']],
-                ['K',['K',r'%d']],
-                ['pval',['P-value',r'%.1e']],
-                ['escore',['E-score (psi=%.1e)' %(self.escore_pval_thresh),r'%.1f']],
-                ['median_correlation',['Median correlation',r'%.2f']],
-                ['gene_list',['Genes',r'%s']]
+            ['label', ['Label', r'%s']],
+            ['pc', ['PC', r'%d']],
+            ['gene_set_id', ['Gene set ID', r'%s']],
+            ['k', ['k', r'%d']],
+            ['K', ['K', r'%d']],
+            ['pval', ['P-value', r'%.1e']],
+            ['escore', ['E-score (psi=%.1e)' % self.escore_pval_thresh,
+                        r'%.1f']],
+            ['median_correlation', ['Median correlation', r'%.2f']],
+            ['gene_list', ['Genes', r'%s']]
         ])
-        od = OrderedDict([v[0],v[1] % (getattr(self,k))] for k,v in elements.iteritems())
+        od = OrderedDict([v[0], v[1] % getattr(self, k)]
+                         for k, v in elements.items())
         return od
 
-    def get_label(self, max_name_length = 0, include_stats = True,
-            include_id = True, include_pval = False,
-            include_coll = True):
+    def get_label(self, max_name_length=0, include_stats=True,
+                  include_id=True, include_pval=False,
+                  include_coll=True):
         """Generate a signature label."""
-        enr = self.enr
+        # enr = self.enr
 
         gene_set = self.gene_set
         name = gene_set.name
@@ -294,15 +298,15 @@ class GOPCASignature(object):
         # make sure name does not exceed max. length
         for abb in self._abbrev:
             name = re.sub(abb[0], abb[1], name)
-        if max_name_length > 0 and len(name) > max_name_length:
+        if 0 < max_name_length < len(name):
             name = name[:(max_name_length - 3)] + '...'
 
         label = name
         if include_coll:
-            label = '%s: %s' %(gene_set.collection, label)
+            label = '%s: %s' % (gene_set.collection, label)
 
         if include_id:
-            label = label + ' (%s)' %(gene_set.id)
+            label = label + ' (%s)' % gene_set.id
 
         stats_str = ''
         if include_stats:
@@ -310,14 +314,12 @@ class GOPCASignature(object):
             e_str = ''
             p_str = ''
             if include_pval:
-                p_str = ', p=%.1e' %(self.pval)
+                p_str = ', p=%.1e' % self.pval
                 if self.escore is not None:
-                    e_str = ', e=%.1f' %(self.escore)
+                    e_str = ', e=%.1f' % self.escore
 
             stats_str = ' [%d:%d/%d%s%s]' \
-                    %(self.pc, self.mHG_k_n, self.mHG_K, e_str, p_str)
+                    % (self.pc, self.mHG_k_n, self.mHG_K, e_str, p_str)
 
         label = label + stats_str
         return label
-
-

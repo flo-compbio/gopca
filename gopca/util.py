@@ -21,17 +21,17 @@ from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
 from builtins import *
 
-import os
+# import os
 import io
 import sys
-import argparse
+# import argparse
 import copy
-import cPickle as pickle
 import hashlib
 import logging
-from pkg_resources import parse_version
-from collections import Iterable
+# from collections import Iterable
 
+from pkg_resources import parse_version
+import six
 import unicodecsv as csv
 
 import numpy as np
@@ -43,23 +43,37 @@ from genometools import misc
 import gopca
 from gopca import GOPCASignature
 
+if six.PY2:
+    import cPickle as pickle
+else:
+    import pickle
+
+# RandomizedPCA does not work in Scikit-learn 0.14.1,
+# but it works in Scikit-learn 0.16.1
+if parse_version(sklearn.__version__) >= parse_version('0.16.1'):
+    from sklearn.decomposition import RandomizedPCA as PCA
+else:
+    from sklearn.decomposition import PCA
+
 logger = logging.getLogger(__name__)
+
 
 def combine_signatures(*results):
     """Combines signatures from multiple GO-PCA results."""
-    #assert len(results
+    # assert len(results
     G = copy.copy(results[0])
-    #G.config = None
-    #G.genes = None
-    #G.W = None
-    #G.Y = None
+    # G.config = None
+    # G.genes = None
+    # G.W = None
+    # G.Y = None
     for i, G_other in enumerate(results[1:]):
         G.signatures = tuple(G.signatures) + tuple(G_other.signatures)
         G.S = np.vstack([G.S, G_other.S])
     return G
 
-def get_logger(name = '', log_stream = sys.stdout, log_file = None,
-    quiet = False, verbose = False):
+
+def get_logger(name='', log_stream=sys.stdout, log_file=None,
+               quiet=False, verbose=False):
 
     # configure root logger
     log_level = logging.INFO
@@ -71,6 +85,7 @@ def get_logger(name = '', log_stream = sys.stdout, log_file = None,
     new_logger = misc.configure_logger(name, log_stream, log_file, log_level)
 
     return new_logger
+
 
 def filter_signatures(signatures, S, corr_thresh):
     """Remove "redundant" signatures."""
@@ -103,8 +118,9 @@ def filter_signatures(signatures, S, corr_thresh):
         info[i] = max_ent - ent
     a = np.argsort(info)
     a = a[::-1]
-    #a = np.lexsort([-info, sig_abs_pcs])
-    #print('\n'.join(['%.3f: %s' %(info[i],str(G.signatures[i])) for i in a[:5]]))
+    # a = np.lexsort([-info, sig_abs_pcs])
+    # print('\n'.join(['%.3f: %s' %(info[i],str(G.signatures[i]))
+        for i in a[:5]]))
     """
 
     # sort signatures first by PC, then by E-score
@@ -114,7 +130,7 @@ def filter_signatures(signatures, S, corr_thresh):
 
     # filtering
     q, n = S.shape
-    sel = np.ones(q, dtype = np.bool_)
+    sel = np.ones(q, dtype=np.bool_)
     for i in a:
 
         if not sel[i]:
@@ -124,49 +140,43 @@ def filter_signatures(signatures, S, corr_thresh):
         for i2, sig in enumerate(signatures):
             if i == i2 or not sel[i2]:
                 continue
-            #assert np.corrcoef(np.vstack([S[i,:],S[i2,:]])).shape == (2,2)
-            if np.corrcoef(np.vstack([S[i,:],S[i2,:]]))[0,1] >= corr_thresh:
+            # assert np.corrcoef(np.vstack([S[i,:],S[i2,:]])).shape == (2,2)
+            if np.corrcoef(np.vstack([S[i, :], S[i2, :]]))[0, 1] >= \
+                    corr_thresh:
                 logger.info('Excluding signature: %s',
                             signatures[i].get_label())
                 sel[i2] = False
 
     sel = np.nonzero(sel)[0]
     signatures = [signatures[i] for i in sel]
-    S = S[sel,:]
+    S = S[sel, :]
 
     return signatures, S
 
+
 def get_pc_explained_variance_threshold(E, z, t, seed):
-
-    # RandomizedPCA does not work in Scikit-learn 0.14.1,
-    # but it works in Scikit-learn 0.16.1
-    if parse_version(sklearn.__version__) >= parse_version('0.16.1'):
-        from sklearn.decomposition import RandomizedPCA as PCA
-    else:
-        from sklearn.decomposition import PCA
-
     # initialize random number generator
     np.random.seed(seed)
 
     # do permutations
-    p,n = E.shape
-    d_max_null = np.empty(t,dtype=np.float64)
-    E_perm = np.empty((p,n),dtype=np.float64)
-    M_null = PCA(n_components = 1)
-    for j in xrange(t):
-
-        for i in xrange(p):
-            E_perm[i,:] = E[i,np.random.permutation(n)]
+    p, n = E.shape
+    d_max_null = np.empty(t, dtype=np.float64)
+    E_perm = np.empty((p, n), dtype=np.float64)
+    M_null = PCA(n_components=1)
+    for j in range(t):
+        for i in range(p):
+            E_perm[i, :] = E[i, np.random.permutation(n)]
 
         M_null.fit(E_perm.T)
         d_max_null[j] = M_null.explained_variance_ratio_[0]
 
     # calculate z-score threshold
     mean_null = np.mean(d_max_null)
-    std_null = np.std(d_max_null,ddof=1)
-    thresh = mean_null + z * std_null
+    std_null = np.std(d_max_null, ddof=1)
+    thresh = mean_null + z*std_null
 
     return thresh
+
 
 def get_file_md5sum(path):
     """Get MD5 hash of file content.
@@ -183,39 +193,45 @@ def get_file_md5sum(path):
     str
         MD5 hash of file content, represented as a 32-digit hex string.
     """
-    digest = None
-    with io.open(path, mode = 'rb') as fh:
+    # digest = None
+    with io.open(path, mode='rb') as fh:
         digest = hashlib.md5(fh.read()).hexdigest()
     return digest
-    
+
+
 def simpleaxis(ax):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.get_xaxis().tick_bottom()
     ax.get_yaxis().tick_left()
 
+
 def print_signatures(signatures):
-    a = None
+    # a = None
     maxlength = 40
-    a = sorted(range(len(signatures)),key=lambda i: -signatures[i].escore)
+    a = sorted(range(len(signatures)), key=lambda i: -signatures[i].escore)
 
     for i in a:
         sig = signatures[i]
-        print(sig.get_label(max_name_length=maxlength,include_pval=True))
+        print(sig.get_label(max_name_length=maxlength, include_pval=True))
+
 
 def get_centered(x):
     x = x.copy()
     x -= np.mean(x)
     return x
 
+
 def get_centered_matrix(X):
     return np.float64([get_centered(x) for x in X])
+
 
 def get_standardized(x):
     x = x.copy()
     x -= np.mean(x)
-    x /= np.std(x, ddof = 1)
+    x /= np.std(x, ddof=1)
     return x
+
 
 def get_standardized_matrix(X):
     return np.float64([get_standardized(x) for x in X])
@@ -223,64 +239,72 @@ def get_standardized_matrix(X):
 #def get_mean_standardized_(E):
 #   return np.mean(np.float64([get_standardized(e) for e in E]),axis=0)
 
-def get_signature_expression(genes, X, sig_genes, standardize = True):
+
+def get_signature_expression(genes, X, sig_genes, standardize=True):
     p_sig = len(sig_genes)
-    p,n = X.shape
-    S = np.zeros((p_sig,n),dtype=np.float64)
-    for i,g in enumerate(sig_genes):
+    p, n = X.shape
+    S = np.zeros((p_sig, n), dtype=np.float64)
+    for i, g in enumerate(sig_genes):
         idx = genes.index(g)
-        S[i,:] = X[idx,:]
-        S[i,:] -= np.mean(S[i,:])
+        S[i, :] = X[idx, :]
+        S[i, :] -= np.mean(S[i, :])
         if standardize:
-            S[i,:] /= np.std(S[i,:],ddof=1)
-    sig = np.mean(S, axis = 0)
+            S[i, :] /= np.std(S[i, :], ddof=1)
+    sig = np.mean(S, axis=0)
     return sig
 
-def get_signature_expression_robust(genes,E,sig_genes):
+
+def get_signature_expression_robust(genes, E, sig_genes):
     p_sig = len(sig_genes)
-    p,n = E.shape
-    S = np.zeros((p_sig,n),dtype=np.float64)
-    for i,g in enumerate(sig_genes):
-        idx = misc.bisect_index(genes,g)
-        S[i,:] = E[idx,:]
-        med = np.median(S[i,:])
-        mad = np.median(np.absolute(S[i,:]-med))
+    p, n = E.shape
+    S = np.zeros((p_sig, n), dtype=np.float64)
+    for i, g in enumerate(sig_genes):
+        idx = misc.bisect_index(genes, g)
+        S[i, :] = E[idx, :]
+        med = np.median(S[i, :])
+        mad = np.median(np.absolute(S[i, :] - med))
         std = 1.4826*mad
-        S[i,:] -= med
-        S[i,:] /= std
-    sig = np.mean(S,axis=0)
+        S[i, :] -= med
+        S[i, :] /= std
+    sig = np.mean(S, axis=0)
     return sig
+
 
 def get_median_pairwise_correlation(E):
     C = np.corrcoef(E)
     sel = np.triu_indices(C.shape[0], k=1)
     return np.median(C[sel])
 
+
 def get_signature_label(GO, sig, max_length=40):
-    count = ' (%d:%d/%d)' %(sig.pc,len(sig.genes),sig.K)
+    count = ' (%d:%d/%d)' % (sig.pc, len(sig.genes), sig.K)
     enr = sig.enr
-    return GO.terms[enr.term[0]].get_pretty_format(omit_acc=True,max_name_length=max_length) + count
+    return GO.terms[enr.term[0]].get_pretty_format(
+        omit_acc=True, max_name_length=max_length) + count
+
 
 def variance_filter(genes, E, top):
     # filter genes by variance
-    a = np.argsort(np.var(E,axis=1,ddof=1))[::-1]
+    a = np.argsort(np.var(E, axis=1, ddof=1))[::-1]
     n = E.shape[0]
-    sel = np.zeros(n,dtype=np.bool_)
+    sel = np.zeros(n, dtype=np.bool_)
     sel[a[:top]] = True
     sel = np.nonzero(sel)[0]
     genes = [genes[i] for i in sel]
-    E = E[sel,:]
-    return genes,E
+    E = E[sel, :]
+    return genes, E
+
 
 def read_gopca_result(path):
     """Read GO-PCA result from pickle."""
-    G = None
+    # G = None
     with io.open(path, 'rb') as fh:
         G = pickle.load(fh)
     if isinstance(G, gopca.GOPCARun):
         G = G.result
     assert isinstance(G, gopca.GOPCAResult)
     return G
+
 
 def read_go_annotations(fn):
     ann = {}
@@ -290,6 +314,7 @@ def read_go_annotations(fn):
             ann[tuple(l[:4])] = l[4].split(',')
     return ann
 
+
 def cluster_rows(S, metric='correlation', method='average', reverse=False):
     distxy = squareform(pdist(S, metric=metric))
     R = dendrogram(linkage(distxy, method=method), no_plot=True)
@@ -298,31 +323,33 @@ def cluster_rows(S, metric='correlation', method='average', reverse=False):
         order_rows = order_rows[::-1]
     return order_rows
 
-def cluster_signatures(S, metric = 'correlation', method = 'average',
-        reverse = False):
+
+def cluster_signatures(S, metric='correlation', method='average',
+                       reverse=False):
     # hierarchical clustering of signatures
     order_rows = cluster_rows(S, metric, method, reverse)
     return order_rows
 
-#def cluster_samples(S, metric = 'euclidean', method = 'average',
-def cluster_samples(S, metric = 'correlation', method = 'average',
-        reverse = False):
+
+def cluster_samples(S, metric='correlation', method='average',
+                    reverse=False):
     order_cols = cluster_rows(S.T, metric, method, reverse)
     return order_cols
 
-def get_qvalues(pvals, pi_zero = 1.0):
+
+def get_qvalues(pvals, pi_zero=1.0):
     # implements storey-tibshirani procedure for calculating q-values
     n = pvals.size
-    qvals = np.empty(n,dtype=np.float64)
+    qvals = np.empty(n, dtype=np.float64)
 
     # start with largest p-value
-    a = np.argsort(pvals,kind='mergesort') # stable sort
+    a = np.argsort(pvals, kind='mergesort')  # stable sort
     a = a[::-1]
 
     s = 1
     q = 1.0
     for i in a:
-        q = min(((pi_zero * pvals[i])*n)/s , q)
+        q = min(((pi_zero*pvals[i])*n)/s, q)
         qvals[i] = q
         s += 1
 

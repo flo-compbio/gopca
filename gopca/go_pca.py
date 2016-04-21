@@ -22,11 +22,11 @@ from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
 from builtins import *
 
-import sys
-import os
+# import sys
+# import os
 import logging
-import re
-import cPickle as pickle
+# import re
+# import cPickle as pickle
 import time
 import hashlib
 import copy
@@ -36,7 +36,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 from scipy.stats import pearsonr
 
-import goparser
+# import goparser
 from goparser import GOParser
 
 from genometools.basic import GeneSetDB
@@ -49,6 +49,7 @@ from . import util
 from . import GOPCAConfig, GOPCASignature, GOPCAResult, GOPCARun
 
 logger = logging.getLogger(__name__)
+
 
 class GOPCA(object):
     """Class for performing GO-PCA.

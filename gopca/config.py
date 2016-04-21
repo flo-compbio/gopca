@@ -22,7 +22,7 @@ from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
 from builtins import *
 
-import os
+# import os
 import io
 import hashlib
 import logging
@@ -32,9 +32,10 @@ from configparser import ConfigParser
 
 import numpy as np
 
-from genometools import misc
+# from genometools import misc
 
 logger = logging.getLogger(__name__)
+
 
 class GOPCAConfig(object):
     """GO-PCA configuration data.
@@ -57,18 +58,17 @@ class GOPCAConfig(object):
 
     Attributes
     ----------
-    hash: int (property)
     """
 
-    ### static members
+    # static members
     param_defaults = OrderedDict([
-        ('sel_var_genes', 0), # do not apply variance filter
-        ('n_components', -1), # determine # PCs using permutation test
+        ('sel_var_genes', 0),  # do not apply variance filter
+        ('n_components', -1),  # determine # PCs using permutation test
         ('pval_thresh', 1e-6),
         ('sig_corr_thresh', 0.5),
         ('mHG_X_frac', 0.25),
         ('mHG_X_min', 5),
-        ('mHG_L', -1), # will be set to p / 8, where p is # genes
+        ('mHG_L', -1),  # will be set to p / 8, where p is # genes
         ('escore_pval_thresh', 1e-4),
         ('escore_thresh', 2.0),
         ('no_local_filter', False),
@@ -76,35 +76,14 @@ class GOPCAConfig(object):
         ('pc_seed', 0),
         ('pc_permutations', 15), 
         ('pc_zscore_thresh', 2.0),
-        ('pc_max', 0), # no limit on number of PCs to test
+        ('pc_max', 0),  # no limit on number of PCs to test
         ('go_part_of_cc_only', False),
     ])
     """GO-PCA parameter default values."""
 
-    #input_file_param_names = OrderedDict.fromkeys([
-    #    'expression_file',
-    #    'gene_ontology_file',
-    #    'gene_set_file',
-    #])
-    #"""Names of all GO-PCA input file parameters."""
-    #
-    #hash_param_names = OrderedDict.fromkeys([n + '_hash'
-    #        for n in input_file_param_names])
-    #"""Names of all GO-PCA file hash parameters."""
-    #
-    #output_file_param_name = 'output_file'
-    #
-    #file_param_names = OrderedDict.fromkeys(input_file_param_names.keys() +
-    #        [output_file_param_name])
-    #"""Names of all GO-PCA file parameters."""
-    #
-    #param_names = OrderedDict.fromkeys(misc.flatten(
-    #        zip(input_file_param_names, hash_param_names)) +
-    #        [output_file_param_name] + param_defaults.keys())
-    #"""Names of all GO-PCA parameters."""
-    ### end static members
-
-    def __init__(self, params = {}):
+    def __init__(self, params=None):
+        if params is None:
+            params = {}
         self.__params = OrderedDict()
         # first, set all parameters to their default values
         self.reset_params()
@@ -119,18 +98,18 @@ class GOPCAConfig(object):
         if name in self.param_defaults:
             return self.__params[name]
         else:
-            raise AttributeError('There is no GO-PCA parameter called "%s"!' \
-                    %(name))
+            raise AttributeError('There is no GO-PCA parameter called "%s"!'
+                                 % name)
 
     def __getitem__(self, key):
         return self.__getattr__(key)
     
     def __repr__(self):
-        return '<GOPCAConfig object (hash=%d)>' %(hash(self))
+        return '<GOPCAConfig object (hash=%d)>' % hash(self)
 
     def __str__(self):
         param_str = '; '.join(self.get_param_strings())
-        return '<GOPCAConfig object (%s)>' %(param_str)
+        return '<GOPCAConfig object (%s)>' % param_str
 
     def __hash__(self):
         return hash(frozenset(self.__params.items()))
@@ -146,7 +125,7 @@ class GOPCAConfig(object):
         else:
             return repr(self) == repr(other)
 
-    ### public members  
+    # public members
     def has_param(self, name):
         """Tests if a GO-PCA parameter exists.
 
@@ -180,7 +159,7 @@ class GOPCAConfig(object):
     def get_param_strings(self):
         d = []
         for k in sorted(self.__params.keys()):
-            d.append(u'%s=%s' %(k, self.__params[k]))
+            d.append(u'%s=%s' % (k, self.__params[k]))
         return d
 
     def get_dict(self):
@@ -188,7 +167,6 @@ class GOPCAConfig(object):
 
         Parameters
         ----------
-        None
 
         Returns
         -------
@@ -208,7 +186,7 @@ class GOPCAConfig(object):
             The parameter value.
         """
         if name not in self.param_defaults:
-            raise ValueError('No GO-PCA parameter named "%s"!' %(name))
+            raise ValueError('No GO-PCA parameter named "%s"!' % name)
         self.__params[name] = value
 
     def set_params(self, params):
@@ -223,13 +201,11 @@ class GOPCAConfig(object):
         -------
         None
         """
-        for k,v in params.iteritems():
-            self.set_param(k,v)
+        for k, v in params.items():
+            self.set_param(k, v)
 
     def reset_params(self):
         """Reset all parameters to their default values."""
-        #self.__params = OrderedDict([p, None]
-        #        for p in self.param_names)
         self.set_params(self.param_defaults)
 
     def check(self):
@@ -252,8 +228,8 @@ class GOPCAConfig(object):
             # checks whether the parameter has a certain type
             val = getattr(self, attr)
             if not isinstance(val, types):
-                logger.error('Parameter "%s" = %s: invalid type ' +
-                        '(should be %s).', attr, val, str(types))
+                logger.error('Parameter "%s" = %s: invalid type '
+                             '(should be %s).', attr, val, str(types))
                 passed[0] = False
 
         """
@@ -274,8 +250,8 @@ class GOPCAConfig(object):
                 passed[0] = False
         """
 
-        def check_range(attr, mn = None, mx = None,
-                left_open = False, right_open = False):
+        def check_range(attr, mn=None, mx=None,
+                        left_open=False, right_open=False):
             # checks if a GO-PCA parameter falls within a certain numeric range
 
             val = getattr(self, attr)
@@ -283,24 +259,30 @@ class GOPCAConfig(object):
 
             rel_op = {True: '<', False: '<='}
 
+            left_rel = ''
             if mn is not None:
-                left_rel = '%s %s ' %(str(mn), rel_op[left_open])
+                left_rel = '%s %s ' % (str(mn), rel_op[left_open])
                 if left_open:
-                    if not mn < val: in_range = False
+                    if not mn < val:
+                        in_range = False
                 else:
-                    if not mn <= val: in_range = False
+                    if not mn <= val:
+                        in_range = False
 
+            right_rel = ''
             if mx is not None:
-                right_rel = ' %s %s' %(rel_op[right_open], str(mx))
+                right_rel = ' %s %s' % (rel_op[right_open], str(mx))
                 if right_open:
-                    if not val < mx: in_range = False
+                    if not val < mx:
+                        in_range = False
                 else:
-                    if not val <= mx: in_range = False
+                    if not val <= mx:
+                        in_range = False
 
             if not in_range:
-                logger.error('Parameter "%s" = %s: out of range ' +
-                        '(should be %s %s %s).',
-                        attr, val, left_rel, attr, right_rel)
+                logger.error('Parameter "%s" = %s: out of range '
+                             '(should be %s %s %s).',
+                             attr, val, left_rel, attr, right_rel)
                 passed[0] = False
 
         # check types and ranges of GO-PCA parameters
@@ -310,7 +292,7 @@ class GOPCAConfig(object):
         check_type('sel_var_genes', int)
         check_range('sel_var_genes', 0)
 
-        check_type('mHG_X_frac', (int,float))
+        check_type('mHG_X_frac', (int, float))
         check_range('mHG_X_frac', 0, 1)
 
         check_type('mHG_X_min', int)
@@ -320,10 +302,10 @@ class GOPCAConfig(object):
         check_range('mHG_L', -1)
 
         check_type('pval_thresh', (int, float))
-        check_range('pval_thresh', 0, 1, left_open = True)
+        check_range('pval_thresh', 0, 1, left_open=True)
 
         check_type('escore_pval_thresh', (int, float))
-        check_range('escore_pval_thresh', 0, 1, left_open = True)
+        check_range('escore_pval_thresh', 0, 1, left_open=True)
 
         check_type('escore_thresh', (int, float))
         check_range('escore_thresh', 0)
@@ -333,14 +315,14 @@ class GOPCAConfig(object):
             check_range('pc_seed', -1, np.iinfo(np.uint32).max)
 
             check_type('pc_permutations', int)
-            check_range('pc_permutations', 0, left_open = True)
+            check_range('pc_permutations', 0, left_open=True)
 
             check_type('pc_zscore_thresh', (int, float))
 
             check_type('pc_max', int)
             check_range('pc_max', 0, np.iinfo(np.uint32).max)
 
-        #check(isinstance(self.go_part_of_cc_only, bool))
+        # check(isinstance(self.go_part_of_cc_only, bool))
         return passed[0]
 
     def get_hash(self):
@@ -348,7 +330,6 @@ class GOPCAConfig(object):
 
         Parameters
         ----------
-        None
 
         Returns
         -------
@@ -357,7 +338,7 @@ class GOPCAConfig(object):
         """
         data = []
         for p in self.param_defaults:
-           data.append(str(self.__params[p]))
+            data.append(str(self.__params[p]))
         data_str = ','.join(data)
         logger.debug('Configuration data string: %s', data_str)
         return str(hashlib.md5(data_str).hexdigest())
@@ -377,7 +358,7 @@ class GOPCAConfig(object):
             The GO-PCA configuration data.
         """
         params = {}
-        with io.open(path, mode = 'r', encoding = 'UTF-8') as fh:
+        with io.open(path, encoding='UTF-8') as fh:
             config = ConfigParser()
             config.optionxform = lambda x: x
             config.read_file(fh)
@@ -385,7 +366,7 @@ class GOPCAConfig(object):
                 logger.error('Config file has no [GO-PCA] section!')
                 return None
             d = config['GO-PCA']
-            for p,v in d.iteritems():
+            for p, v in d.items():
                 if p in cls.param_defaults:
                     t = type(cls.param_defaults[p])
                     if t == bool:
@@ -416,9 +397,9 @@ class GOPCAConfig(object):
         config.optionxform = lambda x: x
         config['GO-PCA'] = OrderedDict()
         g = config['GO-PCA']
-        for p, v in self.__params.iteritems():
+        for p, v in self.__params.items():
             if v is not None:
                 g[p] = str(v)
 
-        with io.open(path, mode = 'w', encoding = 'UTF-8') as ofh:
+        with io.open(path, mode='w', encoding='UTF-8') as ofh:
             config.write(ofh)

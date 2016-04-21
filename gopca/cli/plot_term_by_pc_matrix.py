@@ -37,61 +37,61 @@ from __future__ import (absolute_import, division,
 from builtins import *
 
 import sys
-import os
-import argparse
-import csv
-import cPickle as pickle
+# import os
+# import argparse
+# import csv
 from math import ceil
-from collections import OrderedDict,Counter
+# from collections import OrderedDict,Counter
 
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
-from scipy.cluster.hierarchy import linkage, dendrogram
+# from scipy.spatial.distance import pdist, squareform
+# from scipy.cluster.hierarchy import linkage, dendrogram
 
 from genometools import misc
 
-import gopca
+# import gopca
 from gopca import util
-from gopca import cli
-from gopca.plotting import cli as plot_cli
+from gopca.cli import arguments
 
 from xlmhg import xlmhg_test
+
 
 def get_argument_parser():
 
     desc = 'Plot the GO-PCA term-by-PC matrix.'
-    parser = cli.get_argument_parser(desc = desc)
+    parser = arguments.get_argument_parser(desc=desc)
 
-    cli.add_io_args(parser)
+    arguments.add_io_args(parser)
 
     g = parser.add_argument_group('Optional parameters')
 
-    g.add_argument('--max-pval', type = float, default = 1e-4)
-    g.add_argument('--dotcolor', default = 'yellow')
-    g.add_argument('--dotsize', type = float, default = 50)
+    g.add_argument('--max-pval', type=float, default=1e-4)
+    g.add_argument('--dotcolor', default='yellow')
+    g.add_argument('--dotsize', type=float, default=50)
 
-    plot_cli.add_fig_args(parser)
-    parser.set_defaults(fig_font_size = 16)
+    arguments.add_fig_args(parser)
+    parser.set_defaults(fig_font_size=16)
 
-    plot_cli.add_heatmap_args(parser)
-    parser.set_defaults(val_coolest = 0.0)
-    parser.set_defaults(val_hottest = 10.0)
-    parser.set_defaults(cbar_ticks = [4,6,8,10])
-    parser.set_defaults(colormap = 'BuPu')
-    parser.set_defaults(cbar_anchor = [0.6,1.0])
-    parser.set_defaults(cbar_scale = 0.2)
+    arguments.add_heatmap_args(parser)
+    parser.set_defaults(val_coolest=0.0)
+    parser.set_defaults(val_hottest=10.0)
+    parser.set_defaults(cbar_ticks=[4, 6, 8, 10])
+    parser.set_defaults(colormap='BuPu')
+    parser.set_defaults(cbar_anchor=[0.6, 1.0])
+    parser.set_defaults(cbar_scale=0.2)
 
-    cli.add_go_term_args(parser)
-    cli.add_sample_args(parser)
+    arguments.add_go_term_args(parser)
+    arguments.add_sample_args(parser)
 
     return parser
+
 
 def main(args=None):
 
     vinfo = sys.version_info
     if not (vinfo >= (2, 7)):
         raise SystemError('Python interpreter version >= 2.7 required, '
-                          'found %d.%d instead.' %(vinfo.major, vinfo.minor))
+                          'found %d.%d instead.' % (vinfo.major, vinfo.minor))
 
     if args is None:
         # read command line arguments
@@ -136,17 +136,17 @@ def main(args=None):
     term_max_len = args.term_max_len
 
     # configure root logger
-    #logger = misc.configure_logger('')
+    # logger = misc.configure_logger('')
 
     # read GO-PCA output
-    G = util.read_gopca_result(gopca_file)
+    result = util.read_gopca_result(gopca_file)
 
-    genes = G.genes
-    signatures = G.signatures
-    W = G.W # loading matrix
-    S = G.S # signature matrix
-    #input_ = G.input
-    config = G.config
+    genes = result.genes
+    signatures = result.signatures
+    W = result.W  # loading matrix
+    S = result.S  # signature matrix
+
+    config = result.config
     X_frac = config.mHG_X_frac
     X_min = config.mHG_X_min
     L = config.mHG_L
@@ -156,62 +156,62 @@ def main(args=None):
     p = len(genes)
     assert np.all(a == np.arange(p))
     genes = [genes[i] for i in a]
-    W = W[a,:]
+    W = W[a, :]
 
     # determine max K
     K_max = max(sig.K for sig in signatures)
 
     # generate term labels
-    labels = ['%s (%d)' %(sig.get_label(max_name_length = term_max_len,
-            include_id = False, include_stats = False), sig.K)
-            for sig in signatures]
+    labels = ['%s (%d)' % (sig.get_label(max_name_length=term_max_len,
+                           include_id=False, include_stats=False), sig.K)
+              for sig in signatures]
 
     # order terms using hierarchical clustering
     order = util.cluster_signatures(S)
     if term_reverse_order:
         order = order[::-1]
-    S = S[order,:]
+    S = S[order, :]
     labels = [labels[i] for i in order]
     signatures = [signatures[i] for i in order]
 
     # test association
-    p,n_comps = W.shape
+    p, n_comps = W.shape
     q = len(signatures)
     A = np.zeros((q, 2*n_comps), dtype=np.float64)
     matrix = np.empty((K_max+1, p+1), dtype=np.longdouble)
 
     for pc in range(n_comps):
-        a_asc = np.argsort(W[:,pc])
+        a_asc = np.argsort(W[:, pc])
         a_dsc = a_asc[::-1]
-        for i,sig in enumerate(signatures):
-            tg = sig.genes # != sig.enr.genes
+        for i, sig in enumerate(signatures):
+            tg = sig.genes  # != sig.enr.genes
             K = len(tg)
-            X = max(X_min,int(ceil(X_frac*K)))
+            X = max(X_min, int(ceil(X_frac*K)))
         
-            v = np.zeros(p,dtype=np.uint8)
+            v = np.zeros(p, dtype=np.uint8)
             for g in tg:
-                idx = misc.bisect_index(genes,g)
+                idx = misc.bisect_index(genes, g)
                 v[idx] = 1
 
             v_sorted = np.ascontiguousarray(v[a_dsc])
-            stat, n_star, pval = xlmhg_test(v_sorted,X,L,K,mat=matrix)
-            A[i,pc*2] = -np.log10(pval)
+            stat, n_star, pval = xlmhg_test(v_sorted, X, L, K=K, table=matrix)
+            A[i, pc*2] = -np.log10(pval)
 
             v_sorted = np.ascontiguousarray(v[a_asc])
-            stat, n_star, pval = xlmhg_test(v_sorted,X,L,K,mat=matrix)
-            A[i,pc*2+1] = -np.log10(pval)
+            stat, n_star, pval = xlmhg_test(v_sorted, X, L, K=K, table=matrix)
+            A[i, pc*2+1] = -np.log10(pval)
 
     import matplotlib as mpl
     if mpl_backend is not None:
         mpl.use(mpl_backend)
-    #from matplotlib.backends.backend_pdf import PdfPages
+    # from matplotlib.backends.backend_pdf import PdfPages
     import matplotlib.pyplot as plt
     from matplotlib import rc
-    #from matplotlib import cm
+    # from matplotlib import cm
 
-    rc('font',family = font_family, size = font_size)
-    rc('figure', figsize = fig_size)
-    rc('savefig', dpi = fig_res)
+    rc('font', family=font_family, size=font_size)
+    rc('figure', figsize=fig_size)
+    rc('savefig', dpi=fig_res)
 
     if use_tex:
         rc('text', usetex=True)
@@ -227,17 +227,21 @@ def main(args=None):
         j = (abs(signatures[i].pc)-1)*2
         if signatures[i].pc < 0:
             j += 1
-        plt.scatter([j], [i], color = dotcolor, zorder = 100, s = dotsize,
-                marker = 'x')
+        plt.scatter([j], [i], color=dotcolor, zorder=100, s=dotsize,
+                    marker='x')
 
     # plot heatmap
-    A[np.absolute(A) < -np.log10(max_pval)] = np.nan # hide insignificant associations
-    plt.imshow(A, interpolation = 'none', vmin = vmin, vmax = vmax, cmap = cmap, zorder=20)
+    # hide insignificant associations
+    A[np.absolute(A) < -np.log10(max_pval)] = np.nan
+    plt.imshow(A, interpolation='none', vmin=vmin, vmax=vmax,
+               cmap=cmap, zorder=20)
 
     # plot separation lines
     for pc in range(n_comps-1):
-        plt.plot([pc*2+1.5,pc*2+1.5],[-0.5,q-0.5],color='gray',linewidth=1.0,zorder=50)
-    plt.plot([-0.5,n_comps*2+1.5],[-0.5,-0.5],color='black',linewidth=2.0,zorder=50) # fix some z-order issues
+        plt.plot([pc*2 + 1.5, pc*2 + 1.5], [-0.5, q-0.5],
+                 color='gray', linewidth=1.0, zorder=50)
+    plt.plot([-0.5, n_comps*2 + 1.5], [-0.5, -0.5],
+             color='black', linewidth=2.0, zorder=50)  # z-order fixed
 
     # configure axes
     plt.gca().yaxis.set_ticks_position('left')
@@ -246,27 +250,30 @@ def main(args=None):
     plt.gca().spines['right'].set_visible(False)
     plt.gca().spines['bottom'].set_visible(False)
  
-    #plt.gca().xaxis.tick_top()
-    plt.xticks(np.arange(0,n_comps*2,2)+0.5,np.arange(n_comps)+1,size='small')
-    plt.xlabel(r'Principal Component',labelpad=10,size='small')
-    plt.xlim(-0.5,n_comps*2-0.5)
+    # plt.gca().xaxis.tick_top()
+    plt.xticks(np.arange(0, n_comps*2, 2) + 0.5, np.arange(n_comps) + 1,
+               size='small')
+    plt.xlabel(r'Principal Component', labelpad=10, size='small')
+    plt.xlim(-0.5, n_comps*2 - 0.5)
     plt.gca().tick_params(top='off')
 
     plt.yticks(np.arange(q), labels, size='x-small')
-    plt.ylabel(r'GO Term',size='small')
-    plt.ylim(q-0.5,-0.5)
-    #plt.ylim(-0.5,q-0.5)
-    plt.grid(which='both',axis='y',zorder=-20) # z-order is ignored here
+    plt.ylabel(r'GO Term', size='small')
+    plt.ylim(q-0.5, -0.5)
+    # plt.ylim(-0.5,q-0.5)
+    plt.grid(which='both', axis='y', zorder=-20)  # z-order is ignored here
 
     # plot colorbar
-    cb = plt.colorbar(orientation = cbar_orient, shrink = cbar_scale, pad = cbar_pad, ticks = cbar_ticks, use_gridspec = False, anchor = cbar_anchor)
-    cb.ax.tick_params(labelsize = 'small')
+    cb = plt.colorbar(orientation=cbar_orient, shrink=cbar_scale,
+                      pad=cbar_pad, ticks=cbar_ticks, use_gridspec=False,
+                      anchor=cbar_anchor)
+    cb.ax.tick_params(labelsize='small')
 
     if use_tex:
-        cb.set_label(r"$\bm{-\log_{10}} \textrm{p-value}$",size='small')
+        cb.set_label(r"$\bm{-\log_{10}} \textrm{p-value}$", size='small')
     else:
-        cb.set_label('-Log10 p-value',size='small')
-    plt.savefig(output_file,bbox_inches='tight')
+        cb.set_label('-Log10 p-value', size='small')
+    plt.savefig(output_file, bbox_inches='tight')
 
     return 0
 

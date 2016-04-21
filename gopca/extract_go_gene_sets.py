@@ -86,20 +86,21 @@ from builtins import *
 
 import sys
 import os
-import argparse
-import gzip
-import logging
-import cPickle as pickle
+# import argparse
+# import gzip
+# import logging
+# import cPickle as pickle
 import textwrap
 
-import numpy as np
+# import numpy as np
 
-import unicodecsv as csv
+# import unicodecsv as csv
 
 from genometools import misc
 from goparser import GOParser
 from gopca import util
 from gopca import cli
+
 
 def get_argument_parser():
     """Function to obtain the argument parser.
@@ -112,65 +113,72 @@ def get_argument_parser():
     -----
     This function is used by the `sphinx-argparse` extension for sphinx.
     """
-    #prog = 'gopca_extract_go_annotations.py'
-    desc = """Write a file containing the genes annotated with each GO term."""
+    # prog = 'gopca_extract_go_annotations.py'
+    desc = 'Write a file containing the genes annotated with each GO term.'
 
-    parser = cli.get_argument_parser(desc = desc)
+    parser = cli.get_argument_parser(desc=desc)
 
     file_mv = cli.file_mv
-    str_type = cli.str_type
+    int_mv = cli.int_mv
 
     # input files
     g = parser.add_argument_group('Input and output files')
 
-    g.add_argument('-g', '--gene-file', required = True,
-            type = str_type, metavar = file_mv,
-            help="""Path of tab-delimited file containing all "valid" gene
-                    symbols.""")
+    g.add_argument(
+        '-g', '--gene-file', type=str, required=True, metavar=file_mv,
+        help='Path of tab-delimited file containing all "valid" gene'
+              'symbols.')
 
-    g.add_argument('-t', '--gene-ontology-file', required = True,
-            metavar = cli.file_mv,
-            help='Path of ontology file (in OBO format).')
+    g.add_argument(
+        '-t', '--gene-ontology-file', type=str, required=True, metavar=file_mv,
+        help='Path of ontology file (in OBO format).')
 
-    g.add_argument('-a', '--go-annotation-file', required = True,
-            metavar = cli.file_mv,
-            help='Path of GO annotation file (in GAF format).')
+    g.add_argument(
+        '-a', '--go-annotation-file', type=str, required=True, metavar=file_mv,
+        help='Path of GO annotation file (in GAF format).')
 
     # output file
-    g.add_argument('-o', '--output-file', required = True,
-            metavar = cli.file_mv,
-            help='Path of output file.')
+    g.add_argument(
+        '-o', '--output-file', type=str, required=True, metavar=file_mv,
+        help='Path of output file.')
 
     g = parser.add_argument_group('Other options')
 
     # evidence
-    g.add_argument('-e', '--select-evidence', nargs = '*', default = None,
-            metavar = '<evidence code, ...>',
-            help="""List of three-letter evidence codes to include.
-                    If not specified, include all evidence types.""")
+    g.add_argument(
+        '-e', '--select-evidence', nargs='*', default=None,
+        metavar='<evidence code, ...>',
+        help=textwrap.dedent("""\
+            List of three-letter evidence codes to include.
+            If not specified, include all evidence types."""))
 
     # which GO terms to include in final output?
-    g.add_argument('--min-genes-per-term', type = int, default=0,
-            metavar = cli.int_mv,
-            help="""Exclude GO terms that have fewer than the specified number
-                    of genes annotated with them. Disabled (0) by default.""")
+    g.add_argument(
+        '--min-genes-per-term', type=int, default=0, metavar=int_mv,
+        help=textwrap.dedent("""\
+            Exclude GO terms that have fewer than the specified number
+            of genes annotated with them. Disabled (0) by default."""))
 
-    g.add_argument('--max-genes-per-term', type = int, default=0,
-            metavar = cli.int_mv,
-            help="""Exclude GO terms that have more than the specified number
-                    of genes annotated with them. Disabled (0) by default.""")
+    g.add_argument(
+        '--max-genes-per-term', type=int, default=0, metavar=int_mv,
+        help=textwrap.dedent("""\
+            Exclude GO terms that have more than the specified number
+            of genes annotated with them. Disabled (0) by default."""))
 
     # legacy options
-    g.add_argument('--part-of-cc-only', action = 'store_true',
-            help="""If enabled, ignore ``part_of`` relations outside the
-                    ``cellular_component`` (CC) domain.""")
+    g.add_argument(
+        '--part-of-cc-only', action='store_true',
+        help=textwrap.dedent("""\
+            If enabled, ignore ``part_of`` relations outside the
+            ``cellular_component`` (CC) domain."""))
 
     # reporting options
     cli.add_reporting_args(parser)
 
     return parser
 
-def main(args = None):
+
+def main(args=None):
     """Extract GO annotations and store in tab-delimited text file.
 
     Parameters
@@ -192,9 +200,8 @@ def main(args = None):
     vinfo = sys.version_info
     if not (vinfo >= (2, 7)):
         raise SystemError('Python interpreter version >= 2.7 required, '
-                          'found %d.%d instead.' %(vinfo.major, vinfo.minor))
+                          'found %d.%d instead.' % (vinfo.major, vinfo.minor))
 
-    config = None
     if args is None:
         parser = get_argument_parser()
         args = parser.parse_args()
@@ -216,8 +223,8 @@ def main(args = None):
     verbose = args.verbose
 
     # configure root logger
-    logger = util.get_logger(log_file = log_file, quiet = quiet,
-            verbose = verbose)
+    logger = util.get_logger(log_file=log_file, quiet=quiet,
+                             verbose=verbose)
 
     # checks
     assert os.path.isfile(gene_file)
@@ -230,17 +237,18 @@ def main(args = None):
     logger.info('Read %d genes.', n)
 
     # Read GO term definitions and parse UniProtKB GO annotations
-    GO = GOParser()
+    parser = GOParser()
 
     logger.info('Parsing gene ontology file...')
-    GO.parse_ontology(gene_ontology_file, part_of_cc_only = False)
+    parser.parse_ontology(gene_ontology_file,
+                          part_of_cc_only=part_of_cc_only)
 
     logger.info('Parsing GO annotation file...')
     genes = misc.read_single(gene_file)
-    GO.parse_annotations(go_annotation_file, genes,
-            select_evidence = select_evidence)
+    parser.parse_annotations(go_annotation_file, genes,
+                             select_evidence=select_evidence)
 
-    D = GO.get_gene_sets(min_genes = min_genes, max_genes = max_genes)
+    D = parser.get_gene_sets(min_genes=min_genes, max_genes=max_genes)
     D.write_tsv(output_file)
 
     return 0

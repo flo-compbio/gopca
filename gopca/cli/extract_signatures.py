@@ -33,32 +33,36 @@ from builtins import *
 
 import sys
 import os
-import argparse
-import csv
+# import argparse
 import math
 
-import numpy as np
+import unicodecsv as csv
+# import numpy as np
 
 from genometools import misc
 from gopca import util
-from gopca import cli
+from gopca.cli import arguments
 
-sign = lambda x:int(math.copysign(1.0, x))
+
+def sign(x):
+    return int(math.copysign(1.0, x))
+
 
 def get_argument_parser():
 
     desc = 'Extract GO-PCA signatures as a tab-delimited text file.'
-    parser = cli.get_argument_parser(desc = desc)
-    cli.add_io_args(parser)
+    parser = arguments.get_argument_parser(desc=desc)
+    arguments.add_io_args(parser)
 
     return parser
+
 
 def main(args=None):
 
     vinfo = sys.version_info
     if not (vinfo >= (2, 7)):
         raise SystemError('Python interpreter version >= 2.7 required, '
-                          'found %d.%d instead.' %(vinfo.major, vinfo.minor))
+                          'found %d.%d instead.' % (vinfo.major, vinfo.minor))
 
     if args is None:
         parser = get_argument_parser()
@@ -71,27 +75,27 @@ def main(args=None):
 
     assert os.path.isfile(gopca_file)
 
-    G = util.read_gopca_result(gopca_file)
-    signatures = G.signatures
+    result = util.read_gopca_result(gopca_file)
+    signatures = result.signatures
 
     # sort signatures first by PC, then by fold enrichment
-    signatures = sorted(signatures, 
-            key=lambda sig:[abs(sig.pc),-sign(sig.pc),-sig.escore])
+    signatures = sorted(
+        signatures, key=lambda s: [abs(s.pc), -sign(s.pc), -s.escore])
 
     labels = signatures[0].get_ordered_dict().keys()
 
-    with open(output_file,'w') as ofh:
-        writer = csv.writer(ofh,dialect='excel-tab',lineterminator='\n',
-                quoting=csv.QUOTE_NONE)
+    with open(output_file, 'wb') as ofh:
+        writer = csv.writer(ofh, dialect='excel-tab', lineterminator='\n',
+                            quoting=csv.QUOTE_NONE)
 
         writer.writerow(labels)
 
-        for i,sig in enumerate(signatures):
+        for i, sig in enumerate(signatures):
             vals = sig.get_ordered_dict().values()
             writer.writerow(vals)
 
     logger.info('Wrote %d signatures to "%s".',
-            len(signatures), output_file)
+                len(signatures), output_file)
 
     return 0
 

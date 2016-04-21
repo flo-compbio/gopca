@@ -23,7 +23,8 @@ Example
 
 ::
 
-    $ gopca_plot_signature.py -g [gopca_output_file] -n [signature_name] -o [output_file]
+    $ gopca_plot_signature.py -g [gopca_output_file] -n [signature_name] \
+            -o [output_file]
 
 """
 
@@ -32,58 +33,64 @@ from __future__ import (absolute_import, division,
 from builtins import *
 
 import sys
-import os
-import argparse
-import cPickle as pickle
+# import os
+# import argparse
 
 import numpy as np
 
 from genometools import misc
 
-import gopca
+# import gopca
 from gopca import util
-from gopca import cli
-from gopca.plotting import cli as plot_cli
+from gopca.cli import arguments
+
 
 def get_argument_parser():
 
     desc = 'Plot a GO-PCA signature.'
-    parser = cli.get_argument_parser(desc = desc)
+    parser = arguments.get_argument_parser(desc = desc)
 
-    g = cli.add_io_args(parser)
+    name_mv = arguments.name_mv
+    int_mv = arguments.int_mv
+    float_mv = arguments.float_mv
+
+    g = arguments.add_io_args(parser)
 
     g = parser.add_argument_group('Signature options')
 
-    g.add_argument('-n', '--sig-name', required = True,
-            metavar = cli.name_mv,
-            help = 'The name of the signature.')
+    g.add_argument(
+        '-n', '--sig-name', type=str, required=True, metavar=name_mv,
+        help='The name of the signature.')
 
-    g.add_argument('--no-standardization', action = 'store_true',
-            help = 'Do not standardize the expression values.')
+    g.add_argument(
+        '--no-standardization', action='store_true',
+        help='Do not standardize the expression values.')
 
     g = parser.add_argument_group('Layout options')
 
-    g.add_argument('-p', '--fig-title-pos', type = float, default = 0.95,
-            metavar = cli.float_mv,
-            help = 'The position of the figure title.')
+    g.add_argument(
+        '-p', '--fig-title-pos', type=float, default=0.95, metavar=float_mv,
+        help='The position of the figure title.')
 
-    g.add_argument('--fig-subgrid-ratio', type = int, default = 10,
-            metavar = cli.int_mv,
-            help = 'The size ratio between signature and heat map panels.')
+    g.add_argument(
+        '--fig-subgrid-ratio', type=int, default=10, metavar=int_mv,
+        help='The size ratio between signature and heat map panels.')
 
-    g.add_argument('-gs', '--gene-label-size', type = float, default = None,
-            metavar = cli.float_mv,
-            help = 'The size of the gene labels (in pt).')
+    g.add_argument(
+        '-gs', '--gene-label-size', type=float, default=None, metavar=float_mv,
+        help='The size of the gene labels (in pt).')
 
-    g.add_argument('-gr', '--gene-reverse-order', action = 'store_true',
-            help = 'Reverse the order of the genes.')
+    g.add_argument(
+        '-gr', '--gene-reverse-order', action='store_true',
+        help='Reverse the order of the genes.')
 
-    g.add_argument('--hide-id', action = 'store_true',
-            help = 'Do not show the ID of the GO term.')
+    g.add_argument(
+        '--hide-id', action='store_true',
+        help='Do not show the ID of the GO term.')
 
-    plot_cli.add_fig_args(parser)
-    plot_cli.add_heatmap_args(parser)
-    cli.add_sample_args(parser)
+    arguments.add_fig_args(parser)
+    arguments.add_heatmap_args(parser)
+    arguments.add_sample_args(parser)
 
     return parser
 
@@ -93,7 +100,7 @@ def main(args=None):
     vinfo = sys.version_info
     if not (vinfo >= (2, 7)):
         raise SystemError('Python interpreter version >= 2.7 required, '
-                          'found %d.%d instead.' %(vinfo.major, vinfo.minor))
+                          'found %d.%d instead.' % (vinfo.major, vinfo.minor))
 
     if args is None:
         parser = get_argument_parser()
@@ -174,13 +181,13 @@ def main(args=None):
             return 1
         elif len(sig) > 1:
             logger.warning('Signature name not unique, matched: %s',
-                    ', '.join([s.gene_set.name for s in sig]))
+                           ', '.join([s.gene_set.name for s in sig]))
         sig = sig[0]
 
     # get signature gene expression matrix and cluster rows
     sig_genes = sig.genes
     X = sig.X
-    logger.debug('Expression matrix shape', str(X.shape))
+    logger.debug('Expression matrix shape: %s', str(X.shape))
     order_rows = util.cluster_rows(X, metric='correlation', method='average')
     if gene_reverse_order:
         order_rows = order_rows[::-1]

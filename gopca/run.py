@@ -23,13 +23,19 @@ from builtins import *
 
 import logging
 import io
+import six
 from copy import deepcopy
-import cPickle as pickle
-from collections import OrderedDict
+# from collections import OrderedDict
 
 from gopca import GOPCAConfig, GOPCAResult
 
+if six.PY2:
+    import cPickle as pickle
+else:
+    import pickle
+
 logger = logging.getLogger(__name__)
+
 
 class GOPCARun(object):
     """A GO-PCA run, consisting of configuration, run, and result data.
@@ -74,14 +80,15 @@ class GOPCARun(object):
         self.exec_time = exec_time
         self.result = result
 
-    ### magic functions
+    # magic functions
     def __repr__(self):
-        return '<GOPCARun (version=%s; timestamp=%s; exec_time=%.1f; hash=%d)>' \
-                %(self.version, self.timestamp, hash(self))
+        return '<GOPCARun (version=%s; timestamp=%s; exec_time=%.1f; ' \
+               'hash=%d)>' \
+                % (self.version, self.timestamp, self.exec_time, hash(self))
 
     def __str__(self):
         return '<GOPCARun (version %s; %d signatures; %s)>' \
-                %(self.result.q, self.timestamp)
+                % (self.version, self.result.q, self.timestamp)
 
     def __eq__(self, other):
         if self is other:
@@ -92,17 +99,18 @@ class GOPCARun(object):
             return repr(self) == repr(other)
 
     def __hash__(self):
-        data = []
-        data.append(self.version)
-        data.append(self.user_config)
-        data.append(self.expression_hash)
-        data.append(self.gene_sets_hash)
-        data.append(self.ontology_hash)
-        data.append(self.timestamp)
-        data.append(self.result)
-        data.append(self.exec_time)
-        return hash(tuple(data))
-    ### end magic functions
+        data = (
+            self.version,
+            self.user_config,
+            self.expression_hash,
+            self.gene_sets_hash,
+            self.ontology_hash,
+            self.timestamp,
+            self.result,
+            self.exec_time
+        )
+        return hash(data)
+    # end magic functions
 
     def write_pickle(self, path):
         """Save the current object to a pickle file.

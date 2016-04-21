@@ -33,6 +33,7 @@ from . import GOPCAResult, GOPCASignature
 
 logger = logging.getLogger(__name__)
 
+
 class GOPCAPlotter(object):
     """A plotter for GO-PCA results."""
 
@@ -63,7 +64,7 @@ class GOPCAPlotter(object):
         S, a_signatures, a_samples = result.get_signature_matrix(**matrix_kw)
 
         # plot heat map
-        fig = eplt.plot_heatmap(
+        fig = eplt.get_heatmap(
             S, yaxis_label='Signatures',
             colorbar_label='Standardized Expression',
             emin=emin, emax=emax,
@@ -79,7 +80,7 @@ class GOPCAPlotter(object):
             standardize=False, center=True, cluster_samples=True,
             include_id=False,
             emin=None, emax=None,
-            margin_left = 70, margin_bottom = 50, margin_top=50,
+            margin_left=70, margin_bottom=50, margin_top=50,
             show_sample_labels=False, matrix_kw=None, **kwargs):
 
         if sig is not None:
@@ -108,17 +109,18 @@ class GOPCAPlotter(object):
         if cluster_samples:
             # use entire signature matrix as the basis for clustering
             S, _, a_samples = self.result.get_signature_matrix()
-            E = E.iloc[:,a_samples]
+            E = E.iloc[:, a_samples]
 
         # add a "Signature" row to the top
         # (representing the signature expression)
-        title = sig.get_label(include_id = include_id)
-        mean = np.mean(E.X, axis = 0)
-        header_row = ExpMatrix(genes = ['Signature'], samples = E.samples, X = np.atleast_2d(mean))
-        E = pd.concat([header_row, E], axis = 0)
+        title = sig.get_label(include_id=include_id)
+        mean = np.mean(E.X, axis=0)
+        header_row = ExpMatrix(genes=['Signature'], samples=E.samples,
+                               X=np.atleast_2d(mean))
+        E = pd.concat([header_row, E], axis=0)
 
         # plot heat map
-        fig = eplt.plot_heatmap(
+        fig = eplt.get_heatmap(
             E, title=title, yaxis_label='Genes',
             colorbar_label=cb_label,
             emin=emin, emax=emax,
