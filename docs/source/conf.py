@@ -29,11 +29,12 @@ class Mock(MagicMock):
             return Mock()
 
 #MOCK_MODULES = ['cython','numpy','pandas','scipy','genometools','goparser','xlmhg','sklearn','sklearn.decomposition']
-MOCK_MODULES = ['cython', 'numpy', 'pandas', 'sklearn',
-                'matplotlib', 'plotly',
-                'genometools', 'genometools.expression', 'genometools.enrichment',
-                'scipy', 'scipy.spatial.distance', 'scipy.cluster.hierarchy',
-                'goparser', 'xlmhg']
+MOCK_MODULES = [
+    'cython', 'numpy', 'pandas', 'scipy', 'sklearn', 'matplotlib', 'plotly',
+    'scipy.spatial', 'scipy.spatial.distance',
+    'scipy.cluster', 'scipy.cluster.hierarchy',
+    'genometools', 'genometools.expression', 'genometools.enrichment',
+    'goparser', 'xlmhg']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 import gopca
