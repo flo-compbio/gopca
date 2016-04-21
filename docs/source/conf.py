@@ -21,8 +21,6 @@ import pkg_resources
 #import sphinx_rtd_theme
 import sphinx_bootstrap_theme
 
-import gopca
-
 from mock import Mock as MagicMock
 
 class Mock(MagicMock):
@@ -35,6 +33,8 @@ MOCK_MODULES = ['cython', 'numpy', 'pandas', 'scipy', 'sklearn',
                 'matplotlib', 'plotly',
                 'genometools', 'goparser', 'xlmhg']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
+import gopca
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
