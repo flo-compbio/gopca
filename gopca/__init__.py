@@ -4,12 +4,12 @@ from builtins import *
 
 import pkg_resources
 
-from gopca.config import GOPCAConfig
-from gopca.signature import GOPCASignature
-from gopca.result import GOPCAResult
-from gopca.run import GOPCARun
-from gopca.plotter import GOPCAPlotter
-from gopca.go_pca import GOPCA
+from .config import GOPCAConfig
+from .signature import GOPCASignature
+from .result import GOPCAResult
+from .run import GOPCARun
+from .plotter import GOPCAPlotter
+from .go_pca import GOPCA
 
 __version__ = str(pkg_resources.require('gopca')[0].version)
 

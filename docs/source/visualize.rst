@@ -28,7 +28,7 @@ This command plots the GO-PCA signature matrix in PNG format. This command is
 typically the first command to run after the GO-PCA run has finished.
 
 .. argparse::
-   :ref: gopca.plotting.plot_signature_matrix.get_argument_parser
+   :ref: gopca.cli.plot_signature_matrix.get_argument_parser
    :prog: gopca_plot_signature_matrix.py
 
 
@@ -39,7 +39,7 @@ This command generates a plot that provides detailed view of the expression
 pattern of each gene in a specific signature.
 
 .. argparse::
-   :ref: gopca.plotting.plot_signature.get_argument_parser
+   :ref: gopca.cli.plot_signature.get_argument_parser
    :prog: gopca_plot_signature.py
 
 Plotting all signatures in detail: ``gopca_plot_all_signature.py``
@@ -50,7 +50,7 @@ in the GO-PCA result. The output is a PDF that contains one signature plot per
 page (the number of pages equals the number of signatures).
 
 .. argparse::
-   :ref: gopca.plotting.plot_all_signatures.get_argument_parser
+   :ref: gopca.cli.plot_all_signatures.get_argument_parser
    :prog: gopca_plot_all_signatures.py
 
 Ploting the term-by-PC matrix: ``gopca_plot_term_by_pc_matrix.py``
@@ -65,7 +65,7 @@ This visualization was originally proposed by Dr. Meromit Singer from Dr. Aviv
 Regev's group at the Broad Institute.
 
 .. argparse::
-   :ref: gopca.plotting.plot_term_by_pc_matrix.get_argument_parser
+   :ref: gopca.cli.plot_term_by_pc_matrix.get_argument_parser
    :prog: gopca_plot_term_by_pc_matrix.py
 
 

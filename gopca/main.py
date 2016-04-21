@@ -42,7 +42,8 @@ from genometools.expression import ExpMatrix
 from genometools.basic import GeneSetDB
 import goparser
 from goparser import GOParser
-from gopca import util, cli
+from gopca import util
+from gopca.cli import arguments
 from gopca import GOPCAConfig, GOPCA
 
 
@@ -50,13 +51,13 @@ def get_argument_parser():
 
     prog = 'go-pca.py'
     description = 'Run GO-PCA.'
-    parser = cli.get_argument_parser(prog, description)
+    parser = arguments.get_argument_parser(prog, description)
 
-    file_mv = cli.file_mv
-    # name_mv = cli.name_mv
-    int_mv = cli.int_mv
-    float_mv = cli.float_mv
-    # str_mv = cli.str_mv
+    file_mv = arguments.file_mv
+    # name_mv = arguments.name_mv
+    int_mv = arguments.int_mv
+    float_mv = arguments.float_mv
+    # str_mv = arguments.str_mv
 
     # separate config file
     g = parser.add_argument_group('Separate configuration file')
@@ -218,7 +219,7 @@ def get_argument_parser():
     parser.set_defaults(**GOPCAConfig.param_defaults)
 
     # reporting options
-    cli.add_reporting_args(parser)
+    arguments.add_reporting_args(parser)
 
     return parser
 

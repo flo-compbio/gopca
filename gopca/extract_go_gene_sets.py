@@ -99,7 +99,7 @@ import textwrap
 from genometools import misc
 from goparser import GOParser
 from gopca import util
-from gopca import cli
+from gopca.cli import arguments
 
 
 def get_argument_parser():
@@ -116,10 +116,10 @@ def get_argument_parser():
     # prog = 'gopca_extract_go_annotations.py'
     desc = 'Write a file containing the genes annotated with each GO term.'
 
-    parser = cli.get_argument_parser(desc=desc)
+    parser = arguments.get_argument_parser(desc=desc)
 
-    file_mv = cli.file_mv
-    int_mv = cli.int_mv
+    file_mv = arguments.file_mv
+    int_mv = arguments.int_mv
 
     # input files
     g = parser.add_argument_group('Input and output files')
@@ -173,7 +173,7 @@ def get_argument_parser():
             ``cellular_component`` (CC) domain."""))
 
     # reporting options
-    cli.add_reporting_args(parser)
+    arguments.add_reporting_args(parser)
 
     return parser
 

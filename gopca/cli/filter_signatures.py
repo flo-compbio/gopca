@@ -51,7 +51,7 @@ def get_argument_parser():
             Correlation threshold for filtering signatures
             (1.0 = off)."""))
 
-    cli.add_reporting_args(parser)
+    arguments.add_reporting_args(parser)
 
     return parser
 
