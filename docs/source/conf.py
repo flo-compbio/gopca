@@ -31,7 +31,8 @@ class Mock(MagicMock):
 #MOCK_MODULES = ['cython','numpy','pandas','scipy','genometools','goparser','xlmhg','sklearn','sklearn.decomposition']
 MOCK_MODULES = ['cython', 'numpy', 'pandas', 'scipy', 'sklearn',
                 'matplotlib', 'plotly',
-                'genometools', 'goparser', 'xlmhg']
+                'genometools', 'genometools.expression', 'genometools.enrichment',
+                'goparser', 'xlmhg']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 import gopca
@@ -40,8 +41,8 @@ import gopca
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.realpath(os.path.abspath('../../scripts')))
-sys.path.insert(0, os.path.realpath(os.path.abspath('../../plotting')))
+sys.path.insert(0, os.path.realpath(os.path.abspath('../../cli')))
+#sys.path.insert(0, os.path.realpath(os.path.abspath('../../plotting')))
 
 #import scripts.extract_signature_matrix
 
