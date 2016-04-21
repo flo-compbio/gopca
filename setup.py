@@ -51,8 +51,7 @@ if six.PY2:
 
 # do not require installation if built by ReadTheDocs
 # (we mock these modules in docs/source/conf.py)
-if 'READTHEDOCS' not in os.environ or \
-        os.environ['READTHEDOCS'] != 'True':
+if 'READTHEDOCS' not in os.environ:
     install_requires.extend([
         'numpy >= 1.8, < 2',
         'pandas >= 0.18, < 1',
@@ -130,35 +129,35 @@ setup(
 
             # processing scripts
             'gopca_extract_signatures.py = '
-                'gopca.scripts.extract_signatures:main',
+                'gopca.cli.extract_signatures:main',
 
             'gopca_extract_signatures_excel.py = '
-                'gopca.scripts.extract_signatures_excel:main',
+                'gopca.cli.extract_signatures_excel:main',
 
             'gopca_extract_signature_matrix.py = '
-                'gopca.scripts.extract_signature_matrix:main',
+                'gopca.cli.extract_signature_matrix:main',
 
             'gopca_convert_to_matlab.py = '
-                'gopca.scripts.convert_to_matlab:main',
+                'gopca.cli.convert_to_matlab:main',
             'gopca_filter_signatures.py = '
-                'gopca.scripts.filter_signatures:main',
+                'gopca.cli.filter_signatures:main',
             'gopca_combine_signatures.py = '
-                'gopca.scripts.combine_signatures:main',
+                'gopca.cli.combine_signatures:main',
             'gopca_print_info.py = '
-                'gopca.scripts.print_info:main',
+                'gopca.cli.print_info:main',
 
             # plotting scripts
             'gopca_plot_signature_matrix.py = '
-                'gopca.plotting.plot_signature_matrix:main',
+                'gopca.cli.plot_signature_matrix:main',
 
             'gopca_plot_signature.py = '
-                'gopca.plotting.plot_signature:main',
+                'gopca.cli.plot_signature:main',
 
             'gopca_plot_all_signatures.py = '
-                'gopca.plotting.plot_all_signatures:main',
+                'gopca.cli.plot_all_signatures:main',
 
             'gopca_plot_term_by_pc_matrix.py = '
-                'gopca.plotting.plot_term_by_pc_matrix:main',
+                'gopca.cli.plot_term_by_pc_matrix:main',
 
             # 'gopca_plot_pc_scores.py = gopca.plotting.plot_pc_scores:main',
         ],

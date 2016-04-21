@@ -31,7 +31,9 @@ class Mock(MagicMock):
             return Mock()
 
 #MOCK_MODULES = ['cython','numpy','pandas','scipy','genometools','goparser','xlmhg','sklearn','sklearn.decomposition']
-MOCK_MODULES = ['cython','numpy','pandas','scipy','matplotlib','plotly','genometools','goparser','xlmhg','sklearn']
+MOCK_MODULES = ['cython', 'numpy', 'pandas', 'scipy', 'sklearn',
+                'matplotlib', 'plotly',
+                'genometools', 'goparser', 'xlmhg']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another directory,
