@@ -5,11 +5,11 @@ from builtins import *
 import pkg_resources
 
 from .config import GOPCAConfig
-from .go_pca import GOPCA
-from .run import GOPCARun
-from .result import GOPCAResult
 from .signature import GOPCASignature
+from .result import GOPCAResult
+from .run import GOPCARun
 from .plotter import GOPCAPlotter
+from .go_pca import GOPCA
 
 __version__ = str(pkg_resources.require('gopca')[0].version)
 

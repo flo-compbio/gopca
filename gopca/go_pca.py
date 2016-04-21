@@ -45,8 +45,8 @@ from genometools import enrichment
 from genometools.enrichment import GSEAnalysis, GSEResult
 
 import gopca
-from . import util
 from . import GOPCAConfig, GOPCASignature, GOPCAResult, GOPCARun
+from . import util
 
 logger = logging.getLogger(__name__)
 
