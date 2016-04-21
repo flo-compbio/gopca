@@ -216,7 +216,7 @@ def main(args=None):
     if use_tex:
         rc('text', usetex=True)
         preamble = mpl.rcParams['text.latex.preamble']
-        add = r'\usepackage{bm}'
+        add = '\\usepackage{bm}'
         if add not in preamble:
             mpl.rcParams['text.latex.preamble'].append(add)
 
