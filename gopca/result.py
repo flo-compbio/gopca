@@ -198,6 +198,7 @@ class GOPCAResult(object):
 
     def get_signature_labels(
             self, max_name_length=50, include_id=False):
+        assert isinstance(max_name_length, int)
 
         # generate signature labels
         sig_labels = [
@@ -216,6 +217,8 @@ class GOPCAResult(object):
             sample_cluster_metric='euclidean',
             cluster_method='average'):
         """Return the signature matrix as an ExpMatrix."""
+
+        assert isinstance(max_name_length, int)
 
         # generate signature labels
         sig_labels = self.get_signature_labels(max_name_length=max_name_length,

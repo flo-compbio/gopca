@@ -290,6 +290,8 @@ class GOPCASignature(object):
                   include_id=True, include_pval=False,
                   include_coll=True):
         """Generate a signature label."""
+        assert isinstance(max_name_length, int)
+
         # enr = self.enr
 
         gene_set = self.gene_set
