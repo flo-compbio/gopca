@@ -461,7 +461,8 @@ class GOPCA(object):
         # generate expression hash
         # logger.info('Reading expression data...')
         # hashval = util.get_file_md5sum(config.expression_file)
-        expression_hash = str(hashlib.md5(str(hash(E))).hexdigest())
+        expression_hash = str(hashlib.md5(str(hash(E)).encode('ascii'))
+                          .hexdigest())
         logger.info('Expression data hash value: %s', expression_hash)
 
         # generate ontology hash
@@ -470,7 +471,7 @@ class GOPCA(object):
 
         # generate gene sets hash
         gene_sets_hash = str(hashlib.md5(
-            str(hash(self.gene_sets))).hexdigest())
+            str(hash(self.gene_sets)).encode('ascii')).hexdigest())
         logger.info('Gene set data hash value: %s', gene_sets_hash)
 
         # perform variance filtering (this creates a copy of E)
