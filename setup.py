@@ -67,7 +67,7 @@ if 'READTHEDOCS' not in os.environ:
 setup(
     name='gopca',
 
-    version='2.0rc1',
+    version='2.0b1',
 
     description=description,
     long_description=long_description,

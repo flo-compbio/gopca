@@ -266,7 +266,7 @@ class GOPCAResult(object):
         filt = copy.copy(self)
         
         signatures, S = util.filter_signatures(filt.signatures, filt.S,
-                                               corr_thresh = corr_thresh)
+                                               corr_thresh=corr_thresh)
         filt.signatures = signatures
         filt.S = S
         return filt

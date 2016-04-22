@@ -20,5 +20,7 @@ from builtins import *
 
 from gopca import GOPCAConfig
 
+
 def test_init():
     config = GOPCAConfig()
+    assert isinstance(config, GOPCAConfig)

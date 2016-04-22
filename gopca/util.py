@@ -236,7 +236,7 @@ def get_standardized(x):
 def get_standardized_matrix(X):
     return np.float64([get_standardized(x) for x in X])
 
-#def get_mean_standardized_(E):
+# def get_mean_standardized_(E):
 #   return np.mean(np.float64([get_standardized(e) for e in E]),axis=0)
 
 

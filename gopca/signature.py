@@ -319,7 +319,7 @@ class GOPCASignature(object):
                     e_str = ', e=%.1f' % self.escore
 
             stats_str = ' [%d:%d/%d%s%s]' \
-                    % (self.pc, self.mHG_k_n, self.mHG_K, e_str, p_str)
+                        % (self.pc, self.mHG_k_n, self.mHG_K, e_str, p_str)
 
         label = label + stats_str
         return label
