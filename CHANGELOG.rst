@@ -25,7 +25,7 @@ Version 1.2 (2016-??-??)
 - Full Python 3 support
 - Integrated code with genometools 2.0
 - Cleaned up code
-- Added Python API (in folder ``python_api``)
+- Started work on Python API
 - Reorganized internal folder structure (combined all command-line scripts in
   one folder)
 
