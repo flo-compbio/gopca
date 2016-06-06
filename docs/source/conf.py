@@ -70,6 +70,8 @@ extensions = [
     'sphinxarg.ext',
 ]
 
+autodoc_member_order = 'bysource'
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -219,11 +221,12 @@ html_theme_options = {
     #
     # Options are nothing (default) or the name of a valid theme
     # such as "amelia" or "cosmo".
-    'bootswatch_theme': "",
+    'bootswatch_theme': "simplex",
 
     # Choose Bootstrap version.
     # Values: "3" (default) or "2" (in quotes)
     'bootstrap_version': "3",
+
 }
 
 # Add any paths that contain custom themes here, relative to this directory.

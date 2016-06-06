@@ -48,7 +48,7 @@ class GOPCAConfig(object):
     exposed as virtual class attributes (using the `__getattr__` magic).
 
     The class also supports reading and writing of INI-style configuration
-    files (see `read_config_file` and `write_config_file`).
+    files (see `read_ini` and `write_ini`).
 
     Parameters
     ----------

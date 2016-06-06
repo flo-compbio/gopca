@@ -21,7 +21,6 @@ __ go_pca_paper_
 Contents
 --------
 
-
 .. toctree::
     :maxdepth: 2
     :includehidden:
