@@ -92,6 +92,10 @@ def test_set_param(my_config):
     assert other == my_config
 
 
+@pytest.mark.xfail(
+    reason= ('Fails in Python 2.7 due to '
+             'https://github.com/PythonCharmers/python-future/issues/118')
+    )
 def test_read_write(tmpdir, my_config):
     other = deepcopy(my_config)
     other.set_param('pval_thresh', 2e-6)
