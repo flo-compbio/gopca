@@ -32,7 +32,7 @@ import textwrap
 # from genometools import misc
 from gopca import util
 from gopca.cli import arguments
-from gopca import GOPCAResult
+from gopca import GOPCASignatureMatrix
 
 
 def get_argument_parser():
@@ -91,8 +91,8 @@ def main(args=None):
         q = len(signatures)
         logger.info('Filtered %d / %d signatures.', q_before-q, q_before)
 
-    filtered = GOPCAResult(result.config, result.genes, result.samples,
-                           result.W, result.Y, signatures, S)
+    filtered = GOPCASignatureMatrix(result.config, result.genes, result.samples,
+                                    result.W, result.Y, signatures, S)
     filtered.write_pickle(output_file)
 
     return 0

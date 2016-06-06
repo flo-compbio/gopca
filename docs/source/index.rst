@@ -21,15 +21,17 @@ __ go_pca_paper_
 Contents
 --------
 
+
 .. toctree::
     :maxdepth: 2
+    :includehidden:
 
     Introduction <intro>
     Installation <install>
     Obtaining Gene Sets <gene_sets>
     running
-    process
-    visualize
+    GO-PCA command-line interface<cli/index>
+    GO-PCA Python API<api/index>
     Citing GO-PCA <citing>
     License <license>
 

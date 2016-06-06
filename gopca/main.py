@@ -216,7 +216,7 @@ def get_argument_parser():
 
     # set the argument default values to the parameter defaults stored in
     # the GOPCAConfig class
-    parser.set_defaults(**GOPCAConfig.param_defaults)
+    parser.set_defaults(**GOPCAConfig.get_param_defaults())
 
     # reporting options
     arguments.add_reporting_args(parser)
@@ -259,7 +259,7 @@ def main(args=None):
         # now remove the defaults and parse again
         # (removing the defaults is important so that we know which values
         # were specified by the user)
-        no_defaults = dict([p, None] for p in GOPCAConfig.param_defaults)
+        no_defaults = dict([p, None] for p in GOPCAConfig.get_param_defaults())
         parser.set_defaults(**no_defaults)
         args = parser.parse_args()
 
@@ -298,7 +298,7 @@ def main(args=None):
         config = GOPCAConfig()
 
     # overwrite parameters specified on the command line
-    for p in GOPCAConfig.param_defaults:
+    for p in GOPCAConfig.get_param_defaults():
         v = getattr(args, p)
         if v is not None:
             logger.debug('Parameter "%s" specified on command line!', p)

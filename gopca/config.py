@@ -40,9 +40,8 @@ logger = logging.getLogger(__name__)
 class GOPCAConfig(object):
     """GO-PCA configuration data.
 
-    GO-PCA configuration data consists of GO-PCA parameter values and the paths
-    (names) of the input and output files. (Internally, the paths of the input
-    and output files are also treated as parameters.)
+    GO-PCA configuration data consists of the GO-PCA parameter values,
+    excluding the input and output files.
 
     GO-PCA parameters can be specified upon class instantiation, or at a later
     time --- using the `set_param` and `set_params` functions. Parameters are
@@ -55,13 +54,8 @@ class GOPCAConfig(object):
     ----------
     params: dict, optional
         Dictionary containing GO-PCA parameter values.
-
-    Attributes
-    ----------
     """
-
-    # static members
-    param_defaults = OrderedDict([
+    __param_defaults = OrderedDict([
         ('sel_var_genes', 0),  # do not apply variance filter
         ('n_components', -1),  # determine # PCs using permutation test
         ('pval_thresh', 1e-6),
@@ -81,9 +75,17 @@ class GOPCAConfig(object):
     ])
     """GO-PCA parameter default values."""
 
+    @staticmethod
+    def get_param_defaults():
+        return GOPCAConfig.__param_defaults.copy()
+
     def __init__(self, params=None):
+
         if params is None:
             params = {}
+
+        assert isinstance(params, dict)
+
         self.__params = OrderedDict()
         # first, set all parameters to their default values
         self.reset_params()
@@ -91,28 +93,36 @@ class GOPCAConfig(object):
         self.set_params(params)
 
     def __getattr__(self, name):
-        """Redirect lookup to `__params` if ``name`` is a GO-PCA parameter.
-
+        """
         Note: This function is only called for non-existing attributes.
         """
-        if name in self.param_defaults:
-            return self.__params[name]
-        else:
-            raise AttributeError('There is no GO-PCA parameter called "%s"!'
-                                 % name)
+        return self[name]
+
+    def __contains__(self, item):
+        return item in self.__param_defaults
 
     def __getitem__(self, key):
-        return self.__getattr__(key)
-    
+        """Redirect lookup to `__params` if ``name`` is a GO-PCA parameter.
+        """
+        try:
+            return self.__params[key]
+        except KeyError:
+            raise AttributeError('There is no GO-PCA parameter named "%s"!'
+                                 % key)
+
+    def __setitem__(self, key, value):
+        if key not in self.__param_defaults:
+            raise AttributeError('There is no GO-PCA parameter named "%s"!'
+                                 % name)
+        self.__params[key] = value
+
     def __repr__(self):
-        return '<GOPCAConfig object (hash=%d)>' % hash(self)
+        return '<%s object (hash="%s")>' \
+               % (self.__class__.__name__, self.hash)
 
     def __str__(self):
-        param_str = '; '.join(self.get_param_strings())
-        return '<GOPCAConfig object (%s)>' % param_str
-
-    def __hash__(self):
-        return hash(frozenset(self.__params.items()))
+        param_str = ', '.join(self.param_strings)
+        return '<%s object (%s)>' % (self.__class__.__name__, param_str)
 
     def __deepcopy__(self, memo):
         cp = GOPCAConfig()
@@ -120,60 +130,49 @@ class GOPCAConfig(object):
         return cp
 
     def __eq__(self, other):
-        if type(self) != type(other):
-            return False
+        if self is other:
+            return True
+        elif type(self) is type(other):
+            return self.__dict__ == other.__dict__
         else:
-            return repr(self) == repr(other)
+            return NotImplemented
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     # public members
-    def has_param(self, name):
-        """Tests if a GO-PCA parameter exists.
+    @property
+    def hash(self):
+        data_str = ';'.join([str(repr(v)) for k, v in self.__params.items()])
+        data = data_str.encode('UTF-8')
+        return str(hashlib.md5(data).hexdigest())
 
-        Parameters
-        ----------
-        name: str
-            The name of the parameter.
+    @property
+    def param_names(self):
+        return list(self.__params.keys())
 
-        Returns
-        -------
-        bool
-            Whether or not the parameter exists.
-        """
-        return name in self.param_defaults
+    @property
+    def params(self):
+        """Returns the GO-PCA configuration as a dictionary."""
+        return self.__params.copy()
 
-    def get_param(self, name):
-        """Returns the value of a GO-PCA parameter.
+    @property
+    def param_defaults(self):
+        """Returns the default GO-PCA configuration as a dictionary."""
+        return self.__param_defaults.copy()
 
-        Parameters
-        ----------
-        name: str
-            The name of the parameter.
-        
-        Returns
-        -------
-        ?
-            The parameter value.
-        """
-        return self.__params[name]
+    def get_default(self, name):
+        if name not in self.__param_defaults:
+            raise AttributeError('%s has no parameter "%s".'
+                                 % (self.__class__.__name__, name))
+        return self.__param_defaults[name]
 
-    def get_param_strings(self):
+    @property
+    def param_strings(self):
         d = []
         for k in sorted(self.__params.keys()):
-            d.append(u'%s=%s' % (k, self.__params[k]))
+            d.append('%s=%s' % (str(k), str(self.__params[k])))
         return d
-
-    def get_dict(self):
-        """Returns the GO-PCA configuration as a dictionary.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        dict
-            The configuration.
-        """
-        return self.__params.copy()
 
     def set_param(self, name, value):
         """Set a GO-PCA parameter.
@@ -185,30 +184,18 @@ class GOPCAConfig(object):
         value: ?
             The parameter value.
         """
-        if name not in self.param_defaults:
-            raise ValueError('No GO-PCA parameter named "%s"!' % name)
-        self.__params[name] = value
+        self[name] = value
 
     def set_params(self, params):
-        """Sets multiple GO-PCA parameters using a dictionary.
-
-        Parameters
-        ----------
-        params: dict
-            Dictionary containing the parameter values.
-
-        Returns
-        -------
-        None
-        """
+        assert isinstance(params, dict)
         for k, v in params.items():
-            self.set_param(k, v)
+            self[k]  = v
 
     def reset_params(self):
         """Reset all parameters to their default values."""
-        self.set_params(self.param_defaults)
+        self.set_params(self.__param_defaults)
 
-    def check(self):
+    def check_params(self):
         """Check if the current configuration is valid.
 
         Parameters:
@@ -221,7 +208,6 @@ class GOPCAConfig(object):
             True iff no problems were found.
 
         """
-
         passed = [True]
 
         def check_type(attr, types):
@@ -325,26 +311,8 @@ class GOPCAConfig(object):
         # check(isinstance(self.go_part_of_cc_only, bool))
         return passed[0]
 
-    def get_hash(self):
-        """Calculate MD5 hash value for the configuration.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        str
-            The MD5 hash value (as hex string).
-        """
-        data = []
-        for p in self.param_defaults:
-            data.append(str(self.__params[p]))
-        data_str = ','.join(data)
-        logger.debug('Configuration data string: %s', data_str)
-        return str(hashlib.md5(data_str).hexdigest())
-
     @classmethod
-    def read_config(cls, path):
+    def read_ini(cls, path):
         """Reads GO-PCA configuration data form an INI-style text file.
 
         Parameters
@@ -367,8 +335,8 @@ class GOPCAConfig(object):
                 return None
             d = config['GO-PCA']
             for p, v in d.items():
-                if p in cls.param_defaults:
-                    t = type(cls.param_defaults[p])
+                if p in cls.__param_defaults:
+                    t = type(cls.__param_defaults[p])
                     if t == bool:
                         v = d.getboolean(p)
                     elif t == float:
@@ -381,7 +349,7 @@ class GOPCAConfig(object):
                                    '"%s".', p)
         return cls(params)
 
-    def write_config(self, path):
+    def write_ini(self, path):
         """Write configuration data to an INI-style text file.
 
         Parameters

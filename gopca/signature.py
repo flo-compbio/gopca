@@ -24,14 +24,19 @@ from builtins import *
 
 import re
 import logging
-# import copy
+import copy
 from collections import OrderedDict
+import hashlib
 
+import pandas as pd
 import numpy as np
 
-from genometools.expression import ExpMatrix
+from genometools.expression import ExpMatrix, ExpProfile
+from genometools.expression.visualize import ExpHeatMap
 from genometools.expression import cluster
 from genometools.enrichment import GSEResult
+
+# from .signature_matrix import GOPCASignatureMatrix
 
 logger = logging.getLogger(__name__)
 
@@ -43,46 +48,31 @@ class GOPCASignature(object):
     likely to represent biologically relevant similarities and differences
     among samples.
 
-    Given a gene expression matrix ``X``, a GO-PCA signature consists of a set
-    of genes and their expression profiles. Genes in a signature are related to
-    each other in two ways:
+    A GO-PCA signature consists of a set genes and their expression profiles.
+    Genes in a signature are related to each other in two ways:
 
-    First, all genes are members of a single gene set.
-    Gene sets are supplied to GO-PCA by the user and correspond to groups of
-    genes that are known to be related to each other in some way. For example,
-    when GO-PCA is run with gene sets derived from Gene Ontology (GO)
-    annotations, all genes in a gene set are known to be annotated with the
-    same GO term, indicating a functional relationship among them.
+    1. All signature genes are members of a specific gene set.
+       Gene sets are supplied to GO-PCA by the user and correspond to groups of
+       genes that are known to be related to each other in some way. For
+       example, when GO-PCA is run with gene sets derived from Gene Ontology
+       (GO) annotations, all genes in a gene set are known to be annotated
+       with the same GO term, indicating a functional relationship among them.
 
-    Second, the genes have been found to be strongly correlated with each other,
-    in the sense that they all contribute strongly to the same principal
-    component (PC) of the expression matrix.
+    2. The genes have been found to be strongly correlated with each other
+       in the sense that they all contribute strongly to the same principal
+       component (PC) of the expression matrix.
 
     Parameters
     ----------
-    genes: list or tuple of str
-        See :attr:`genes` attribute.
-    samples: list or tuple of str
-        See :attr:`samples` attribute.
-    X: `numpy.ndarray`
-        See :attr:`X` attribute.
     pc: int
         See :attr:`pc` attribute.
-    enr: `enrichment.GSEResult`
-        See :attr:`enr` attribute.
+    gse_result: `genometools.enrichment.GSEResult`
+        See :attr:`gse_result` attribute.
+    matrix: `genometools.expression.ExpMatrix`
+        See :attr:`matrix` attribute.
 
     Attributes
     ----------
-    genes: tuple of str
-        The list of genes in the signature. The ordering of the genes must
-        correspond to the ordering of the rows in ``X``.
-    samples: tuple of str
-        The list of sample labels (the same as GOPCAResult.samples).
-    X: `numpy.ndarray`
-        A matrix containing the expression profiles of the ``genes``. Each gene
-        corresponds to one row in the matrix, so ``E.shape`` should be
-        ``(p,n)``, where ``p`` is the number of genes, and ``n`` is the number
-        of samples.
     pc: int
         The principal component (PC) that the signature was derived from
         (starting at 1), with the sign of the integer indicating the way in
@@ -90,125 +80,154 @@ class GOPCASignature(object):
         positive, then the signature was derived based on an ascending order.
         Conversely, if the sign is negative, then the signature was dervied
         based on a descending ranking.
-    enr: `GSEResult`
+    gse_result: `GSEResult`
         The result of the XL-mHG test that was conducted after ranking the
         genes based on their principal component loadings.
+    matrix: `genometools.expression.ExpMatrix`
+        Gene-by-sample matrix containing the original expression values of
+        all signature genes.
     """
-
     _abbrev = [('positive ', 'pos. '), ('negative ', 'neg. '),
                ('interferon-', 'IFN-'), ('proliferation', 'prolif.'),
                ('signaling', 'signal.')]
     """Abbreviations used in generating signature labels."""
 
-    def __init__(self, genes, samples, X, pc, enr):
+    def __init__(self, pc, gse_result, matrix):
 
-        assert isinstance(genes, (list, tuple))
-        for g in genes:
-            assert isinstance(g, str)
-        
-        assert isinstance(samples, (list, tuple))
-        for s in samples:
-            assert isinstance(s, str)
-
-        assert isinstance(X, np.ndarray)
         assert isinstance(pc, int)
-        assert isinstance(enr, GSEResult)
+        assert isinstance(gse_result, GSEResult)
+        assert isinstance(matrix, ExpMatrix)
 
-        self.genes = tuple(genes)  # genes in the signature (!= self.enr.genes)
-        self.samples = tuple(samples)  # samples in the data
-
-        self.X = X
-
-        self.pc = pc
-        # self.enr = copy.deepcopy(enr)
-        self.enr = enr
+        self._pc = pc
+        self._gse_result = gse_result
+        self._matrix = matrix
 
     def __repr__(self):
-        return '<%s "%s" (k=%d; p=%.1e; e=%.1f; hash=%d)>' \
-                % (self.__class__.__name__, self.label,
-                   self.k, self.pval, self.escore, hash(self))
+        return '<%s instance (pc=%d, k=%d; pval=%.1e; hash="%s")>' \
+                % (self.__class__.__name__,
+                   self._pc, self.k, self.pval, self.hash)
 
     def __str__(self):
-        return '<%s "%s" (%d genes; p-value %.1e / E-score %.1fx)>' \
-                % (self.__class__.__name__, self.label,
-                   self.k, self.pval, self.escore)
+        return '<%s "%s" (pval=%.1e, escore=%.1f)>' \
+                % (self.__class__.__name__,
+                   self.label, self.pval, self.escore)
 
-    def __hash__(self):
-        data = (
-            self.genes,
-            self.samples,
-            self.X.tobytes(),
-            self.pc,
-            self.enr,
-        )
-        return hash(data)
-        
     def __eq__(self, other):
         if self is other:
             return True
-        elif type(self) != type(other):
-            return False
-        else:
+        elif type(self) is type(other):
             return repr(self) == repr(other)
+        else:
+            return NotImplemented
 
     def __ne__(self, other):
         return not (self == other)
 
-    def __setstate__(self, d):
-        self.__dict__ = d
-        self.X.flags.writeable = False
+    @property
+    def _data(self):
+        data_str = ';'.join([
+            str(repr(var)) for var in
+            [self._pc, self._gse_result, self._matrix]
+        ])
+        data = data_str.encode('UTF-8')
+        return data
+
+    def __hash__(self):
+        return hash(self._data)
 
     @property
-    def expression_matrix(self):
-        E, _, _ = self.get_expression_matrix()
-        return E
+    def pc(self):
+        return self._pc
 
     @property
-    def gene_set(self):
-        """ The gene set that the signature is based on. """
-        return self.enr.gene_set
+    def gse_result(self):
+        return copy.deepcopy(self._gse_result)
 
     @property
-    def gene_set_id(self):
-        return self.gene_set.id
+    def matrix(self):
+        return copy.deepcopy(self._matrix)
 
     @property
-    def pval(self):
-        """ The enrichment p-value of the underlying gene set."""
-        return self.enr.pval
+    def hash(self):
+        return str(hashlib.md5(self._data).hexdigest())
 
-    @property
-    def escore(self):
-        return self.enr.escore
-    
     @property
     def k(self):
         """ The number of genes in the signature. """
-        return len(self.genes)
+        return self._matrix.p
 
     def n(self):
         """ The number of samples. """
-        return len(self.samples)
+        return self._matrix.n
 
     @property
-    def mHG_n(self):
+    def genes(self):
+        """The genes in the signature."""
+        return self._matrix.genes
+
+    @property
+    def samples(self):
+        """The sample labels."""
+        return self._matrix.samples
+
+    @property
+    def X(self):
+        """The expression array."""
+        return self._matrix.X
+
+    @property
+    def expression(self):
+        return self.get_expression()
+
+    @property
+    def s(self):
+        """The signature expression vector."""
+        return self.expression.values
+
+    @property
+    def gene_set(self):
+        """ The gene set that the signature is based on."""
+        return self._gse_result.gene_set
+
+    @property
+    def gene_set_id(self):
+        """ The ID of the gene set that the signature is based on."""
+        return self._gse_result.gene_set.id
+
+    @property
+    def pval(self):
+        """The p-value of the enrichment test."""
+        return self._gse_result.pval
+
+    @property
+    def escore(self):
+        """The E-escore of the enrichment test."""
+        return self._gse_result.escore
+
+
+    @property
+    def mHG_cutoff(self):
         """ The cutoff at which the XL-mHG test statistic was attained. """
-        return self.enr.n
+        return self._gse_result.cutoff
 
     @property
-    def mHG_k_n(self):
+    def mHG_k(self):
         """ The number of genes within the gene set above the mHG cutoff. """
-        return self.enr.k_n
+        return self._gse_result.k
 
     @property
     def mHG_K(self):
         """ The total number of genes in the gene set. """
-        return self.enr.K
+        return self._gse_result.K
 
     @property
     def mHG_N(self):
         """ The total number of genes in the analysis. """
-        return self.enr.N
+        return self._gse_result.N
+
+    @property
+    def escore_pval_thresh(self):
+        return self._gse_result.escore_pval_thresh
 
     @property
     def label(self):
@@ -220,54 +239,17 @@ class GOPCASignature(object):
         ind = np.triu_indices(self.k, k=1)
         return np.median(C[ind])
 
-    @property
-    def escore_pval_thresh(self):
-        return self.enr.escore_pval_thresh
+    def get_expression(self, standardize=False, center=True, use_median=True):
+        #label = self.get_label(max_name_length=max_name_length,
+        #                       include_id=include_id)
 
-    @property
-    def gene_list(self):
-        return ','.join(sorted(self.genes))
-
-    def get_expression_matrix(
-            self, standardize=False, center=True,
-            cluster_genes=True, cluster_samples=False,
-            gene_cluster_metric='correlation',
-            sample_cluster_metric='euclidean',
-            cluster_method='average'):
-        """Returns the gene expression matrix for a signature.
-
-        Can perform centering, standardization, and clustering, depending
-        on the parameters provided (standardization includes centering).
-
-        By default, we don't perform sample clustering, since this is best
-        done globally (based on the entire signature expression matrix), so
-        that the sample order remains constant between different signature
-        plots.
-        """
-        E = ExpMatrix(genes=self.genes, samples=self.samples, X=self.X,
-                      copy=True)
-
+        matrix = self.matrix # creates a copy
         if standardize:
-            E.standardize_genes()
+            matrix.standardize_genes(inplace=True)
         elif center:
-            E.center_genes()
+            matrix.center_genes(use_median=use_median, inplace=True)
 
-        order_genes = None
-        if cluster_genes:
-            E, order_genes = cluster.cluster_genes(
-                    E, metric=gene_cluster_metric, method=cluster_method
-            )
-
-        # make sure we perform clustering of samples after clustering of the
-        # genes, so that enabling sample clustering doesn't change the order of
-        # the genes
-        order_samples = None
-        if cluster_samples:
-            E, order_samples = cluster.cluster_samples(
-                    E, metric=sample_cluster_metric, method=cluster_method
-            )
-
-        return E, order_genes, order_samples
+        return ExpProfile(matrix.mean(axis=0), label=self)
 
     def get_ordered_dict(self):
         elements = OrderedDict([
@@ -280,7 +262,7 @@ class GOPCASignature(object):
             ['escore', ['E-score (psi=%.1e)' % self.escore_pval_thresh,
                         r'%.1f']],
             ['median_correlation', ['Median correlation', r'%.2f']],
-            ['gene_list', ['Genes', r'%s']]
+            ['genes', ['Genes', r'%s']]
         ])
         od = OrderedDict([v[0], v[1] % getattr(self, k)]
                          for k, v in elements.items())
@@ -290,8 +272,6 @@ class GOPCASignature(object):
                   include_id=True, include_pval=False,
                   include_coll=True):
         """Generate a signature label."""
-        # enr = self.enr
-
         gene_set = self.gene_set
         name = gene_set.name
 
@@ -302,7 +282,7 @@ class GOPCASignature(object):
             name = name[:(max_name_length - 3)] + '...'
 
         label = name
-        if include_coll:
+        if include_coll and gene_set.collection is not None:
             label = '%s: %s' % (gene_set.collection, label)
 
         if include_id:
@@ -310,16 +290,81 @@ class GOPCASignature(object):
 
         stats_str = ''
         if include_stats:
-
             e_str = ''
             p_str = ''
             if include_pval:
                 p_str = ', p=%.1e' % self.pval
                 if self.escore is not None:
                     e_str = ', e=%.1f' % self.escore
-
             stats_str = ' [%d:%d/%d%s%s]' \
-                        % (self.pc, self.mHG_k_n, self.mHG_K, e_str, p_str)
+                        % (self._pc, self.k, self.mHG_K, e_str, p_str)
 
         label = label + stats_str
         return label
+
+    def get_heatmap(
+            self, sig_matrix=None,
+            standardize=False, center=True, use_median=True,
+            include_id=False,
+            emin=None, emax=None,
+            margin_left=70, margin_bottom=50, margin_top=50,
+            show_sample_labels=False, sig_matrix_kw=None, **kwargs):
+
+        """Generate a plotly heatmap showing the expr. of signature genes."""
+        # TODO: Finish docstring
+
+        if sig_matrix_kw is None:
+            sig_matrix_kw = {}
+
+        assert isinstance(sig_matrix_kw, dict)
+        # if sig_matrix is not None:
+        #    assert isinstance(sig_matrix, GOPCASignatureMatrix)
+
+        # generate expression matrix
+        matrix = self.matrix  # this creates a copy
+        if standardize:
+            matrix.standardize_genes(inplace=True)
+        elif center:
+            matrix.center_genes(use_median=use_median, inplace=True)
+
+        if sig_matrix is not None:
+            # user has provided a GOPCASignatureMatrix instance
+            # make sure its samples match the signature's
+            assert set(sig_matrix.samples) == set(self.samples.values)
+
+            # get signature matrix expression values
+            sig_matrix_expr = sig_matrix.get_expression_matrix(**sig_matrix_kw)
+
+            # re-arrange samples according to clustering of signature matrix
+            matrix = matrix.loc[:, sig_matrix_expr.samples]
+        else:
+            logger.info('You can provide a GO-PCA signature matrix to ensure '
+                        'that the sample order remains fixed.')
+
+        cb_label = kwargs.pop('colorbar_label', 'Expression')
+
+        # add a "Signature"-labeled row to the top,
+        # which represents the signature expression vector
+        title = self.get_label(include_id=include_id)
+        mean = np.mean(matrix.X, axis=0)
+        header_row = ExpMatrix(genes=['<b>Signature</b>'],
+                               samples=matrix.samples,
+                               X=np.atleast_2d(mean))
+        combined_matrix = pd.concat([header_row, matrix], axis=0)
+
+        heatmap = ExpHeatMap(combined_matrix)
+
+        # plot heat map
+        fig = heatmap.get_figure(
+            title=title, yaxis_label='Genes',
+            colorbar_label=cb_label,
+            emin=emin, emax=emax,
+            show_sample_labels=show_sample_labels,
+            margin_left=margin_left,
+            margin_bottom=margin_bottom, margin_top=margin_top,
+            **kwargs
+        )
+
+        return fig
+
+

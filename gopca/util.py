@@ -40,7 +40,9 @@ from scipy.cluster.hierarchy import linkage, dendrogram
 import sklearn
 
 from genometools import misc
+from genometools.expression import ExpMatrix, cluster
 import gopca
+from gopca import GOPCASignatureMatrix
 from gopca import GOPCASignature
 
 if six.PY2:
@@ -51,18 +53,21 @@ else:
 logger = logging.getLogger(__name__)
 
 
-def combine_signatures(*results):
-    """Combines signatures from multiple GO-PCA results."""
+def combine_signatures(*args):
+    """Combines signatures from multiple GO-PCA signature matrices.
+
+    """
+    # TODO: Finish docstring
+    for result in args:
+        assert isinstance(result, GOPCASignatureMatrix)
     # assert len(results
-    G = copy.copy(results[0])
-    # G.config = None
-    # G.genes = None
-    # G.W = None
-    # G.Y = None
-    for i, G_other in enumerate(results[1:]):
-        G.signatures = tuple(G.signatures) + tuple(G_other.signatures)
-        G.S = np.vstack([G.S, G_other.S])
-    return G
+    merged = copy.deepcopy(args[0])
+    for i, other in enumerate(args[1:]):
+        if other.samples != merged.samples:
+            raise ValueError('Cannot combine results with different '
+                             'samples.')
+        merged.signatures.extend(other.signatures)
+    return merged
 
 
 def get_logger(name='', log_stream=sys.stdout, log_file=None,
@@ -78,73 +83,6 @@ def get_logger(name='', log_stream=sys.stdout, log_file=None,
     new_logger = misc.configure_logger(name, log_stream, log_file, log_level)
 
     return new_logger
-
-
-def filter_signatures(signatures, S, corr_thresh):
-    """Remove "redundant" signatures."""
-
-    # checks
-    assert isinstance(signatures, (list, tuple))
-    for s in signatures:
-        assert isinstance(s, GOPCASignature)
-
-    assert isinstance(S, np.ndarray)
-    assert isinstance(corr_thresh, (float, int))
-    assert 0 < corr_thresh <= 1.0
-
-    assert len(signatures) == S.shape[0]
-
-    if corr_thresh == 1.0:
-        # no filtering
-        return signatures, S
-
-    """
-    q, n = S.shape
-    info = np.zeros(q, dtype = np.float64)
-    # sort signatures by information content?
-    max_ent = - n * ((1/float(n)) * np.log2(1/float(n)))
-    for i, sig in enumerate(signatures):
-        abs_sig = np.absolute(S[i,:])
-        total = np.sum(abs_sig)
-        rel = abs_sig / total
-        ent = - np.sum(rel * np.log2(rel))
-        info[i] = max_ent - ent
-    a = np.argsort(info)
-    a = a[::-1]
-    # a = np.lexsort([-info, sig_abs_pcs])
-    # print('\n'.join(['%.3f: %s' %(info[i],str(G.signatures[i]))
-        for i in a[:5]]))
-    """
-
-    # sort signatures first by PC, then by E-score
-    sig_abs_pcs = np.absolute(np.int64([sig.pc for sig in signatures]))
-    sig_escore = np.float64([sig.escore for sig in signatures])
-    a = np.lexsort([-sig_escore, sig_abs_pcs])
-
-    # filtering
-    q, n = S.shape
-    sel = np.ones(q, dtype=np.bool_)
-    for i in a:
-
-        if not sel[i]:
-            # already excluded
-            continue
-
-        for i2, sig in enumerate(signatures):
-            if i == i2 or not sel[i2]:
-                continue
-            # assert np.corrcoef(np.vstack([S[i,:],S[i2,:]])).shape == (2,2)
-            if np.corrcoef(np.vstack([S[i, :], S[i2, :]]))[0, 1] >= \
-                    corr_thresh:
-                logger.info('Excluding signature: %s',
-                            signatures[i].get_label())
-                sel[i2] = False
-
-    sel = np.nonzero(sel)[0]
-    signatures = [signatures[i] for i in sel]
-    S = S[sel, :]
-
-    return signatures, S
 
 
 def get_pc_explained_variance_threshold(E, z, t, seed):
@@ -176,27 +114,6 @@ def get_pc_explained_variance_threshold(E, z, t, seed):
     thresh = mean_null + z*std_null
 
     return thresh
-
-
-def get_file_md5sum(path):
-    """Get MD5 hash of file content.
-
-    Reads the file in binary mode.
-
-    Parameters
-    ----------
-    path: str
-        Path of file.
-    
-    Returns
-    -------
-    str
-        MD5 hash of file content, represented as a 32-digit hex string.
-    """
-    # digest = None
-    with io.open(path, mode='rb') as fh:
-        digest = hashlib.md5(fh.read()).hexdigest()
-    return digest
 
 
 def simpleaxis(ax):
@@ -301,8 +218,8 @@ def read_gopca_result(path):
     with io.open(path, 'rb') as fh:
         G = pickle.load(fh)
     if isinstance(G, gopca.GOPCARun):
-        G = G.result
-    assert isinstance(G, gopca.GOPCAResult)
+        G = G.sig_matrix
+    assert isinstance(G, gopca.GOPCASignatureMatrix)
     return G
 
 

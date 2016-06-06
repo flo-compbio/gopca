@@ -37,6 +37,7 @@ MOCK_MODULES = [
     'sklearn.decomposition',
     'genometools', 'genometools.basic',
     'genometools.expression', 'genometools.enrichment',
+    'genometools.expression.visualize',
     'goparser', 'xlmhg']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
@@ -62,6 +63,7 @@ sys.path.insert(0, os.path.realpath(os.path.abspath('../../cli')))
 extensions = [
     'sphinx.ext.autodoc',
     #'sphinx.ext.intersphinx',
+    'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',

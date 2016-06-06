@@ -111,6 +111,11 @@ setup(
                   'mock']
     },
 
+    tests_require=[
+        'pytest >= 2.9.1, < 3',
+        'pytest-cov >= 2.2.1, < 3',
+    ],
+
     # data
     # package_data={},
 

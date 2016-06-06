@@ -40,3 +40,10 @@ branch`__ of the GO-PCA GitHub repository, and then run (on Ubuntu):
 __ develop_
 
 .. _develop: https://github.com/flo-compbio/gopca/tree/develop
+
+.. toctree::
+    :hidden:
+    :maxdepth: 2
+
+    install_windows
+    install_ubuntu

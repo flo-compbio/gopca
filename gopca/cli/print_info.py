@@ -33,7 +33,7 @@ import six
 # from genometools.expression import ExpMatrix
 from gopca import util
 from gopca.cli import arguments
-from gopca import GOPCA, GOPCARun, GOPCAResult
+from gopca import GOPCA, GOPCARun, GOPCASignatureMatrix
 
 if six.PY2:
     import cPickle as pickle
@@ -96,8 +96,8 @@ def main(args=None):
         run = pickle.load(fh)
 
     if isinstance(run, GOPCARun):
-        result = run.result
-    elif isinstance(run, GOPCAResult):
+        result = run.sig_matrix
+    elif isinstance(run, GOPCASignatureMatrix):
         result = run
         run = None
     else:
