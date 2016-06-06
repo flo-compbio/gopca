@@ -1,6 +1,6 @@
 from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
-from builtins import *
+                        print_function)
+from builtins import str as text
 
 import pkg_resources
 
@@ -10,7 +10,7 @@ from .signature_matrix import GOPCASignatureMatrix
 from .run import GOPCARun
 from .go_pca import GOPCA
 
-__version__ = str(pkg_resources.require('gopca')[0].version)
+__version__ = text(pkg_resources.require('gopca')[0].version)
 
 __all__ = ['GOPCAConfig', 'GOPCA', 'GOPCARun',
            'GOPCASignatureMatrix', 'GOPCASignature']
