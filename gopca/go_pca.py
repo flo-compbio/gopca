@@ -423,6 +423,7 @@ class GOPCA(object):
         # make a copy of the configuration
         config = copy.deepcopy(self.config)
 
+
         # if self.go_parser is None and (not config.no_global_filter):
         #    # no ontology data => disable global filter
         #    logger.warning('Disabling global filter, since no gene ontology '
