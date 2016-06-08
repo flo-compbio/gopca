@@ -36,8 +36,6 @@ import numpy as np
 from sklearn.decomposition import PCA
 from scipy.stats import pearsonr
 
-from goparser import GOParser
-
 from genometools.basic import GeneSetDB
 from genometools.expression import ExpMatrix, ExpGene, ExpGenome
 from genometools.expression import filter as exp_filter
