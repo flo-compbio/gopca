@@ -29,7 +29,7 @@ import logging
 
 from genometools.expression import ExpMatrix
 from genometools.basic import GeneSetDB
-from goparser import GOParser
+from genometools.ontology import GeneOntology
 
 from gopca import GOPCAConfig, GOPCA
 
@@ -92,11 +92,10 @@ def my_config():
 def my_gopca(my_expression_file, my_gene_ontology_file,
              my_fly_gene_set_file, my_config):
     matrix = ExpMatrix.read_tsv(my_expression_file)
-    parser = GOParser()
-    parser.parse_ontology(my_gene_ontology_file)
+    ontology = GeneOntology.read_obo(my_gene_ontology_file)
     gene_sets = GeneSetDB.read_tsv(my_fly_gene_set_file)
 
-    my_gopca = GOPCA(my_config, matrix, gene_sets, parser)
+    my_gopca = GOPCA(my_config, matrix, gene_sets, ontology)
     return my_gopca
 
 @pytest.fixture(scope='session')

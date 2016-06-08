@@ -60,7 +60,6 @@ if 'READTHEDOCS' not in os.environ:
         'matplotlib >= 1.4.3, < 2',
         'plotly >= 1.9.6, < 2',
         'genometools >= 2.0rc1',
-        'goparser >= 1.2rc1, < 2',
         'xlmhg >= 2.0.6, < 3',
     ])
 

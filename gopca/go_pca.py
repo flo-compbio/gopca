@@ -43,6 +43,7 @@ from genometools.expression import ExpMatrix, ExpGene, ExpGenome
 from genometools.expression import filter as exp_filter
 from genometools import enrichment
 from genometools.enrichment import GSEAnalysis
+from genometools.ontology import GeneOntology
 
 import gopca
 from . import GOPCAConfig, GOPCASignature, GOPCASignatureMatrix, GOPCARun
@@ -68,8 +69,8 @@ class GOPCA(object):
         The expression matrix.
     gene_set_db: `genometools.basics.GeneSetDB`
         See :attr:`gene_sets` attribute.
-    go_parser: `goparser.GOParser`, optional
-        See :attr:`go_parser` attribute.
+    ontology: `genometools.ontology.GeneOntology`, optional
+        See :attr:`ontology` attribute.
 
     Attributes
     ----------
@@ -77,21 +78,21 @@ class GOPCA(object):
         GO-PCA configuration data.
     gene_set_db: `genometools.basics.GeneSetDB`
         The gene sets.
-    go_parser: `goparser.GOParser` or None
-        The gene ontology.
+    ontology: `genometools.ontology.GeneOntology` or None
+        The Gene Ontology.
     """
-    def __init__(self, config, matrix, gene_set_db, go_parser=None):
+    def __init__(self, config, matrix, gene_set_db, ontology=None):
         # store configuration
         assert isinstance(config, GOPCAConfig)
         assert isinstance(gene_set_db, GeneSetDB)
         assert isinstance(matrix, ExpMatrix)
-        if go_parser is not None:
-            assert isinstance(go_parser, GOParser)
+        if ontology is not None:
+            assert isinstance(ontology, GeneOntology)
         
         self.config = config
         self.matrix = matrix
         self.gene_set_db = gene_set_db
-        self.go_parser = go_parser
+        self.ontology = ontology
 
     @staticmethod
     def print_signatures(signatures, maxlength=50, debug=False):
@@ -338,7 +339,7 @@ class GOPCA(object):
 
     @staticmethod
     def _global_filter(config, new_signatures, previous_signatures,
-                       go_parser=None):
+                       ontology=None):
         """Apply GO-PCA's "global" filter.
 
         """
@@ -352,8 +353,8 @@ class GOPCA(object):
             gs_id = sig.gene_set.id
 
             test_gene_sets = {gs_id, }
-            if go_parser is not None:
-                term = go_parser.terms[gs_id]  # get the GOTerm object
+            if ontology is not None:
+                term = ontology[gs_id]  # get the GOTerm object
                 test_gene_sets |= (term.ancestors | term.descendants)
 
             overlap = test_gene_sets & previous_gene_sets
@@ -424,20 +425,19 @@ class GOPCA(object):
         config = copy.deepcopy(self.config)
 
 
-        # if self.go_parser is None and (not config.no_global_filter):
-        #    # no ontology data => disable global filter
-        #    logger.warning('Disabling global filter, since no gene ontology '
-        #                   'data was provided.')
-        #    config.set_param('no_global_filter', True)
-
         # get hash values
         config_hash = self.config.hash
         expression_hash = self.matrix.hash
         gene_sets_hash = self.gene_set_db.hash
-        ontology_hash = None  # not implemented
+        if self.ontology is not None:
+            ontology_hash = self.ontology.hash
+        else:
+            ontology_hash = None
         logger.info('User configuration hash: %s', config_hash)
         logger.info('Expression matrix hash: %s', expression_hash)
         logger.info('Gene set hash: %s', gene_sets_hash)
+        if ontology_hash is not None:
+            logger.info('Gene set hash: %s', gene_sets_hash)
 
         # perform variance filtering (this creates a copy of E)
         matrix = self.matrix
@@ -522,7 +522,7 @@ class GOPCA(object):
             if not config.no_global_filter:
                 before = len(signatures)
                 signatures = self._global_filter(
-                    config, signatures, final_signatures, self.go_parser)
+                    config, signatures, final_signatures, self.ontology)
                 logger.info('Global filter: kept %d / %d signatures.',
                             len(signatures), before)
         
