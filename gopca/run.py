@@ -162,8 +162,7 @@ class GOPCARun(object):
             ]])
         return str(hashlib.md5(data).hexdigest())
 
-    @classmethod
-    def write_pickle(cls, path):
+    def write_pickle(self, path):
         """Save the current object to a pickle file.
 
         Parameters
@@ -178,7 +177,8 @@ class GOPCARun(object):
         with open(path, 'wb') as ofh:
             pickle.dump(self, ofh, pickle.HIGHEST_PROTOCOL)
 
-    def read_pickle(self, path):
+    @classmethod
+    def read_pickle(cls, path):
         """Read a run from a pickle file.
 
         Parameters

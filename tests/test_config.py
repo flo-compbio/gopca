@@ -25,6 +25,12 @@ import pytest
 
 from gopca import GOPCAConfig
 
+import six
+if six.PY2:
+    import cPickle as pickle
+else:
+    import pickle
+
 
 @pytest.fixture
 def my_config():
@@ -60,6 +66,13 @@ def test_basic(my_config):
 def test_check(my_config):
     assert my_config.check_params()
 
+def test_pickle(my_config, tmpdir):
+    path = text(tmpdir.join('gopca_config.pickle'))
+    with open(path, 'wb') as ofh:
+        pickle.dump(my_config, ofh, pickle.HIGHEST_PROTOCOL)
+    with open(path, 'rb') as fh:
+        config = pickle.load(fh)
+    assert config.hash == my_config.hash
 
 def test_access(my_config):
     """Tests the other access methods, besides ``config[param]``."""

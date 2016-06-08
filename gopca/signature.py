@@ -156,6 +156,7 @@ class GOPCASignature(object):
         """ The number of genes in the signature. """
         return self._matrix.p
 
+    @property
     def n(self):
         """ The number of samples. """
         return self._matrix.n

@@ -96,7 +96,13 @@ class GOPCAConfig(object):
         """
         Note: This function is only called for non-existing attributes.
         """
-        return self[name]
+        if name == '_GOPCAConfig__params':
+            raise AttributeError()
+
+        try:
+            return self.__params[name]
+        except KeyError:
+            raise AttributeError()
 
     def __contains__(self, item):
         return item in self.__param_defaults
