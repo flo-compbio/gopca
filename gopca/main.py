@@ -44,7 +44,7 @@ import goparser
 from goparser import GOParser
 from gopca import util
 from gopca.cli import arguments
-from gopca import GOPCAConfig, GOPCA
+from gopca import GOPCAParams, GOPCA
 
 
 def get_argument_parser():
@@ -211,12 +211,12 @@ def get_argument_parser():
             """ % '%(default)d'))
 
     # check that the GO-PCA parameter names match the argument names
-    # for p in GOPCAConfig.param_defaults:
+    # for p in GOPCAParams.param_defaults:
     #    assert p in dir(args)
 
     # set the argument default values to the parameter defaults stored in
-    # the GOPCAConfig class
-    parser.set_defaults(**GOPCAConfig.get_param_defaults())
+    # the GOPCAParams class
+    parser.set_defaults(**GOPCAParams.get_param_defaults())
 
     # reporting options
     arguments.add_reporting_args(parser)
@@ -259,7 +259,7 @@ def main(args=None):
         # now remove the defaults and parse again
         # (removing the defaults is important so that we know which values
         # were specified by the user)
-        no_defaults = dict([p, None] for p in GOPCAConfig.get_param_defaults())
+        no_defaults = dict([p, None] for p in GOPCAParams.get_param_defaults())
         parser.set_defaults(**no_defaults)
         args = parser.parse_args()
 
@@ -292,13 +292,13 @@ def main(args=None):
     # generate configuration
     if args.config_file is not None:
         # read parameter values from config file
-        config = GOPCAConfig.read_config(args.config_file)
+        config = GOPCAParams.read_config(args.config_file)
     else:
         # start with default configuration
-        config = GOPCAConfig()
+        config = GOPCAParams()
 
     # overwrite parameters specified on the command line
-    for p in GOPCAConfig.get_param_defaults():
+    for p in GOPCAParams.get_param_defaults():
         v = getattr(args, p)
         if v is not None:
             logger.debug('Parameter "%s" specified on command line!', p)

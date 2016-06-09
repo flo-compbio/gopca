@@ -4,7 +4,7 @@ from builtins import str as text
 
 import pkg_resources
 
-from .config import GOPCAConfig
+from .params import GOPCAParams
 from .signature import GOPCASignature
 from .signature_matrix import GOPCASignatureMatrix
 from .run import GOPCARun
@@ -12,5 +12,5 @@ from .go_pca import GOPCA
 
 __version__ = text(pkg_resources.require('gopca')[0].version)
 
-__all__ = ['GOPCAConfig', 'GOPCA', 'GOPCARun',
+__all__ = ['GOPCAParams', 'GOPCA', 'GOPCARun',
            'GOPCASignatureMatrix', 'GOPCASignature']

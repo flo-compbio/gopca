@@ -31,7 +31,7 @@ from genometools.expression import ExpMatrix
 from genometools.basic import GeneSetDB
 from genometools.ontology import GeneOntology
 
-from gopca import GOPCAConfig, GOPCA
+from gopca import GOPCAParams, GOPCA
 
 logging.basicConfig(level=logging.INFO)
 
@@ -80,7 +80,7 @@ def my_fly_gene_set_file(my_data_pypath):
 
 @pytest.fixture(scope='session')
 def my_config():
-    config = GOPCAConfig()
+    config = GOPCAParams()
     config.set_param('sel_var_genes', 8000)
     config.set_param('pc_seed', 123456789)
     config.set_param('mHG_X_frac', 0.25)

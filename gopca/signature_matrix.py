@@ -34,7 +34,7 @@ from genometools.expression import ExpMatrix
 from genometools.expression import cluster
 from genometools.expression.visualize import ExpHeatMap, HeatMapGeneAnnotation
 
-# from .config import GOPCAConfig
+# from .config import GOPCAParams
 from . import GOPCASignature
 # from gopca import util
 

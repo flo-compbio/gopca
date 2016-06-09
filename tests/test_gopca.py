@@ -60,7 +60,7 @@ def test_run(my_gopca_run):
     assert isinstance(my_gopca_run, GOPCARun)
 
     final_config = my_gopca_run.final_config
-    assert isinstance(final_config, GOPCAConfig)
+    assert isinstance(final_config, GOPCAParams)
     assert final_config.params['n_components'] == 5
 
     sig_matrix = my_gopca_run.sig_matrix

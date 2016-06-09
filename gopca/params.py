@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""Module containing the GOPCAConfig class.
+"""Module containing the GOPCAParams class.
 
 """
 
@@ -37,7 +37,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-class GOPCAConfig(object):
+class GOPCAParams(object):
     """GO-PCA configuration data.
 
     GO-PCA configuration data consists of the GO-PCA parameter values,
@@ -77,7 +77,7 @@ class GOPCAConfig(object):
 
     @staticmethod
     def get_param_defaults():
-        return GOPCAConfig.__param_defaults.copy()
+        return GOPCAParams.__param_defaults.copy()
 
     def __init__(self, params=None):
 
@@ -96,7 +96,7 @@ class GOPCAConfig(object):
         """
         Note: This function is only called for non-existing attributes.
         """
-        if name == '_GOPCAConfig__params':
+        if name == '_GOPCAParams__params':
             raise AttributeError()
 
         try:
@@ -131,7 +131,7 @@ class GOPCAConfig(object):
         return '<%s object (%s)>' % (self.__class__.__name__, param_str)
 
     def __deepcopy__(self, memo):
-        cp = GOPCAConfig()
+        cp = GOPCAParams()
         cp.set_params(self.__params)
         return cp
 
@@ -328,7 +328,7 @@ class GOPCAConfig(object):
 
         Returns
         -------
-        `gopca.GOPCAConfig`
+        `gopca.GOPCAParams`
             The GO-PCA configuration data.
         """
         params = {}

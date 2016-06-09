@@ -28,7 +28,7 @@ from collections import Iterable
 
 import six
 
-from . import GOPCAConfig, GOPCASignatureMatrix
+from . import GOPCAParams, GOPCASignatureMatrix
 
 if six.PY2:
     import cPickle as pickle
@@ -62,7 +62,7 @@ class GOPCARun(object):
         The GO-PCA version.
     timestamp: str
         The timestamp.
-    user_config: `GOPCAConfig`
+    user_config: `GOPCAParams`
         The parameter settings provided by the user.
     final_config: `GOPCAConfig`
         The final parameter settings used.
@@ -96,8 +96,8 @@ class GOPCARun(object):
         # type checks
         assert isinstance(version, str)
         assert isinstance(timestamp, str)
-        assert isinstance(user_config, GOPCAConfig)
-        assert isinstance(final_config, GOPCAConfig)
+        assert isinstance(user_config, GOPCAParams)
+        assert isinstance(final_config, GOPCAParams)
         assert isinstance(expression_hash, str)
         assert isinstance(gene_sets_hash, str)
         if ontology_hash is not None:

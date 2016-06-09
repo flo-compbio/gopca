@@ -44,7 +44,7 @@ from genometools.enrichment import GSEAnalysis
 from genometools.ontology import GeneOntology
 
 import gopca
-from . import GOPCAConfig, GOPCASignature, GOPCASignatureMatrix, GOPCARun
+from . import GOPCAParams, GOPCASignature, GOPCASignatureMatrix, GOPCARun
 from . import util
 
 logger = logging.getLogger(__name__)
@@ -72,7 +72,7 @@ class GOPCA(object):
 
     Attributes
     ----------
-    config: `GOPCAConfig`
+    config: `GOPCAParams`
         GO-PCA configuration data.
     gene_set_db: `genometools.basics.GeneSetDB`
         The gene sets.
@@ -81,7 +81,7 @@ class GOPCA(object):
     """
     def __init__(self, config, matrix, gene_set_db, ontology=None):
         # store configuration
-        assert isinstance(config, GOPCAConfig)
+        assert isinstance(config, GOPCAParams)
         assert isinstance(gene_set_db, GeneSetDB)
         assert isinstance(matrix, ExpMatrix)
         if ontology is not None:
@@ -112,7 +112,7 @@ class GOPCA(object):
 
         This function also takes the ``pc_max`` parameter into account."""
 
-        assert isinstance(config, GOPCAConfig)
+        assert isinstance(config, GOPCAParams)
         assert isinstance(X, np.ndarray) and X.ndim == 2
         logger.info('Estimating the number of principal components '
                     '(seed = %d)...', config.pc_seed)
@@ -276,7 +276,7 @@ class GOPCA(object):
         negative sign, then the ranking will be in ascending order (most
         negative loading values first).
         """
-        assert isinstance(config, GOPCAConfig)
+        assert isinstance(config, GOPCAParams)
         assert isinstance(matrix, ExpMatrix)
         assert isinstance(gse_analysis, GSEAnalysis)
         assert isinstance(W, np.ndarray) and W.ndim == 2
