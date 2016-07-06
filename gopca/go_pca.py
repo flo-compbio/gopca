@@ -435,7 +435,7 @@ class GOPCA(object):
         logger.info('Expression matrix hash: %s', expression_hash)
         logger.info('Gene set hash: %s', gene_sets_hash)
         if ontology_hash is not None:
-            logger.info('Gene set hash: %s', gene_sets_hash)
+            logger.info('Gene Ontology hash: %s', gene_sets_hash)
 
         # perform variance filtering (this creates a copy of E)
         matrix = self.matrix

@@ -32,7 +32,7 @@ import numpy as np
 
 from genometools.expression import ExpMatrix
 from genometools.expression import cluster
-from genometools.expression.visualize import ExpHeatMap, HeatMapGeneAnnotation
+from genometools.expression.visualize import ExpHeatmap, HeatmapGeneAnnotation
 
 # from .config import GOPCAParams
 from . import GOPCASignature
@@ -218,6 +218,9 @@ class GOPCASignatureMatrix(object):
             axis = 1
         ).T
 
+        matrix.genes.name = 'Genes'
+        matrix.samples.name = 'Samples'
+
         # clustering
         if cluster_signatures:
             # cluster signatures
@@ -235,18 +238,13 @@ class GOPCASignatureMatrix(object):
         assert isinstance(matrix, ExpMatrix)
         return matrix
 
-    def get_heatmap(
-            self, max_name_length=50, include_id=False,
-            highlight_sig=None, highlight_source=None,
-            emin=-3.0, emax=3.0,
-            font_size=12, title_font_size=16,
-            margin_left=150, margin_bottom=50,
-            show_sample_labels=False,
-            sig_matrix_kw=None, **kwargs):
-        """Generate a plotly heatmap showing the GO-PCA signature matrix."""
+    def get_heatmap(self, max_name_length=50, include_id=False,
+                    highlight_sig=None, highlight_source=None,
+                    matrix_kw=None, colorbar_label=None):
+        """Generate an `ExpHeatMap` instance."""
 
-        if sig_matrix_kw is None:
-            sig_matrix_kw = {}
+        if matrix_kw is None:
+            matrix_kw = {}
 
         if highlight_sig is None:
             highlight_sig = {}
@@ -254,16 +252,14 @@ class GOPCASignatureMatrix(object):
         if highlight_source is None:
             highlight_source = {}
 
+        assert isinstance(highlight_sig, dict)
         assert isinstance(highlight_source, dict)
-        assert isinstance(sig_matrix_kw, dict)
-
-        # plot heat map
-        cb_label = kwargs.pop('colorbar_label', None)
-        if cb_label is None:
-            cb_label = 'Expression'
+        assert isinstance(matrix_kw, dict)
+        if colorbar_label is not None:
+            assert isinstance(colorbar_label, str)
 
         # generate expresssion matrix
-        matrix = self.get_expression_matrix(**sig_matrix_kw)
+        matrix = self.get_expression_matrix(**matrix_kw)
 
         # generate signature labels
         signatures = matrix.index.values
@@ -283,7 +279,8 @@ class GOPCASignatureMatrix(object):
                 # we have to do it the slow way using np.nonzero
                 i = np.nonzero(matrix.genes == sig)[0][0]
                 sig_annotations.append(
-                    HeatMapGeneAnnotation(sig_labels[i], color, sig_labels[i])
+                    HeatmapGeneAnnotation(sig_labels[i], color,
+                                          label=sig_labels[i])
                 )
             except KeyError as e:
                 raise e
@@ -295,26 +292,18 @@ class GOPCASignatureMatrix(object):
             for sig, label in zip(matrix.index, sig_labels):
                 if sig.gene_set.source == src:
                     sig_annotations.append(
-                        HeatMapGeneAnnotation(label, color, label)
+                        HeatmapGeneAnnotation(label, color,
+                                              label=label)
                     )
 
         # replace signatures with labels in expression matrix
         matrix.index = sig_labels
 
-        # initialize ExpHeatMap
-        heatmap = ExpHeatMap(matrix, gene_annotations=sig_annotations)
+        # generate ExpHeatMap
+        heatmap = ExpHeatmap(matrix, gene_annotations=sig_annotations,
+                             colorbar_label=colorbar_label)
 
-        fig = heatmap.get_figure(
-            yaxis_label='Signatures',
-            colorbar_label=cb_label,
-            emin=emin, emax=emax,
-            show_sample_labels=show_sample_labels,
-            font_size=font_size, title_font_size=title_font_size,
-            margin_left=margin_left, margin_bottom=margin_bottom,
-            **kwargs
-        )
-
-        return fig
+        return heatmap
 
     def filter_signatures(self, corr_thresh, inplace=False):
         """Remove "redundant" signatures."""

@@ -212,9 +212,80 @@ def variance_filter(genes, E, top):
     return genes, E
 
 
+def get_sig_matrix_figure(
+        sig_matrix, max_name_length=50, include_id=False,
+        highlight_sig=None, highlight_source=None,
+        emin=-3.0, emax=3.0,
+        font_size=12, title_font_size=16,
+        margin_left=150, margin_bottom=50,
+        show_sample_labels=False,
+        matrix_kw=None, **kwargs):
+
+    # colorbar label
+    colorbar_label = kwargs.pop('colorbar_label', None)
+    if colorbar_label is None:
+        colorbar_label = 'Expression'
+
+    heatmap = sig_matrix.get_heatmap(
+        max_name_length=max_name_length,
+        include_id=include_id,
+        highlight_sig=highlight_sig,
+        highlight_source=highlight_source,
+        colorbar_label=colorbar_label,
+        matrix_kw=matrix_kw,
+    )
+
+    fig = heatmap.get_figure(
+        yaxis_label='Signatures',
+        emin=emin, emax=emax,
+        show_sample_labels=show_sample_labels,
+        font_size=font_size, title_font_size=title_font_size,
+        margin_left=margin_left, margin_bottom=margin_bottom,
+        **kwargs
+    )
+
+    return fig
+
+def get_sig_figure(
+        sig, sig_matrix=None,
+        include_pval=True,
+        emin=None, emax=None,
+        margin_left=70, margin_bottom=50, margin_top=50,
+        show_sample_labels=False,
+        matrix_kw=None, sig_matrix_kw=None,
+        **kwargs):
+
+    if matrix_kw is None:
+        matrix_kw = {}
+
+    if sig_matrix_kw is None:
+        sig_matrix_kw = {}
+
+    assert isinstance(matrix_kw, dict)
+    assert isinstance(sig_matrix_kw, dict)
+
+    # generate heatmap
+    heatmap = sig.get_heatmap(sig_matrix=sig_matrix, matrix_kw=matrix_kw,
+                              sig_matrix_kw=sig_matrix_kw)
+
+    title = sig.get_label(include_pval=include_pval)
+
+    yaxis_label = kwargs.pop('yaxis_label', 'Genes')
+
+    # generate figure
+    fig = heatmap.get_figure(
+        title=title, yaxis_label=yaxis_label,
+        emin=emin, emax=emax,
+        show_sample_labels=show_sample_labels,
+        margin_left=margin_left,
+        margin_bottom=margin_bottom, margin_top=margin_top,
+        **kwargs
+    )
+
+    return fig
+
 def read_gopca_result(path):
     """Read GO-PCA result from pickle."""
-    # G = None
     with io.open(path, 'rb') as fh:
         G = pickle.load(fh)
     if isinstance(G, gopca.GOPCARun):

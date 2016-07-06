@@ -32,7 +32,7 @@ import pandas as pd
 import numpy as np
 
 from genometools.expression import ExpMatrix, ExpProfile
-from genometools.expression.visualize import ExpHeatMap
+from genometools.expression.visualize import ExpHeatmap
 from genometools.expression import cluster
 from genometools.enrichment import GSEResult
 
@@ -310,9 +310,13 @@ class GOPCASignature(object):
             self, sig_matrix=None,
             standardize=False, center=True, use_median=True,
             include_id=False,
-            emin=None, emax=None,
-            margin_left=70, margin_bottom=50, margin_top=50,
-            show_sample_labels=False, sig_matrix_kw=None, **kwargs):
+            cluster_genes=True,
+            gene_cluster_metric='correlation',
+            cluster_samples=True,
+            sample_cluster_metric='euclidean',
+            cluster_method='average',
+            sig_matrix_kw=None,
+            **kwargs):
 
         """Generate a plotly heatmap showing the expr. of signature genes."""
         # TODO: Finish docstring
@@ -320,20 +324,29 @@ class GOPCASignature(object):
         if sig_matrix_kw is None:
             sig_matrix_kw = {}
 
+        assert isinstance(cluster_genes, bool)
+        assert isinstance(cluster_samples, bool)
+        assert isinstance(gene_cluster_metric, str)
+        assert isinstance(sample_cluster_metric, str)
+        assert isinstance(cluster_method, str)
         assert isinstance(sig_matrix_kw, dict)
+
+        # we cannot simply import GOPCASignatureMatrix because it creates a
+        # circular dependency (how to fix this?)
         # if sig_matrix is not None:
         #    assert isinstance(sig_matrix, GOPCASignatureMatrix)
 
-        # generate expression matrix
         matrix = self.matrix  # this creates a copy
         if standardize:
             matrix.standardize_genes(inplace=True)
         elif center:
             matrix.center_genes(use_median=use_median, inplace=True)
 
+        # clustering
         if sig_matrix is not None:
             # user has provided a GOPCASignatureMatrix instance
             # make sure its samples match the signature's
+            logger.info('Ordering samples to match order in signature matrix.')
             assert set(sig_matrix.samples) == set(self.samples.values)
 
             # get signature matrix expression values
@@ -341,9 +354,19 @@ class GOPCASignature(object):
 
             # re-arrange samples according to clustering of signature matrix
             matrix = matrix.loc[:, sig_matrix_expr.samples]
-        else:
-            logger.info('You can provide a GO-PCA signature matrix to ensure '
-                        'that the sample order remains fixed.')
+
+        elif cluster_samples:
+            # cluster samples
+            matrix = cluster.cluster_samples(
+                matrix, metric=sample_cluster_metric, method=cluster_method
+            )
+
+        # clustering
+        if cluster_genes:
+            # cluster signatures
+            matrix = cluster.cluster_genes(
+                matrix, metric=gene_cluster_metric, method=cluster_method
+            )
 
         cb_label = kwargs.pop('colorbar_label', 'Expression')
 
@@ -356,19 +379,8 @@ class GOPCASignature(object):
                                X=np.atleast_2d(mean))
         combined_matrix = pd.concat([header_row, matrix], axis=0)
 
-        heatmap = ExpHeatMap(combined_matrix)
+        heatmap = ExpHeatmap(combined_matrix)
 
-        # plot heat map
-        fig = heatmap.get_figure(
-            title=title, yaxis_label='Genes',
-            colorbar_label=cb_label,
-            emin=emin, emax=emax,
-            show_sample_labels=show_sample_labels,
-            margin_left=margin_left,
-            margin_bottom=margin_bottom, margin_top=margin_top,
-            **kwargs
-        )
-
-        return fig
+        return heatmap
 
 

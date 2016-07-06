@@ -28,6 +28,7 @@ from plotly import graph_objs as go
 from genometools.basic import GeneSet
 from genometools.expression import ExpMatrix
 from genometools.enrichment import GSEResult
+from genometools.expression.visualize import ExpHeatmap
 
 from xlmhg import get_xlmhg_test_result
 from gopca import GOPCASignature
@@ -78,7 +79,7 @@ def my_gse_result(my_gene_set, my_mhg_result, my_ranked_genes):
     return gse_result
 
 @pytest.fixture
-def my_sig_matrix(my_sig_genes, my_samples):
+def my_matrix(my_sig_genes, my_samples):
     p = len(my_sig_genes)
     n = len(my_samples)
     X = np.arange(p*n).reshape(p, n)
@@ -86,8 +87,8 @@ def my_sig_matrix(my_sig_genes, my_samples):
     return matrix
 
 @pytest.fixture
-def my_signature(my_pc, my_gse_result, my_sig_matrix):
-    signature = GOPCASignature(my_pc, my_gse_result, my_sig_matrix)
+def my_signature(my_pc, my_gse_result, my_matrix):
+    signature = GOPCASignature(my_pc, my_gse_result, my_matrix)
     return signature
 
 def test_basic(my_signature):
@@ -111,10 +112,14 @@ def test_label(my_signature):
     assert isinstance(label, text)
 
 def test_heatmap(my_gopca_signature):
-    fig = my_gopca_signature.get_heatmap(
-        emin=-3, emax=3,
+    heatmap = my_gopca_signature.get_heatmap(
         sig_matrix_kw={'cluster_samples': False},
         colorbar_label=r'Median-centered expression (log<sub>2</sub>-RPKM)',
+    )
+    assert isinstance(heatmap, ExpHeatmap)
+
+    fig = heatmap.get_figure(
+        emin=-3, emax=3,
         height=800, font_size=12, title_font_size=18, show_sample_labels=True,
         margin_bottom=100,
     )

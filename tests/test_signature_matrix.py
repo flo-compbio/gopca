@@ -24,6 +24,8 @@ import pytest
 
 from plotly import graph_objs as go
 
+from genometools.expression.visualize import ExpHeatmap
+
 def test_heatmap(my_gopca_sig_matrix):
     sig_matrix = my_gopca_sig_matrix
     sig1 = sig_matrix.get_signature('regulation of os')
@@ -36,18 +38,21 @@ def test_heatmap(my_gopca_sig_matrix):
 
     hl_col = 'blue'
 
-    fig = sig_matrix.get_heatmap(
-        width=1350, height=800,
-        margin_left=350,
-        margin_bottom=100,
-        font_size=12,
-        show_sample_labels=True,
+    heatmap = sig_matrix.get_heatmap(
         highlight_sig={sig1: hl_col, sig2: hl_col, sig3: hl_col, sig4: hl_col,
                        sig5: hl_col, sig6: hl_col, sig7: hl_col},
         colorbar_label=r'Median-centered expression (log<sub>2</sub>-RPKM)',
         sig_matrix_kw={'cluster_samples': False},
     )
+    assert isinstance(heatmap, ExpHeatmap)
 
+    fig = heatmap.get_figure(
+        width=1350, height=800,
+        margin_left=350,
+        margin_bottom=100,
+        font_size=12,
+        show_sample_labels=True,
+    )
     assert isinstance(fig, go.graph_objs.Figure)
     #print(type(fig))
     #iplot(fig)
