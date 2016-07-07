@@ -36,9 +36,9 @@ MOCK_MODULES = [
     'scipy.cluster', 'scipy.cluster.hierarchy',
     'sklearn.decomposition',
     'genometools', 'genometools.basic',
-    'genometools.expression', 'genometools.enrichment',
-    'genometools.expression.visualize',
-    'goparser', 'xlmhg']
+    'genometools.expression', 'genometools.expression.visualize',
+    'genometools.enrichment', 'genometools.ontology',
+    'xlmhg']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 import gopca
