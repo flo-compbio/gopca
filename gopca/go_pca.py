@@ -40,7 +40,7 @@ from genometools.basic import GeneSetDB
 from genometools.expression import ExpMatrix, ExpGene, ExpGenome
 from genometools.expression import filter as exp_filter
 from genometools import enrichment
-from genometools.enrichment import GSEAnalysis
+from genometools.enrichment import GeneSetEnrichmentAnalysis
 from genometools.ontology import GeneOntology
 
 import gopca
@@ -54,10 +54,10 @@ class GOPCA(object):
     """Class for performing GO-PCA.
 
     This class implements the GO-PCA algorithm, except for the GO enrichment
-    testing, which is implemented by the `enrichment.GSEAnalysis` class.
-    The input data is provided as a `gopca.GOPCAConfig` object during
-    instantiation, and GO-PCA is run from start to finish by calling the `run`
-    method.
+    testing, which is implemented by the `enrichment.GeneSetEnrichmentAnalysis`
+    class. The input data is provided as a `gopca.GOPCAParams` object
+    during instantiation, and GO-PCA is run from start to finish by calling the
+     `run` method.
 
     Parameters
     ----------
@@ -191,9 +191,10 @@ class GOPCA(object):
 
             # test if GO term is still enriched after removing all previously
             # used genes
-            enr = gse_analysis.get_enriched_gene_sets(
+            enr = gse_analysis.get_rank_based_enrichment(
                 ranked_genes, config.pval_thresh,
                 config.mHG_X_frac, config.mHG_X_min, L,
+                adjust_pval_thresh=False,
                 escore_pval_thresh=config.escore_pval_thresh,
                 gene_set_ids=[gs_id], table=table)
             assert len(enr) in [0, 1]
@@ -265,7 +266,7 @@ class GOPCA(object):
         return GOPCASignature(pc, gse_result, sig_matrix)
 
     @staticmethod
-    def _generate_pc_signatures(config, matrix, gse_analysis, W, pc):
+    def _generate_pc_signatures(params, matrix, gse_analysis, W, pc):
         """Generate signatures for a specific principal component and ordering.
 
         The absolute value  of ``pc`` determines the principal component (PC).
@@ -276,9 +277,9 @@ class GOPCA(object):
         negative sign, then the ranking will be in ascending order (most
         negative loading values first).
         """
-        assert isinstance(config, GOPCAParams)
+        assert isinstance(params, GOPCAParams)
         assert isinstance(matrix, ExpMatrix)
-        assert isinstance(gse_analysis, GSEAnalysis)
+        assert isinstance(gse_analysis, GeneSetEnrichmentAnalysis)
         assert isinstance(W, np.ndarray) and W.ndim == 2
         assert isinstance(pc, int) and pc != 0
 
@@ -294,24 +295,25 @@ class GOPCA(object):
         # - get_enriched_gene_sets() also calculates the enrichment score,
         #   but does not use it for filtering
         logger.debug('config: %f %d %d',
-                     config.mHG_X_frac, config.mHG_X_min, config.mHG_L)
-        enriched = gse_analysis.get_enriched_gene_sets(
-            ranked_genes, config.pval_thresh,
-            config.mHG_X_frac, config.mHG_X_min, config.mHG_L,
-            config.escore_pval_thresh)
+                     params.mHG_X_frac, params.mHG_X_min, params.mHG_L)
+        enriched = gse_analysis.get_rank_based_enrichment(
+            ranked_genes, params.pval_thresh,
+            params.mHG_X_frac, params.mHG_X_min, params.mHG_L,
+            adjust_pval_thresh=False,
+            escore_pval_thresh=params.escore_pval_thresh)
         if not enriched:
             # no gene sets were found to be enriched
             return []
 
         # filter enriched GO terms by strength of enrichment
         # (if threshold is provided)
-        if config.escore_thresh is not None:
+        if params.escore_thresh is not None:
             q_before = len(enriched)
             enriched = [enr for enr in enriched
-                        if enr.escore >= config.escore_thresh]
+                        if enr.escore >= params.escore_thresh]
             q = len(enriched)
             logger.info('Kept %d / %d enriched gene sets with E-score >= %.1f',
-                        q, q_before, config.escore_thresh)
+                        q, q_before, params.escore_thresh)
 
         # logger.debug('-'*70)
         # logger.debug('All enriched gene sets:')
@@ -320,8 +322,8 @@ class GOPCA(object):
         # logger.debug('-'*70)
 
         # apply local filter (if enabled)
-        if not config.no_local_filter:
-            enriched = GOPCA._local_filter(config, gse_analysis,
+        if not params.no_local_filter:
+            enriched = GOPCA._local_filter(params, gse_analysis,
                                            enriched, ranked_genes)
 
         # generate signatures
@@ -329,7 +331,7 @@ class GOPCA(object):
         q = len(enriched)
         for j, enr in enumerate(enriched):
             signatures.append(
-                GOPCA._generate_signature(config, matrix, pc, enr))
+                GOPCA._generate_signature(params, matrix, pc, enr))
         logger.info(
             'Generated %d signatures based on the enriched gene sets.', q)
 
@@ -481,9 +483,9 @@ class GOPCA(object):
             logger.debug(d)
         logger.debug('-'*70)
 
-        # create GSEAnalysis object
+        # create GeneSetEnrichmentAnalysis object
         genome = ExpGenome.from_gene_names(matrix.genes.tolist())
-        gse_analysis = GSEAnalysis(genome, self.gene_set_db)
+        gse_analysis = GeneSetEnrichmentAnalysis(genome, self.gene_set_db)
 
         # run PCA
         logger.info('Performing PCA...')

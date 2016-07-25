@@ -19,13 +19,15 @@
 Changelog
 =========
 
-Version 1.2 (2016-??-??)
-------------------------
 
-- Full Python 3 support
+Version 1.2 (work in progress)
+------------------------------
+
+- Full Python 3.5 support
 - Integrated code with genometools 2.0
 - Cleaned up code
-- Started work on Python API
+- Full Python API
+- Uses plotly as plotting backend (dropped matplotlib)
 - Reorganized internal folder structure (combined all command-line scripts in
   one folder)
 

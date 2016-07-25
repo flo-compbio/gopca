@@ -27,7 +27,7 @@ from plotly import graph_objs as go
 
 from genometools.basic import GeneSet
 from genometools.expression import ExpMatrix
-from genometools.enrichment import GSEResult
+from genometools.enrichment import RankBasedGSEResult
 from genometools.expression.visualize import ExpHeatmap
 
 from xlmhg import get_xlmhg_test_result
@@ -74,8 +74,10 @@ def my_pc():
 @pytest.fixture
 def my_gse_result(my_gene_set, my_mhg_result, my_ranked_genes):
     res = my_mhg_result
-    gse_result = GSEResult(my_gene_set, res.N, res.indices, my_ranked_genes,
-                           res.X, res.L, res.stat, res.cutoff, res.pval)
+    gse_result = RankBasedGSEResult(my_gene_set, res.N, res.indices,
+                                    my_ranked_genes,
+                                    res.X, res.L, res.stat, res.cutoff,
+                                    res.pval)
     return gse_result
 
 @pytest.fixture

@@ -42,7 +42,7 @@ def test_heatmap(my_gopca_sig_matrix):
         highlight_sig={sig1: hl_col, sig2: hl_col, sig3: hl_col, sig4: hl_col,
                        sig5: hl_col, sig6: hl_col, sig7: hl_col},
         colorbar_label=r'Median-centered expression (log<sub>2</sub>-RPKM)',
-        sig_matrix_kw={'cluster_samples': False},
+        matrix_kw={'cluster_samples': False},
     )
     assert isinstance(heatmap, ExpHeatmap)
 

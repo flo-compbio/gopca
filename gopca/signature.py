@@ -34,7 +34,7 @@ import numpy as np
 from genometools.expression import ExpMatrix, ExpProfile
 from genometools.expression.visualize import ExpHeatmap
 from genometools.expression import cluster
-from genometools.enrichment import GSEResult
+from genometools.enrichment import RankBasedGSEResult
 
 # from .signature_matrix import GOPCASignatureMatrix
 
@@ -66,7 +66,7 @@ class GOPCASignature(object):
     ----------
     pc: int
         See :attr:`pc` attribute.
-    gse_result: `genometools.enrichment.GSEResult`
+    gse_result: `genometools.enrichment.RankBasedGSEResult`
         See :attr:`gse_result` attribute.
     matrix: `genometools.expression.ExpMatrix`
         See :attr:`matrix` attribute.
@@ -80,7 +80,7 @@ class GOPCASignature(object):
         positive, then the signature was derived based on an ascending order.
         Conversely, if the sign is negative, then the signature was dervied
         based on a descending ranking.
-    gse_result: `GSEResult`
+    gse_result: `RankBasedGSEResult`
         The result of the XL-mHG test that was conducted after ranking the
         genes based on their principal component loadings.
     matrix: `genometools.expression.ExpMatrix`
@@ -95,7 +95,7 @@ class GOPCASignature(object):
     def __init__(self, pc, gse_result, matrix):
 
         assert isinstance(pc, int)
-        assert isinstance(gse_result, GSEResult)
+        assert isinstance(gse_result, RankBasedGSEResult)
         assert isinstance(matrix, ExpMatrix)
 
         self._pc = pc
