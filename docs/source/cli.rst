@@ -1,14 +1,14 @@
-Processing GO-PCA results
-=========================
+Command-line interface
+======================
 
-This section documents all commands for processing GO-PCA results,
-excluding all visualization commands, which are
-`documented in the next section <visualize>`.
+The GO-PCA command-line interface (CLI) consists of individual scripts that
+can be used to process the results of a GO-PCA run.
 
 .. contents:: Contents
     :depth: 2
     :local:
     :backlinks: none
+
 
 Inspecting the results: ``gopca_print_info.py``
 -----------------------------------------------
@@ -22,6 +22,7 @@ used, as well as the names and MD5 hashsums of all input files.
 .. argparse::
    :ref: gopca.cli.print_info.get_argument_parser
    :prog: gopca_print_info.py
+
 
 .. _extract_signatures:
 
@@ -90,7 +91,7 @@ This can effectively remove highly correlated signatures.
    :ref: gopca.cli.filter_signatures.get_argument_parser
    :prog: gopca_filter_signatures.py
 
-Combining the signatures from two or more GO-PCA runs: ``gopca_combine_signatures.py`` 
+Combining the signatures from two or more GO-PCA runs: ``gopca_combine_signatures.py``
 --------------------------------------------------------------------------------------
 
 This command does exactly what the name implies: It combines the signatures

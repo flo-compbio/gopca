@@ -57,9 +57,8 @@ if 'READTHEDOCS' not in os.environ:
         'pandas >= 0.18, < 1',
         'scipy >= 0.14, < 1',
         'scikit-learn >= 0.14, < 1',
-        'matplotlib >= 1.4.3, < 2',
         'plotly >= 1.9.6, < 2',
-        'genometools >= 2.0rc1',
+        'genometools >= 2.0rc6',
         'xlmhg >= 2.0.6, < 3',
     ])
 
