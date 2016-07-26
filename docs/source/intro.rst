@@ -66,7 +66,7 @@ __ python_
 __ foss_
 __ plotly_
 __ cython_
-__ md5
+__ md5_
 
 .. _python: https://www.python.org/
 .. _foss: https://en.wikipedia.org/wiki/Free_and_open-source_software
@@ -80,7 +80,7 @@ Demos
 
 Demos of GO-PCA in action can be found in a `separate GitHub repository`__.
 Note: These demos were created using an older version of this package
-that relied on the `matplotlib` library for plotting.
+that relied on the `matplotlib`__ library for plotting.
 
 __ demos_
 __ matplotlib_
