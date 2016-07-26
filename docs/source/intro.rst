@@ -40,12 +40,16 @@ of GO-PCA are:
 
 - Accessibility and transparency: GO-PCA is `free and open-source software`__.
 - Cross-platform compatibility: GO-PCA can be easily
-  `installed <install>` on Windows, OS X, and Linux.
-- Simple command-line interface: All of GO-PCA's functionalities can be
-  accessed directly from the command line, without knowledge of Python.
-- Flexible visualization tools: GO-PCA uses the `matplotlib`__ library to
-  generate various high-quality visualizations (in PNG format) that are
-  suitable for inclusion in research publications.
+  `installed <install>` on Windows, OS X, and Linux, and runs under both
+  Python 2.7.x and 3.5.x.
+- Simple command-line interface: GO-PCA can be
+  run directly from the command-line (`go-pca.py`), and command-line
+  scripts can be used to generate output files containing the signatures
+  created in tab-separated text (*.tsv) or Excel spreadsheet (*.xlsx) format.
+- Powerful Python API (documentation forthcoming): The GO-PCA Python API
+  can be used to create high-quality figures displaying the signature matrix
+  or individual matrices in detail. This API in turn relies on the powerful
+  and open-source `plotly`__ plotting library.
 - Speed: GO-PCA takes about 60 seconds to run on the ``DMAP`` dataset,
   consisting  of ~8,000 genes and ~200 samples. The most computationally
   intensive part of GO-PCA (GO enrichment analysis using the XL-mHG test)
@@ -60,13 +64,13 @@ of GO-PCA are:
 
 __ python_
 __ foss_
-__ matplotlib_
+__ plotly_
 __ cython_
 __ md5
 
 .. _python: https://www.python.org/
 .. _foss: https://en.wikipedia.org/wiki/Free_and_open-source_software
-.. _matplotlib: http://matplotlib.org/
+.. _plotly: https://plot.ly/
 .. _cython: http://cython.org/A
 .. _md5: https://en.wikipedia.org/wiki/MD5
 
@@ -75,7 +79,12 @@ Demos
 -----
 
 Demos of GO-PCA in action can be found in a `separate GitHub repository`__.
+Note: These demos were created using an older version of this package
+that relied on the `matplotlib` library for plotting.
 
 __ demos_
+__ matplotlib_
 
 .. _demos: https://github.com/flo-compbio/gopca-demos
+
+.. _matplotlib: http://matplotlib.org/

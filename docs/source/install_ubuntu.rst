@@ -23,10 +23,9 @@ In a terminal window:
 
     Note: If you need to be able to install gopca without admin privileges,
     look into `conda`__ (which you can get by installing `Miniconda`__) or
-    `virtualenv`__ (installable using pip). Both tools allow the creation of
+    `virtualenv`__ (installable using pip). Both tools enable the creation of
     local Python environments that allow packages to be installed without
     admin privileges.
-
 
 __ pip_
 __ conda_
