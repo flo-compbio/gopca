@@ -24,24 +24,3 @@ GO identifier. The second column is currently ignored by GO-PCA, and the third
 column contains the "domain" of the GO term. Finally, the fourth column
 contains the name of the GO term, and the last column contains a
 comma-separated list of genes that are annotated with that term.
-
-Generating the GO annotation file
----------------------------------
-
-GO-PCA comes with an auxilliary script, named "`gopca_extract_go_gene_sets.py`",
-that can be used to generate a gene set file as described above.
-
-The inputs to this script include the Gene Ontology itself (in "OBO" format),
-as well as species-specific GO annotation data from the UniProt-GOA database
-(in "GAF" format). The command-line parameters of this
-script are described below. For additional documentation, please see the
-`extract_go_gene_sets` module and the `demos`.
-
-.. _gopca_extract_go_gene_sets.py:
-
-gopca_extract_go_gene_sets.py
--------------------------------
-
-.. argparse::
-   :ref: gopca.extract_go_gene_sets.get_argument_parser
-   :prog: gopca_extract_go_gene_sets.py
