@@ -1,14 +1,14 @@
-Processing GO-PCA results
-=========================
+Command-line interface
+======================
 
-This section documents all commands for processing GO-PCA results,
-excluding all visualization commands, which are
-`documented in the next section <visualize>`.
+The GO-PCA command-line interface (CLI) consists of individual scripts that
+can be used to process the results of a GO-PCA run.
 
 .. contents:: Contents
     :depth: 2
     :local:
     :backlinks: none
+
 
 Inspecting the results: ``gopca_print_info.py``
 -----------------------------------------------
@@ -20,8 +20,9 @@ signatures generated etc. It also outputs a list of all parameter settings
 used, as well as the names and MD5 hashsums of all input files.
 
 .. argparse::
-   :ref: gopca.scripts.print_info.get_argument_parser
+   :ref: gopca.cli.print_info.get_argument_parser
    :prog: gopca_print_info.py
+
 
 .. _extract_signatures:
 
@@ -34,7 +35,7 @@ the signature expression values for each signature and each sample. (This is
 the data visualized by the ``gopca_plot_signature_matrix.py`` command).
 
 .. argparse::
-   :ref: gopca.scripts.extract_signature_matrix.get_argument_parser
+   :ref: gopca.cli.extract_signature_matrix.get_argument_parser
    :prog: gopca_extract_signature_matrix.py
 
 
@@ -47,7 +48,7 @@ to a signature. The columns contain detailed information for each signature,
 e.g., the gene set enrichment it was based on, and the list of genes contained in it.
 
 .. argparse::
-   :ref: gopca.scripts.extract_signatures.get_argument_parser
+   :ref: gopca.cli.extract_signatures.get_argument_parser
    :prog: gopca_extract_signatures.py
 
 
@@ -58,7 +59,7 @@ This command generates a file with the same information as
 ``gopca_extract_signatures.py``, but in the form of an Excel spreadsheet.
 
 .. argparse::
-   :ref: gopca.scripts.extract_signatures_excel.get_argument_parser
+   :ref: gopca.cli.extract_signatures_excel.get_argument_parser
    :prog: gopca_extract_signatures_excel.py
 
 
@@ -69,7 +70,7 @@ This command converts a GO-PCA result file to MATLAB format, using scipy's
 `io.savemat` function command from the `scipy` package.
 
 .. argparse::
-   :ref: gopca.scripts.convert_to_matlab.get_argument_parser
+   :ref: gopca.cli.convert_to_matlab.get_argument_parser
    :prog: gopca_convert_to_matlab.py
 
 
@@ -87,10 +88,10 @@ so that their pair-wise correlation coefficients do not exceed a certain value.
 This can effectively remove highly correlated signatures.
 
 .. argparse::
-   :ref: gopca.scripts.filter_signatures.get_argument_parser
+   :ref: gopca.cli.filter_signatures.get_argument_parser
    :prog: gopca_filter_signatures.py
 
-Combining the signatures from two or more GO-PCA runs: ``gopca_combine_signatures.py`` 
+Combining the signatures from two or more GO-PCA runs: ``gopca_combine_signatures.py``
 --------------------------------------------------------------------------------------
 
 This command does exactly what the name implies: It combines the signatures
@@ -98,5 +99,5 @@ contained in two or more individual GO-PCA result files into a single, new
 result file.
 
 .. argparse::
-   :ref: gopca.scripts.combine_signatures.get_argument_parser
+   :ref: gopca.cli.combine_signatures.get_argument_parser
    :prog: gopca_combine_signatures.py

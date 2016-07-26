@@ -81,21 +81,3 @@ specify both gene sets and Gene Ontology when running GO-PCA from the command-
 line, see :doc:`running`.
 
 .. _gene_sets: https://www.dropbox.com/sh/m0r7uqnfdr5x0xu/AADqqJ-8VzPchBRhDm50QxWaa?dl=0
-
-.. _create_gene_sets:
-
-Creating gene sets from scratch
--------------------------------
-
-Depending on whether GO-derived or custom gene sets should be used, users can
-create gene sets in different ways:
-
-* To create custom GO-derived annotations (e.g., using a custom set of GO
-  evidence codes), users can use the script
-  `gopca_extract_go_gene_sets.py <extract_go_gene_sets>`.
-* To create completely customized gene sets, users should familiarize
-  themselves with the `gene set file format <gene_set_files>` used by GO-PCA,
-  and then create their own gene set file (either manually or using their own
-  script).
-
-

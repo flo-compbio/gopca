@@ -1,23 +1,23 @@
 Installation Instructions for Microsoft Windows
 ===============================================
 
-1. `Download`__ and install the "Anaconda" Python distribution (if you haven't already). This distribution includes all third-party packages required by GO-PCA.
+GO-PCA requires Python (version 2.7.x or 3.5.x). If you do not have
+Python installed yet, go ahead and `download`__ the latest version of Python
+(3.5.x) from the Python homepage.
 
-__ anaconda_
-.. _anaconda: http://continuum.io/downloads
-
-2. `Download <http://www.microsoft.com/en-us/download/details.aspx?id=44266>`_ and install the Microsoft Visual C++ Compiler for Python 2.7. This compiler is required for installing the xlmhg python package (Step 3).
+__ python_download_
 
 Then, on the command line (Start -> Run -> "cmd"):
 
-3. Install the xlmhg python package using pip:
-    
-    .. code-block:: bat
-    
-        > pip install xlmhg
+3. Install the ``gopca`` Python package using `pip`__, the Python package
+manager:
 
-4. Install GO-PCA using pip (including all remaining dependencies):
-    
+__ pip_
+
     .. code-block:: bat
     
         > pip install gopca
+
+.. _python_download: https://www.python.org/downloads/
+
+.. _pip: https://pip.pypa.io/en/stable/

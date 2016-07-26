@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -14,38 +14,71 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import sys
-import os
+from __future__ import print_function
 
-from setuptools import setup, find_packages, Extension
-import codecs
+# import sys
+import os
+import io
+
+import six
+
+from setuptools import setup, find_packages
 from os import path
 
 here = path.abspath(path.dirname(__file__))
-description = 'GO-PCA: An Unsupervised Method to Explore Gene Expression ' + \
-        'Data Using Prior Knowledge'
+description = ('GO-PCA: An Unsupervised Method to Explore Gene Expression '
+               'Data Using Prior Knowledge')
 
-long_description = ''
-with codecs.open(path.join(here, 'README.rst'), encoding = 'utf-8') as f:
-    long_description = f.read()
+# get long description from file
+with io.open(path.join(here, 'README.rst'), encoding='UTF-8') as fh:
+    long_description = fh.read()
+
+setup_requires = [
+    'six >= 1.10.0, < 2',
+]
+
+install_requires = [
+    'future >= 0.15.2, < 1',
+    'six >= 1.10.0, < 2',
+    'unicodecsv >= 0.14.1, < 1',
+    'xlsxwriter >= 0.7.7, < 1',
+]
+
+if six.PY2:
+    install_requires.append(
+        'configparser >= 3.2, < 4',
+    )
+
+# do not require installation if built by ReadTheDocs
+# (we mock these modules in docs/source/conf.py)
+if 'READTHEDOCS' not in os.environ:
+    install_requires.extend([
+        'numpy >= 1.8, < 2',
+        'pandas >= 0.18, < 1',
+        'scipy >= 0.14, < 1',
+        'scikit-learn >= 0.14, < 1',
+        'plotly >= 1.9.6, < 2',
+        'genometools >= 2.0rc6',
+        'xlmhg >= 2.0.6, < 3',
+    ])
 
 setup(
-    name = 'gopca',
+    name='gopca',
 
-    version = '1.1.3',
+    version='1.2.0',
 
-    description = description,
-    long_description = long_description,
+    description=description,
+    long_description=long_description,
 
-    url = 'https://github.com/flo-compbio/gopca',
+    url='https://github.com/flo-compbio/gopca',
 
-    author = 'Florian Wagner',
-    author_email = 'florian.wagner@duke.edu',
+    author='Florian Wagner',
+    author_email='florian.wagner@duke.edu',
 
-    license = 'GPLv3',
+    license='GPLv3',
 
     # see https://pypi.python.org/pypi?%3Aaction=list_classifiers
-    classifiers = [
+    classifiers=[
         'Development Status :: 3 - Alpha',
 
         'Intended Audience :: Developers',
@@ -55,59 +88,81 @@ setup(
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
 
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.5',
     ],
 
-    keywords = 'unsupervised analysis gene expression data ' + \
-        'transcriptomics prior knowledge',
+    keywords='unsupervised analysis gene expression data ' + \
+             'transcriptomics prior knowledge',
 
-    #packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
-    packages= ['gopca', 'gopca.scripts', 'gopca.plotting'],
-    #packages = find_packages(exclude = ['docs']),
+    # packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
+    # packages= ['gopca', 'gopca.scripts', 'gopca.plotting'],
+    packages=find_packages(exclude=['docs', 'tests*']),
 
-    #libraries = [],
+    # libraries = [],
 
-    install_requires = [
-            'setuptools', 'networkx', 'xlsxwriter >= 0.7.7',
-            'configparser >= 3.2',
-            'numpy', 'scipy', 'cython', 'scikit-learn', 'matplotlib',
-            'genometools >= 1.2rc5', 'goparser >= 1.1.3', 'xlmhg >= 1.1rc3'
-    ],
+    setup_requires=setup_requires,
+
+    install_requires=install_requires,
 
     extras_require={
-            'docs': ['sphinx', 'sphinx-bootstrap-theme', 'sphinx-argparse',
-                     'mock']
+         'docs': ['sphinx', 'sphinx-bootstrap-theme', 'sphinx-argparse',
+                  'mock']
     },
 
+    tests_require=[
+        'pytest >= 2.9.1, < 3',
+        'pytest-cov >= 2.2.1, < 3',
+    ],
+
     # data
-    #package_data={},
+    # package_data={},
 
     # data outside package
-    #data_files=[],
+    # data_files=[],
 
     # executable scripts
     entry_points={
         'console_scripts': [
             # pre-processing scripts
-            'gopca_extract_go_gene_sets.py = gopca.extract_go_gene_sets:main',
+            'gopca_extract_go_gene_sets.py = '
+                'gopca.extract_go_gene_sets:main',
 
-            # GO-PCA scripts
+            # GO-PCA main script
             'go-pca.py = gopca.main:main',
 
             # processing scripts
-            'gopca_extract_signatures.py = gopca.scripts.extract_signatures:main',
-            'gopca_extract_signatures_excel.py = gopca.scripts.extract_signatures_excel:main',
-            'gopca_extract_signature_matrix.py = gopca.scripts.extract_signature_matrix:main',
-            'gopca_convert_to_matlab.py = gopca.scripts.convert_to_matlab:main',
-            'gopca_filter_signatures.py = gopca.scripts.filter_signatures:main',
-            'gopca_combine_signatures.py = gopca.scripts.combine_signatures:main',
-            'gopca_print_info.py = gopca.scripts.print_info:main',
+            'gopca_extract_signatures.py = '
+                'gopca.cli.extract_signatures:main',
+
+            'gopca_extract_signatures_excel.py = '
+                'gopca.cli.extract_signatures_excel:main',
+
+            'gopca_extract_signature_matrix.py = '
+                'gopca.cli.extract_signature_matrix:main',
+
+            'gopca_convert_to_matlab.py = '
+                'gopca.cli.convert_to_matlab:main',
+            'gopca_filter_signatures.py = '
+                'gopca.cli.filter_signatures:main',
+            'gopca_combine_signatures.py = '
+                'gopca.cli.combine_signatures:main',
+            'gopca_print_info.py = '
+                'gopca.cli.print_info:main',
 
             # plotting scripts
-            'gopca_plot_signature_matrix.py = gopca.plotting.plot_signature_matrix:main',
-            'gopca_plot_signature.py = gopca.plotting.plot_signature:main',
-            'gopca_plot_all_signatures.py = gopca.plotting.plot_all_signatures:main',
-            'gopca_plot_term_by_pc_matrix.py = gopca.plotting.plot_term_by_pc_matrix:main',
-            #'gopca_plot_pc_scores.py = gopca.plotting.plot_pc_scores:main',
+            'gopca_plot_signature_matrix.py = '
+                'gopca.cli.plot_signature_matrix:main',
+
+            'gopca_plot_signature.py = '
+                'gopca.cli.plot_signature:main',
+
+            'gopca_plot_all_signatures.py = '
+                'gopca.cli.plot_all_signatures:main',
+
+            'gopca_plot_term_by_pc_matrix.py = '
+                'gopca.cli.plot_term_by_pc_matrix:main',
+
+            # 'gopca_plot_pc_scores.py = gopca.plotting.plot_pc_scores:main',
         ],
     },
 )

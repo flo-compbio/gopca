@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -17,69 +17,150 @@
 """Module containing the `GOPCARun` class.
 """
 
-import logging
-from copy import deepcopy
-import cPickle as pickle
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
 
-from gopca import GOPCAConfig, GOPCAResult
+import logging
+import hashlib
+from copy import deepcopy
+from collections import Iterable
+
+import six
+
+from . import GOPCAParams, GOPCASignatureMatrix
+
+if six.PY2:
+    import cPickle as pickle
+else:
+    import pickle
 
 logger = logging.getLogger(__name__)
 
+
 class GOPCARun(object):
-    """A GO-PCA run, consisting of configuration, run, and result data.
+    """A GO-PCA run.
+
+    A GO-PCA "run" consists of metadata (e.g., GO-PCA version,
+    timestamp), configuration data, intermediate results, and the signatures
+    generated.
+
+    The run does *not* contain the input data itself (i.e., the original
+    expression matrix and and the list of gene sets). This is so that the
+    file size of the output file can be kept small.
+
+    The run *does* contain all other information necessary to reproduce the
+    results from the raw data, including the parameter settings used and hash
+    values for the input data. Furthermore, it contains some intermediate
+    results (e.g., the PCA loadings matrix and the PC scores) which allow for
+    some additional analyses that can help gain insight into the data and the
+    signatures generated.
 
     Parameters
     ----------
     version: str
         The GO-PCA version.
-    user_config: `gopca.GOPCAConfig`
-        The configuration data provided by the user.
     timestamp: str
         The timestamp.
-    result: `GOPCAResult`
-        The result (signatures).
+    user_config: `GOPCAParams`
+        The parameter settings provided by the user.
+    final_config: `GOPCAConfig`
+        The final parameter settings used.
+    expression_hash: str
+        Hash value for the expression input data.
+    gene_sets_hash: str
+        Hash value for the gene set input data.
+    ontology_hash: str
+        Hash value for the gene ontology input data.
+    genes: list or tuple of str
+        The genes in the analysis.
+    samples: list or tuple of str
+        The samples in the analysis.
+    W: `numpy.ndarray` of floats
+        The PCA loading matrix; shape = (len(genes) x # PCs).
+        There must be a 1-to-1 correspondence between `genes` and the rows
+        of `W`.
+    Y: `numpy.ndarray` of floats
+        The PC score matrix; shape = (len(samples) x # PCs).
+        There must be a 1-to-1 correspondence between `samples` and the
+        rows of `Y`.
+    sig_matrix: `GOPCASignatureMatrix`
+        The signature matrix generated.
     exec_time: float
         The execution time (in seconds).
     """
+    def __init__(self, version, timestamp, user_config, final_config,
+                 expression_hash, gene_sets_hash, ontology_hash,
+                 genes, samples, W, Y, sig_matrix, exec_time):
 
-    def __init__(self, version, user_config, timestamp, result, exec_time):
-        # checks
-        assert isinstance(version, (str, unicode))
-        assert isinstance(user_config, GOPCAConfig)
-        assert isinstance(timestamp, (str, unicode))
-        assert isinstance(result, GOPCAResult)
+        # type checks
+        assert isinstance(version, str)
+        assert isinstance(timestamp, str)
+        assert isinstance(user_config, GOPCAParams)
+        assert isinstance(final_config, GOPCAParams)
+        assert isinstance(expression_hash, str)
+        assert isinstance(gene_sets_hash, str)
+        if ontology_hash is not None:
+            assert isinstance(ontology_hash, str)
+        assert isinstance(genes, Iterable)
+        assert isinstance(samples, Iterable)
+        assert isinstance(sig_matrix, GOPCASignatureMatrix)
         assert isinstance(exec_time, float)
-        # initialization
+
         self.version = version
-        self.user_config = deepcopy(user_config)
         self.timestamp = timestamp
-        self.result = result
+        self.user_config = deepcopy(user_config)
+        self.final_config = final_config
+
+        self.expression_hash = expression_hash
+        self.gene_sets_hash = gene_sets_hash
+        self.ontology_hash = ontology_hash
+
+        self.genes = list(genes)
+        self.samples = list(samples)
+        self.W = W
+        self.Y = Y
+        self.sig_matrix = sig_matrix
         self.exec_time = exec_time
 
-    ### magic functions
+        # make sure shapes match up
+        assert W.shape[0] == len(self.genes)
+        assert Y.shape[0] == len(self.samples)
+        assert W.shape[1] == Y.shape[1]
+
     def __repr__(self):
-        return '<GOPCARun (version=%s; timestamp=%s; exec_time=%.1f; hash=%d)>' \
-                %(self.version, self.timestamp, hash(self))
+        return '<GOPCARun instance (version="%s", timestamp="%s", hash="%s">' \
+                % (self.version, self.timestamp, self.hash)
 
     def __str__(self):
-        return '<GOPCARun (version %s; %d signatures; %s)>' \
-                %(self.result.q, self.timestamp)
+        return '<GOPCARun instance with %d signatures>' % self.sig_matrix.q
 
-    def __eq__(self,other):
-        if type(self) is not type(other):
-            return False
-        else:
+    def __eq__(self, other):
+        if self is other:
+            return True
+        elif type(self) is type(other):
             return repr(self) == repr(other)
+        else:
+            return NotImplemented
 
-    def __hash__(self):
-        data = []
-        data.append(self.user_config)
-        data.append(self.version)
-        data.append(self.timestamp)
-        data.append(self.result)
-        data.append(self.exec_time)
-        return hash(tuple(data))
-    ### end magic functions
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    @property
+    def hash(self):
+        data_str = ';'.join([
+            str(repr(var)) for var in
+            [self.version, self.timestamp,
+             self.user_config, self.final_config,
+             self.expression_hash, self.gene_sets_hash, self.ontology_hash,
+             self.genes, self.samples, self.sig_matrix, self.exec_time]
+        ])
+        data_str += ';'
+        data = data_str.encode('UTF-8') + \
+            b';'.join([a.tobytes() for a in [
+                self.Y, self.W
+            ]])
+        return str(hashlib.md5(data).hexdigest())
 
     def write_pickle(self, path):
         """Save the current object to a pickle file.
@@ -87,7 +168,7 @@ class GOPCARun(object):
         Parameters
         ----------
         path: str
-            The path of the pickle file.
+            The output file.
 
         Returns
         -------
@@ -95,3 +176,21 @@ class GOPCARun(object):
         """
         with open(path, 'wb') as ofh:
             pickle.dump(self, ofh, pickle.HIGHEST_PROTOCOL)
+
+    @classmethod
+    def read_pickle(cls, path):
+        """Read a run from a pickle file.
+
+        Parameters
+        ----------
+        path: str
+            The pickle file.
+
+        Returns
+        -------
+        None
+        """
+        with open(path, 'rb') as fh:
+            run = pickle.load(fh)
+        assert isinstance(run, cls)
+        return run

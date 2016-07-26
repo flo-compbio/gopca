@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -17,17 +17,21 @@
 """Functions used by various GO-PCA scripts.
 """
 
-import os
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
+
+# import os
 import io
 import sys
-import argparse
+# import argparse
 import copy
-import cPickle as pickle
 import hashlib
 import logging
-from pkg_resources import parse_version
-from collections import Iterable
+# from collections import Iterable
 
+from pkg_resources import parse_version
+import six
 import unicodecsv as csv
 
 import numpy as np
@@ -35,26 +39,39 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram
 import sklearn
 
-import gopca
 from genometools import misc
+from genometools.expression import ExpMatrix, cluster
+import gopca
+from gopca import GOPCASignatureMatrix
+from gopca import GOPCASignature
 
-#logger = logging.getLogger(__name__)
+if six.PY2:
+    import cPickle as pickle
+else:
+    import pickle
 
-def combine_signatures(*results):
-    """Combines signatures from multiple GO-PCA results."""
-    #assert len(results
-    G = copy.deepcopy(args[0])
-    G.config = None
-    G.genes = None
-    G.W = None
-    G.Y = None
-    for i, G_other in range(results[1:]):
-        G.signatures = G.signatures + G_other.signatures
-        G.S = np.vstack([G.S, G_other.S])
-    return G
+logger = logging.getLogger(__name__)
 
-def get_logger(name = '', log_stream = sys.stdout, log_file = None,
-    quiet = False, verbose = False):
+
+def combine_signatures(*args):
+    """Combines signatures from multiple GO-PCA signature matrices.
+
+    """
+    # TODO: Finish docstring
+    for result in args:
+        assert isinstance(result, GOPCASignatureMatrix)
+    # assert len(results
+    merged = copy.deepcopy(args[0])
+    for i, other in enumerate(args[1:]):
+        if other.samples != merged.samples:
+            raise ValueError('Cannot combine results with different '
+                             'samples.')
+        merged.signatures.extend(other.signatures)
+    return merged
+
+
+def get_logger(name='', log_stream=sys.stdout, log_file=None,
+               quiet=False, verbose=False):
 
     # configure root logger
     log_level = logging.INFO
@@ -67,54 +84,8 @@ def get_logger(name = '', log_stream = sys.stdout, log_file = None,
 
     return new_logger
 
-def filter_signatures(signatures, S, corr_thresh):
-
-    if corr_thresh == 1.0:
-        # no filtering
-        return signatures, S
-
-    q, n = S.shape
-    info = np.zeros(q, dtype = np.float64)
-    # sort signatures by information content?
-    max_ent = - n * ((1/float(n)) * np.log2(1/float(n)))
-    for i, sig in enumerate(signatures):
-        abs_sig = np.absolute(S[i,:])
-        total = np.sum(abs_sig)
-        rel = abs_sig / total
-        ent = - np.sum(rel * np.log2(rel))
-        info[i] = max_ent - ent
-    a = np.argsort(info)
-    a = a[::-1]
-
-    sig_abs_pcs = np.absolute(np.int64([sig.pc for sig in signatures]))
-    sig_escore = np.float64([sig.escore for sig in signatures])
-    #a = np.lexsort([-info, sig_abs_pcs])
-    a = np.lexsort([-sig_escore, sig_abs_pcs])
-    #print '\n'.join(['%.3f: %s' %(info[i],str(G.signatures[i])) for i in a[:5]])
-
-    # filtering
-    sel = np.ones(q, dtype = np.bool_)
-    for i in a:
-
-        if not sel[i]:
-            # already excluded
-            continue
-
-        for i2, sig in enumerate(signatures):
-            if i == i2 or not sel[i2]:
-                continue
-            assert np.corrcoef(np.vstack([S[i,:],S[i2,:]])).shape == (2,2)
-            if np.corrcoef(np.vstack([S[i,:],S[i2,:]]))[0,1] >= corr_thresh:
-                sel[i2] = False
-
-    sel = np.nonzero(sel)[0]
-    signatures = [signatures[i] for i in sel]
-    S = S[sel,:]
-
-    return signatures, S
 
 def get_pc_explained_variance_threshold(E, z, t, seed):
-
     # RandomizedPCA does not work in Scikit-learn 0.14.1,
     # but it works in Scikit-learn 0.16.1
     if parse_version(sklearn.__version__) >= parse_version('0.16.1'):
@@ -126,136 +97,202 @@ def get_pc_explained_variance_threshold(E, z, t, seed):
     np.random.seed(seed)
 
     # do permutations
-    p,n = E.shape
-    d_max_null = np.empty(t,dtype=np.float64)
-    E_perm = np.empty((p,n),dtype=np.float64)
-    M_null = PCA(n_components = 1)
-    for j in xrange(t):
-
-        for i in xrange(p):
-            E_perm[i,:] = E[i,np.random.permutation(n)]
+    p, n = E.shape
+    d_max_null = np.empty(t, dtype=np.float64)
+    E_perm = np.empty((p, n), dtype=np.float64)
+    M_null = PCA(n_components=1)
+    for j in range(t):
+        for i in range(p):
+            E_perm[i, :] = E[i, np.random.permutation(n)]
 
         M_null.fit(E_perm.T)
         d_max_null[j] = M_null.explained_variance_ratio_[0]
 
     # calculate z-score threshold
     mean_null = np.mean(d_max_null)
-    std_null = np.std(d_max_null,ddof=1)
-    thresh = mean_null + z * std_null
+    std_null = np.std(d_max_null, ddof=1)
+    thresh = mean_null + z*std_null
 
     return thresh
 
-def get_file_md5sum(path, mode = 'rb'):
-    """Get MD5 hash of file content.
 
-    Parameters
-    ----------
-    path: str
-        Path of file.
-    
-    Returns
-    -------
-    str
-        MD5 hash of file content, represented as a 32-digit hex string.
-    """
-    digest = None
-    with io.open(path, mode = mode) as fh:
-        digest = hashlib.md5(fh.read()).hexdigest()
-    return digest
-    
 def simpleaxis(ax):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.get_xaxis().tick_bottom()
     ax.get_yaxis().tick_left()
 
+
 def print_signatures(signatures):
-    a = None
+    # a = None
     maxlength = 40
-    a = sorted(range(len(signatures)),key=lambda i: -signatures[i].msfe)
+    a = sorted(range(len(signatures)), key=lambda i: -signatures[i].escore)
 
     for i in a:
         sig = signatures[i]
-        print sig.get_label(max_name_length=maxlength,include_pval=True)
+        print(sig.get_label(max_name_length=maxlength, include_pval=True))
+
 
 def get_centered(x):
     x = x.copy()
     x -= np.mean(x)
     return x
 
+
 def get_centered_matrix(X):
     return np.float64([get_centered(x) for x in X])
+
 
 def get_standardized(x):
     x = x.copy()
     x -= np.mean(x)
-    x /= np.std(x, ddof = 1)
+    x /= np.std(x, ddof=1)
     return x
+
 
 def get_standardized_matrix(X):
     return np.float64([get_standardized(x) for x in X])
 
-#def get_mean_standardized_(E):
+# def get_mean_standardized_(E):
 #   return np.mean(np.float64([get_standardized(e) for e in E]),axis=0)
 
-def get_signature_expression(genes, X, sig_genes, standardize = True):
+
+def get_signature_expression(genes, X, sig_genes, standardize=True):
     p_sig = len(sig_genes)
-    p,n = X.shape
-    S = np.zeros((p_sig,n),dtype=np.float64)
-    for i,g in enumerate(sig_genes):
+    p, n = X.shape
+    S = np.zeros((p_sig, n), dtype=np.float64)
+    for i, g in enumerate(sig_genes):
         idx = genes.index(g)
-        S[i,:] = X[idx,:]
-        S[i,:] -= np.mean(S[i,:])
+        S[i, :] = X[idx, :]
+        S[i, :] -= np.mean(S[i, :])
         if standardize:
-            S[i,:] /= np.std(S[i,:],ddof=1)
-    sig = np.mean(S, axis = 0)
+            S[i, :] /= np.std(S[i, :], ddof=1)
+    sig = np.mean(S, axis=0)
     return sig
 
-def get_signature_expression_robust(genes,E,sig_genes):
+
+def get_signature_expression_robust(genes, E, sig_genes):
     p_sig = len(sig_genes)
-    p,n = E.shape
-    S = np.zeros((p_sig,n),dtype=np.float64)
-    for i,g in enumerate(sig_genes):
-        idx = misc.bisect_index(genes,g)
-        S[i,:] = E[idx,:]
-        med = np.median(S[i,:])
-        mad = np.median(np.absolute(S[i,:]-med))
+    p, n = E.shape
+    S = np.zeros((p_sig, n), dtype=np.float64)
+    for i, g in enumerate(sig_genes):
+        idx = misc.bisect_index(genes, g)
+        S[i, :] = E[idx, :]
+        med = np.median(S[i, :])
+        mad = np.median(np.absolute(S[i, :] - med))
         std = 1.4826*mad
-        S[i,:] -= med
-        S[i,:] /= std
-    sig = np.mean(S,axis=0)
+        S[i, :] -= med
+        S[i, :] /= std
+    sig = np.mean(S, axis=0)
     return sig
+
 
 def get_median_pairwise_correlation(E):
     C = np.corrcoef(E)
     sel = np.triu_indices(C.shape[0], k=1)
     return np.median(C[sel])
 
+
 def get_signature_label(GO, sig, max_length=40):
-    count = ' (%d:%d/%d)' %(sig.pc,len(sig.genes),sig.K)
+    count = ' (%d:%d/%d)' % (sig.pc, len(sig.genes), sig.K)
     enr = sig.enr
-    return GO.terms[enr.term[0]].get_pretty_format(omit_acc=True,max_name_length=max_length) + count
+    return GO.terms[enr.term[0]].get_pretty_format(
+        omit_acc=True, max_name_length=max_length) + count
+
 
 def variance_filter(genes, E, top):
     # filter genes by variance
-    a = np.argsort(np.var(E,axis=1,ddof=1))[::-1]
+    a = np.argsort(np.var(E, axis=1, ddof=1))[::-1]
     n = E.shape[0]
-    sel = np.zeros(n,dtype=np.bool_)
+    sel = np.zeros(n, dtype=np.bool_)
     sel[a[:top]] = True
     sel = np.nonzero(sel)[0]
     genes = [genes[i] for i in sel]
-    E = E[sel,:]
-    return genes,E
+    E = E[sel, :]
+    return genes, E
+
+
+def get_sig_matrix_figure(
+        sig_matrix, max_name_length=50, include_id=False,
+        highlight_sig=None, highlight_source=None,
+        emin=-3.0, emax=3.0,
+        font_size=12, title_font_size=16,
+        margin_left=150, margin_bottom=50,
+        show_sample_labels=False,
+        matrix_kw=None, **kwargs):
+
+    # colorbar label
+    colorbar_label = kwargs.pop('colorbar_label', None)
+    if colorbar_label is None:
+        colorbar_label = 'Expression'
+
+    heatmap = sig_matrix.get_heatmap(
+        max_name_length=max_name_length,
+        include_id=include_id,
+        highlight_sig=highlight_sig,
+        highlight_source=highlight_source,
+        colorbar_label=colorbar_label,
+        matrix_kw=matrix_kw,
+    )
+
+    fig = heatmap.get_figure(
+        yaxis_label='Signatures',
+        emin=emin, emax=emax,
+        show_sample_labels=show_sample_labels,
+        font_size=font_size, title_font_size=title_font_size,
+        margin_left=margin_left, margin_bottom=margin_bottom,
+        **kwargs
+    )
+
+    return fig
+
+def get_sig_figure(
+        sig, sig_matrix=None,
+        include_pval=True,
+        emin=None, emax=None,
+        margin_left=70, margin_bottom=50, margin_top=50,
+        show_sample_labels=False,
+        matrix_kw=None, sig_matrix_kw=None,
+        **kwargs):
+
+    if matrix_kw is None:
+        matrix_kw = {}
+
+    if sig_matrix_kw is None:
+        sig_matrix_kw = {}
+
+    assert isinstance(matrix_kw, dict)
+    assert isinstance(sig_matrix_kw, dict)
+
+    # generate heatmap
+    heatmap = sig.get_heatmap(sig_matrix=sig_matrix, matrix_kw=matrix_kw,
+                              sig_matrix_kw=sig_matrix_kw)
+
+    title = sig.get_label(include_pval=include_pval)
+
+    yaxis_label = kwargs.pop('yaxis_label', 'Genes')
+
+    # generate figure
+    fig = heatmap.get_figure(
+        title=title, yaxis_label=yaxis_label,
+        emin=emin, emax=emax,
+        show_sample_labels=show_sample_labels,
+        margin_left=margin_left,
+        margin_bottom=margin_bottom, margin_top=margin_top,
+        **kwargs
+    )
+
+    return fig
 
 def read_gopca_result(path):
     """Read GO-PCA result from pickle."""
-    G = None
     with io.open(path, 'rb') as fh:
         G = pickle.load(fh)
     if isinstance(G, gopca.GOPCARun):
-        G = G.result
-    assert isinstance(G, gopca.GOPCAResult)
+        G = G.sig_matrix
+    assert isinstance(G, gopca.GOPCASignatureMatrix)
     return G
+
 
 def read_go_annotations(fn):
     ann = {}
@@ -265,6 +302,7 @@ def read_go_annotations(fn):
             ann[tuple(l[:4])] = l[4].split(',')
     return ann
 
+
 def cluster_rows(S, metric='correlation', method='average', reverse=False):
     distxy = squareform(pdist(S, metric=metric))
     R = dendrogram(linkage(distxy, method=method), no_plot=True)
@@ -273,31 +311,33 @@ def cluster_rows(S, metric='correlation', method='average', reverse=False):
         order_rows = order_rows[::-1]
     return order_rows
 
-def cluster_signatures(S, metric = 'correlation', method = 'average',
-        reverse = False):
+
+def cluster_signatures(S, metric='correlation', method='average',
+                       reverse=False):
     # hierarchical clustering of signatures
     order_rows = cluster_rows(S, metric, method, reverse)
     return order_rows
 
-#def cluster_samples(S, metric = 'euclidean', method = 'average',
-def cluster_samples(S, metric = 'correlation', method = 'average',
-        reverse = False):
+
+def cluster_samples(S, metric='correlation', method='average',
+                    reverse=False):
     order_cols = cluster_rows(S.T, metric, method, reverse)
     return order_cols
 
-def get_qvalues(pvals, pi_zero = 1.0):
+
+def get_qvalues(pvals, pi_zero=1.0):
     # implements storey-tibshirani procedure for calculating q-values
     n = pvals.size
-    qvals = np.empty(n,dtype=np.float64)
+    qvals = np.empty(n, dtype=np.float64)
 
     # start with largest p-value
-    a = np.argsort(pvals,kind='mergesort') # stable sort
+    a = np.argsort(pvals, kind='mergesort')  # stable sort
     a = a[::-1]
 
     s = 1
     q = 1.0
     for i in a:
-        q = min(((pi_zero * pvals[i])*n)/s , q)
+        q = min(((pi_zero*pvals[i])*n)/s, q)
         qvals[i] = q
         s += 1
 

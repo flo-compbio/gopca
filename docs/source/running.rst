@@ -2,7 +2,9 @@ Running *GO-PCA*
 ================
 
 This section describes the expression file format used by GO-PCA, and documents
-the ``go-pca.py`` command that is used to run GO-PCA.
+the ``go-pca.py`` command that is used to run GO-PCA. For information on how
+to provide the gene sets to GO-PCA, please see the previous section,
+`gene_sets`.
 
 The expression file format
 --------------------------
@@ -30,12 +32,12 @@ be performed based on the results of a single GO-PCA run, the GO-PCA workflow
 is organized as follows:
 
 1. GO-PCA is run using the command ``go-pca.py`` All results are
-   written to a binary *GO-PCA result file*.
+   written to a binary *result file*.
 
-2. A variety of commands can be used to `process <process>` the results in
-   various ways and to `generate visualizations <visualize>`. The scripts
-   behind these commands use the GO-PCA result file as *input* data. In this
-   way, GO-PCA does not need to be re-run for every operation.
+2. A variety of `command-line scripts <cli>` can be used to extract detailed
+   information about the signatures generated in different formats. These
+   scripts use the result file as *input* data. In this way, GO-PCA does not
+   need to be re-run for every operation.
 
 .. _go_pca:
 

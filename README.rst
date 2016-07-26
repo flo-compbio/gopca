@@ -1,5 +1,5 @@
 ..
-    Copyright (c) 2015 Florian Wagner
+    Copyright (c) 2015, 2016 Florian Wagner
     
     This file is part of GO-PCA.
     
@@ -18,7 +18,12 @@
 GO-PCA
 ======
 
-|docs-latest| |docs-develop|
+| |pypi| |versions| |license|
+
+===========  =================================================
+**latest**   |docs-latest|
+**develop**  |travis-develop| |codecov-develop| |docs-develop|
+===========  =================================================
 
 GO-PCA (`Wagner, 2015`__) is an unsupervised method to **explore gene
 expression data using prior knowledge**. This is a free and open-source
@@ -57,7 +62,7 @@ Support and Development
 - If you want to contribute code to GO-PCA, please `email`__ and/or create a
   pull request on GitHub.
 - For a list of the latest changes, please see the
-  `changelog <changelog.rst>`_.
+  `Changelog <CHANGELOG.rst>`_.
 
 __ github_issue_
 __ email_
@@ -93,6 +98,27 @@ Copyright (c) 2015, 2016 Florian Wagner
   
   You should have received a copy of the GNU General Public License
   along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+.. |pypi| image:: https://img.shields.io/pypi/v/gopca.svg
+    :target: https://pypi.python.org/pypi/gopca
+    :alt: PyPI version
+
+.. |versions| image:: https://img.shields.io/pypi/pyversions/gopca.svg
+    :target: https://pypi.python.org/pypi/gopca
+    :alt: Python versions supported
+
+.. |license| image:: https://img.shields.io/pypi/l/gopca.svg
+    :target: https://pypi.python.org/pypi/gopca
+    :alt: License
+
+.. |travis-develop| image:: https://travis-ci.org/flo-compbio/gopca.svg?branch=develop
+    :alt: Build Status (develop branch)
+    :scale: 100%
+    :target: https://travis-ci.org/flo-compbio/gopca
+
+.. |codecov-develop| image:: https://codecov.io/github/flo-compbio/gopca/coverage.svg?branch=develop
+    :alt: Coverage (develop branch)
+    :target: https://codecov.io/github/flo-compbio/gopca?branch=develop
 
 .. |docs-latest| image:: https://readthedocs.org/projects/gopca/badge/?version=latest
     :alt: Documentation Status (master branch)

@@ -3,38 +3,39 @@ Installation Instructions for Ubuntu Linux
 
 In a terminal window:
 
-1. Make sure you have Python 2.7 installed:
+1. Make sure you have Python 2.7.x or Python 3.5.x installed:
     
     .. code-block:: bash
         
-        $ python2.7 -V
-        Python 2.7.6
-    
+        $ python -V
+        Python 3.5.1
 
-    Ubuntu 14.04 (trusty) currently has Python version 2.7.6, but any Python 2.7 release should work.
+    Note: Ubuntu 12.04 (precise) and Ubuntu 14.04 (trusty) both come with
+    Python 2.7.x, and Ubuntu 16.04 (xenial) comes with Python 3.5.1.
+    Therefore, if you're running any of those Ubuntu versions, you should
+    already be good to go.
 
-2. Install GO-PCA dependencies: (pip, Cython, NumPy, scikit-learn, Matplotlib, and sphinx for building this documentation locally):
-    
-    .. code-block:: bash
-    
-        $ sudo apt-get install python-pip cython python-numpy python-matplotlib python-scikits-learn ipython ipython-notebook
-
-.. "3. Make sure the Ubuntu package python-sphinx is *not* installed:
-    
-    .. code-block:: bash
-    
-        $ sudo apt-get remove python-sphinx
-    
-    (The reason the package needs to be uninstalled is that it is an older version that conflicts with the version required by GO-PCA.)
-
-4. Install the xlmhg python package using pip:
-
-    .. code-block:: bash
-    
-        $ sudo pip install xlmhg
-
-5. Install GO-PCA using pip (including all remaining dependencies):
+2. Install GO-PCA using `pip`__, the Python package manager
     
     .. code-block:: bash
     
         $ sudo pip install gopca
+
+    Note: If you need to be able to install gopca without admin privileges,
+    look into `conda`__ (which you can get by installing `Miniconda`__) or
+    `virtualenv`__ (installable using pip). Both tools enable the creation of
+    local Python environments that allow packages to be installed without
+    admin privileges.
+
+__ pip_
+__ conda_
+__ miniconda_
+__ virtualenv_
+
+.. _pip: https://pip.pypa.io/en/stable/
+
+.. _conda: : http://conda.pydata.org/docs/
+
+.. _miniconda: : http://conda.pydata.org/miniconda.html
+
+.. _virtualenv: https://virtualenv.pypa.io/en/stable/

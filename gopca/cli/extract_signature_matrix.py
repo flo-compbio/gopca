@@ -1,6 +1,6 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
-# Copyright (c) 2015 Florian Wagner
+# Copyright (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -19,33 +19,46 @@
 """Script to extract the GO-PCA signature matrix as a tab-delimited text file.
 """
 
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from builtins import *
+
 import sys
-import argparse
+# import argparse
 import logging
 
-import numpy as np
-from scipy.spatial.distance import pdist, squareform
-from scipy.cluster.hierarchy import linkage, dendrogram
+# import numpy as np
+# from scipy.spatial.distance import pdist, squareform
+# from scipy.cluster.hierarchy import linkage, dendrogram
 
 from genometools import expression
 from genometools import misc
 from genometools.expression import ExpMatrix
+from genometools.expression import cluster
+
 from gopca import util
-from gopca import cli
+from gopca.cli import arguments
+
 
 def get_argument_parser():
 
     desc = 'Extract the GO-PCA signatures matrix as a tab-delimited text file.'
-    parser = cli.get_argument_parser(desc = desc)
+    parser = arguments.get_argument_parser(desc=desc)
 
-    cli.add_io_args(parser)
-    cli.add_signature_args(parser)
-    cli.add_sample_args(parser)
-    cli.add_reporting_args(parser)
+    arguments.add_io_args(parser)
+    arguments.add_signature_args(parser)
+    arguments.add_sample_args(parser)
+    arguments.add_reporting_args(parser)
 
     return parser
 
-def main(args = None):
+
+def main(args=None):
+
+    vinfo = sys.version_info
+    if not (vinfo >= (2, 7)):
+        raise SystemError('Python interpreter version >= 2.7 required, '
+                          'found %d.%d instead.' % (vinfo.major, vinfo.minor))
 
     if args is None:
         parser = get_argument_parser()
@@ -65,37 +78,32 @@ def main(args = None):
     quiet = args.quiet
     verbose = args.verbose
 
-    logger = misc.get_logger(log_file = log_file, quiet = quiet,
-            verbose = verbose)
+    logger = misc.get_logger(log_file=log_file, quiet=quiet,
+                             verbose=verbose)
 
-    G = util.read_gopca_result(gopca_file)
+    result = util.read_gopca_result(gopca_file)
     
-    signatures = G.signatures
-    labels = [sig.get_label(include_id=False) for sig in signatures]
-    samples = list(G.samples)
-    S = G.S
+    signatures = result.signatures
+    sig_labels = [sig.get_label(max_name_length=sig_max_len, include_id=False)
+                  for sig in signatures]
+    samples = list(result.samples)
 
-    # clustering of rows (signatures)
-    order_rows = util.cluster_signatures(S, reverse = sig_reverse_order)
-    S = S[order_rows,:]
-    labels = [labels[idx] for idx in order_rows]
+    # generate expression matrix
+    E = ExpMatrix(genes=sig_labels, samples=samples, X=result.S)
+
+    # clustering of signatures (rows)
+    E, _ = cluster.cluster_genes(E, reverse=sig_reverse_order)
 
     if not sample_no_clustering:
-        # clustering of columns (samples)
-        #distxy = squareform(pdist(S.T, metric='euclidean'))
-        distxy = squareform(pdist(S.T, metric = sample_cluster_metric))
-        R = dendrogram(linkage(distxy, method='average'), no_plot=True)
-        order_cols = np.int64([int(l) for l in R['ivl']])
-        S = S[:,order_cols]
-        samples = [samples[j] for j in order_cols]
+        # clustering of samples (columns)
+        E, _ = cluster.cluster_samples(E, metric=sample_cluster_metric)
 
     exp_logger = logging.getLogger(expression.__name__)
-    exp = ExpMatrix(labels, samples, S)
     exp_logger.setLevel(logging.WARNING)
-    exp.write_tsv(output_file)
+    E.write_tsv(output_file)
     exp_logger.setLevel(logging.NOTSET)
-    logger.info('Wrote matrix with %d signatures and %d samples to "%s".',
-            len(signatures), len(samples), output_file)
+    logger.info('Wrote %d x %d signature matrix to "%s".',
+                E.p, E.n, output_file)
 
     return 0
 

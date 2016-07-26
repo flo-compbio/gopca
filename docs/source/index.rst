@@ -23,13 +23,13 @@ Contents
 
 .. toctree::
     :maxdepth: 2
+    :includehidden:
 
     Introduction <intro>
     Installation <install>
     Obtaining Gene Sets <gene_sets>
     running
-    process
-    visualize
+    The GO-PCA Python API <api/index>
     Citing GO-PCA <citing>
     License <license>
 
