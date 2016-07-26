@@ -100,7 +100,7 @@ author = u'Florian Wagner'
 # The short X.Y version.
 version = text(
     '.'.join(
-        [n for n in pkg_resources.parse_version(gopca.version)
+        [str(n) for n in pkg_resources.parse_version(gopca.version)
             ._version.release]))
 # The full version, including alpha/beta/rc tags.
 release = gopca.version
