@@ -543,7 +543,7 @@ class GOPCA(object):
         t1 = time.time()
         exec_time = t1 - t0
         logger.info('This GO-PCA run took %.2f s.', exec_time)
-        run = GOPCARun(gopca.__version__, timestamp,
+        run = GOPCARun(gopca.version, timestamp,
                        self.config, config,
                        expression_hash, gene_sets_hash, ontology_hash,
                        matrix.genes, matrix.samples, W, Y,
