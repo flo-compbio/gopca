@@ -8,12 +8,12 @@ In a terminal window:
     .. code-block:: bash
         
         $ python -V
-        Python 3.5.2
-    
+        Python 3.5.1
 
-    Note: Ubuntu 14.04 (trusty) comes with Python version 2.7.6, and
-    Ubuntu 16.06 (xenial) comes with Python 3.5.1, so in both cases, you're
-    already good to go.
+    Note: Ubuntu 12.04 (precise) and Ubuntu 14.04 (trusty) both come with
+    Python 2.7.x, and Ubuntu 16.04 (xenial) comes with Python 3.5.1.
+    Therefore, if you're running any of those Ubuntu versions, you should
+    already be good to go.
 
 2. Install GO-PCA using `pip`__, the Python package manager
     
@@ -21,15 +21,19 @@ In a terminal window:
     
         $ sudo pip install gopca
 
-   Note: If you need to be able to install gopca without admin privileges,
-   look into `conda`__ (which you can get by installnig `Miniconda`__) or
-   `virtualenv`__ (installable using pip). Both tools allow the creation of
-   local Python environments that allow packages to be installed without
-   admin privileges.
+    Note: If you need to be able to install gopca without admin privileges,
+    look into `conda`__ (which you can get by installing `Miniconda`__) or
+    `virtualenv`__ (installable using pip). Both tools allow the creation of
+    local Python environments that allow packages to be installed without
+    admin privileges.
 
+
+__ pip_
 __ conda_
 __ miniconda_
 __ virtualenv_
+
+.. _pip: https://pip.pypa.io/en/stable/
 
 .. _conda: : http://conda.pydata.org/docs/
 
