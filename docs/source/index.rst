@@ -29,7 +29,7 @@ Contents
     Installation <install>
     Obtaining Gene Sets <gene_sets>
     running
-    The GO-PCA Python API<api/index>
+    The GO-PCA Python API <api/index>
     Citing GO-PCA <citing>
     License <license>
 

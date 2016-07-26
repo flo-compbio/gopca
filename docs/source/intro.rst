@@ -34,22 +34,21 @@ __ go_pca_paper_
 Key features
 ------------
 
-GO-PCA is implemented in Python, a `high-level programming language`__ that
+GO-PCA is implemented in `Python`__, a high-level programming language that
 is widely used in both scientific and non-scientific settings. The key features
 of GO-PCA are:
 
 - Accessibility and transparency: GO-PCA is `free and open-source software`__.
-- Cross-platform compatibility: GO-PCA can be easily
-  `installed <install>` on Windows, OS X, and Linux, and runs under both
-  Python 2.7.x and 3.5.x.
-- Simple command-line interface: GO-PCA can be
-  run directly from the command-line (`go-pca.py`), and command-line
-  scripts can be used to generate output files containing the signatures
-  created in tab-separated text (\*.tsv) or Excel spreadsheet (\*.xlsx) format.
-- Powerful Python API (documentation forthcoming): The GO-PCA Python API
-  can be used to create high-quality figures displaying the signature matrix
-  or individual matrices in detail. This API in turn relies on the powerful
-  and open-source `plotly`__ plotting library.
+- Cross-platform compatibility: GO-PCA can be `easily installed <install>`
+  on Windows, OS X, and Linux, and runs under both Python 2.7.x and 3.5.x.
+- Simple command-line interface: GO-PCA can be run directly from the
+  command-line (`go-pca.py`), and command-line scripts can be used to
+  generate output files containing the signatures created in tab-separated
+  text (\*.tsv) or Excel spreadsheet (\*.xlsx) format.
+- A `powerful Python API <api/index>` (more documentation forthcoming): The
+  GO-PCA Python API can be used to create high-quality figures displaying the
+  signature matrix or individual matrices in detail. This API in turn relies
+  on the powerful and open-source `plotly`__ plotting library.
 - Speed: GO-PCA takes about 60 seconds to run on the ``DMAP`` dataset,
   consisting  of ~8,000 genes and ~200 samples. The most computationally
   intensive part of GO-PCA (GO enrichment analysis using the XL-mHG test)
