@@ -45,7 +45,7 @@ of GO-PCA are:
 - Simple command-line interface: GO-PCA can be
   run directly from the command-line (`go-pca.py`), and command-line
   scripts can be used to generate output files containing the signatures
-  created in tab-separated text (*.tsv) or Excel spreadsheet (*.xlsx) format.
+  created in tab-separated text (\*.tsv) or Excel spreadsheet (\*.xlsx) format.
 - Powerful Python API (documentation forthcoming): The GO-PCA Python API
   can be used to create high-quality figures displaying the signature matrix
   or individual matrices in detail. This API in turn relies on the powerful
