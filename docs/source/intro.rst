@@ -34,7 +34,7 @@ __ go_pca_paper_
 Key features
 ------------
 
-GO-PCA is implemented in Python 2.7, a `high-level programming language`__ that
+GO-PCA is implemented in Python, a `high-level programming language`__ that
 is widely used in both scientific and non-scientific settings. The key features
 of GO-PCA are:
 
