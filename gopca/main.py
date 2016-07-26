@@ -38,10 +38,10 @@ import sys
 import textwrap
 import logging
 
+import genometools
 from genometools.expression import ExpMatrix
 from genometools.basic import GeneSetDB
-import goparser
-from goparser import GOParser
+from genometools.ontology import GeneOntology
 from gopca import util
 from gopca.cli import arguments
 from gopca import GOPCAParams, GOPCA
@@ -313,16 +313,16 @@ def main(args=None):
     gene_sets = GeneSetDB.read_tsv(args.gene_set_file)
     
     # read ontology file (if supplied)
-    go_parser = None
+    gene_ontology = None
     if args.gene_ontology_file is not None:
-        p_logger = logging.getLogger(goparser.__name__)
+        p_logger = logging.getLogger(genometools.__name__)
         p_logger.setLevel(logging.ERROR)
-        go_parser = GOParser()
-        go_parser.parse_ontology(args.gene_ontology_file,
+        gene_ontology = GeneOntology()
+        gene_ontology.read_obo(args.gene_ontology_file,
                                  part_of_cc_only=config.go_part_of_cc_only)
         p_logger.setLevel(logging.NOTSET)
         
-    M = GOPCA(config, gene_sets, go_parser)
+    M = GOPCA(config, gene_sets, gene_ontology)
     run = M.run(E)
 
     if run is None:
