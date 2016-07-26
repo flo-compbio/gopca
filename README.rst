@@ -21,7 +21,7 @@ GO-PCA
 | |pypi| |versions| |license|
 
 ===========  =================================================
-**latest**   |docs-latest|
+**latest**   |travis-latest| |codecov-latest| |docs-latest|
 **develop**  |travis-develop| |codecov-develop| |docs-develop|
 ===========  =================================================
 
@@ -111,10 +111,19 @@ Copyright (c) 2015, 2016 Florian Wagner
     :target: https://pypi.python.org/pypi/gopca
     :alt: License
 
+.. |travis-latest| image:: https://travis-ci.org/flo-compbio/gopca.svg?branch=master
+    :alt: Build Status (master branch)
+    :scale: 100%
+    :target: https://travis-ci.org/flo-compbio/gopca
+
 .. |travis-develop| image:: https://travis-ci.org/flo-compbio/gopca.svg?branch=develop
     :alt: Build Status (develop branch)
     :scale: 100%
     :target: https://travis-ci.org/flo-compbio/gopca
+
+.. |codecov-latest| image:: https://codecov.io/github/flo-compbio/gopca/coverage.svg?branch=master
+    :alt: Coverage (master branch)
+    :target: https://codecov.io/github/flo-compbio/gopca?branch=master
 
 .. |codecov-develop| image:: https://codecov.io/github/flo-compbio/gopca/coverage.svg?branch=develop
     :alt: Coverage (develop branch)
@@ -123,10 +132,10 @@ Copyright (c) 2015, 2016 Florian Wagner
 .. |docs-latest| image:: https://readthedocs.org/projects/gopca/badge/?version=latest
     :alt: Documentation Status (master branch)
     :scale: 100%
-    :target: https://gopca.readthedocs.org/en/latest/?badge=latest
+    :target: https://gopca.readthedocs.org/en/latest
 
 .. |docs-develop| image:: https://readthedocs.org/projects/gopca/badge/?version=develop
     :alt: Documentation Status (develop branch)
     :scale: 100%
-    :target: https://gopca.readthedocs.org/en/develop/?badge=develop
+    :target: https://gopca.readthedocs.org/en/develop
 

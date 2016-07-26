@@ -19,17 +19,20 @@
 Changelog
 =========
 
+Version 1.2.0 (2016-07-26)
+--------------------------
 
-Version 1.2 (work in progress)
-------------------------------
-
-- Full Python 3.5 support
+- Full Python 3.5 support (on top of Python 2.7)
+- New Python API for running GO-PCA, accessing results and generating figures
 - Integrated code with genometools 2.0
 - Cleaned up code
-- Full Python API
-- Uses plotly as plotting backend (dropped matplotlib)
-- Reorganized internal folder structure (combined all command-line scripts in
-  one folder)
+- Added tests (using py.test)
+- Switched to plotly as plotting backend (dropped matplotlib)
+
+1.2.1 (2016-07-26)
+~~~~~~~~~~~~~~~~~~
+
+- Updated changelog, fix version number in documentation
 
 Version 1.1.3 (2016-02-23)
 --------------------------
