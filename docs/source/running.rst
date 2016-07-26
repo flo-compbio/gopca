@@ -4,7 +4,7 @@ Running *GO-PCA*
 This section describes the expression file format used by GO-PCA, and documents
 the ``go-pca.py`` command that is used to run GO-PCA. For information on how
 to provide the gene sets to GO-PCA, please see the previous section,
-`<gene_sets>`.
+`gene_sets`.
 
 The expression file format
 --------------------------
