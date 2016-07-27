@@ -16,11 +16,9 @@
 
 from __future__ import print_function
 
-# import sys
+import sys
 import os
 import io
-
-import six
 
 from setuptools import setup, find_packages
 from os import path
@@ -40,7 +38,9 @@ install_requires = [
     'xlsxwriter >= 0.7.7, < 1',
 ]
 
-if six.PY2:
+if sys.version_info < (3, 0):
+    # We're running Python 2.x
+    # => install the Python 3 configparser backport
     install_requires.append(
         'configparser >= 3.2, < 4',
     )
@@ -61,7 +61,7 @@ if 'READTHEDOCS' not in os.environ:
 setup(
     name='gopca',
 
-    version='1.2.2',
+    version='1.2.3',
 
     description=description,
     long_description=long_description,
