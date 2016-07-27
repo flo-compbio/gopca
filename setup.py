@@ -33,10 +33,6 @@ description = ('GO-PCA: An Unsupervised Method to Explore Gene Expression '
 with io.open(path.join(here, 'README.rst'), encoding='UTF-8') as fh:
     long_description = fh.read()
 
-setup_requires = [
-    'six >= 1.10.0, < 2',
-]
-
 install_requires = [
     'future >= 0.15.2, < 1',
     'six >= 1.10.0, < 2',
@@ -65,7 +61,7 @@ if 'READTHEDOCS' not in os.environ:
 setup(
     name='gopca',
 
-    version='1.2.1',
+    version='1.2.2',
 
     description=description,
     long_description=long_description,
@@ -99,8 +95,6 @@ setup(
     packages=find_packages(exclude=['docs', 'tests*']),
 
     # libraries = [],
-
-    setup_requires=setup_requires,
 
     install_requires=install_requires,
 
