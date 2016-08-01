@@ -53,7 +53,7 @@ class GOPCASignatureMatrix(object):
     ----------
     signatures: Iterable of `GOPCASignature`
         The signatures generated.
-    samples: Iterable
+    samples: Iterable of str
         The samples in the analysis.
     """
     def __init__(self, signatures, samples):
@@ -64,6 +64,11 @@ class GOPCASignatureMatrix(object):
 
         self.signatures = list(signatures)
         self.samples = list(samples)
+
+        for sig in self.signatures:
+            assert isinstance(sig, GOPCASignature)
+        for s in self.samples:
+            assert isinstance(s, str)
 
     # magic functions
     def __repr__(self):

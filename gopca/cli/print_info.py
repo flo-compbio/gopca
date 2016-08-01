@@ -107,7 +107,7 @@ def main(args=None):
     if run is not None:
         print('GO-PCA Run')
         print('----------')
-        print('- GO-PCA version: %s' % run.version)
+        print('- GO-PCA version: %s' % run.gopca_version)
         print('- Timestamp: %s' % run.timestamp)
         print('- Exec. time: %.1f s' % run.exec_time)
 

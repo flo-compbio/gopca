@@ -24,11 +24,11 @@ import os
 
 import pytest
 
-import requests
-import shutil
+# import requests
+# import shutil
 
 from genometools.expression import ExpMatrix
-from genometools.basic import GeneSetDB
+from genometools.basic import GeneSetCollection
 
 from gopca import *
 
@@ -51,17 +51,13 @@ def test_download(my_expression_file, my_gene_ontology_file,
     # gene set file
     print(my_fly_gene_set_file)
     assert os.path.isfile(my_fly_gene_set_file)
-    gene_sets = GeneSetDB.read_tsv(my_fly_gene_set_file)
-    assert isinstance(gene_sets, GeneSetDB)
+    gene_sets = GeneSetCollection.read_tsv(my_fly_gene_set_file)
+    assert isinstance(gene_sets, GeneSetCollection)
     assert gene_sets.hash == '78b4b27e9658560a8e5993154d3228fa'
 
 
 def test_run(my_gopca_run):
     assert isinstance(my_gopca_run, GOPCARun)
-
-    final_config = my_gopca_run.final_config
-    assert isinstance(final_config, GOPCAParams)
-    assert final_config.params['n_components'] == 5
 
     sig_matrix = my_gopca_run.sig_matrix
     assert isinstance(sig_matrix, GOPCASignatureMatrix)

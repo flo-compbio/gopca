@@ -20,27 +20,37 @@ from __future__ import (absolute_import, division,
 # from builtins import open
 from builtins import str as text
 
+from copy import deepcopy
+
 import pytest
 
 from plotly import graph_objs as go
 
 from genometools.expression.visualize import ExpHeatmap
+from gopca import GOPCASignatureMatrix
 
-def test_heatmap(my_gopca_sig_matrix):
-    sig_matrix = my_gopca_sig_matrix
-    sig1 = sig_matrix.get_signature('regulation of os')
-    sig2 = sig_matrix.get_signature('body morpho')
-    sig3 = sig_matrix.get_signature('cell fate')
-    sig4 = sig_matrix.get_signature('DNA amplification')
-    sig5 = sig_matrix.get_signature('Notch')
-    sig6 = sig_matrix.get_signature('P granule')
-    sig7 = sig_matrix.get_signature('photoreceptor')
+def test_basic(my_sig_matrix):
+    assert isinstance(my_sig_matrix, GOPCASignatureMatrix)
+    assert isinstance(repr(my_sig_matrix), str)
+    assert isinstance(str(my_sig_matrix), str)
+    assert isinstance(text(my_sig_matrix), text)
+    assert isinstance(my_sig_matrix.hash, text)
+
+    other = deepcopy(my_sig_matrix)
+    assert other is not my_sig_matrix
+    assert other == my_sig_matrix
+    other.signatures = other.signatures[:-1]
+    assert other != my_sig_matrix
+
+
+def test_heatmap(my_sig_matrix, my_signature):
+    sig_matrix = my_sig_matrix
+    sig1 = sig_matrix.get_signature(my_signature.gene_set.name)
 
     hl_col = 'blue'
 
     heatmap = sig_matrix.get_heatmap(
-        highlight_sig={sig1: hl_col, sig2: hl_col, sig3: hl_col, sig4: hl_col,
-                       sig5: hl_col, sig6: hl_col, sig7: hl_col},
+        highlight_sig={sig1: hl_col},
         colorbar_label=r'Median-centered expression (log<sub>2</sub>-RPKM)',
         matrix_kw={'cluster_samples': False},
     )

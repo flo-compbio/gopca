@@ -32,12 +32,6 @@ else:
     import pickle
 
 
-@pytest.fixture
-def my_params():
-    params = GOPCAParams()
-    return params
-
-
 def test_basic(my_params):
     assert isinstance(my_params, GOPCAParams)
     assert isinstance(repr(my_params), str)
@@ -48,7 +42,7 @@ def test_basic(my_params):
     other = deepcopy(my_params)
     assert other is not my_params
     assert other == my_params
-    other.sel_var_genes = 1001
+    other.mHG_min = 7
     assert other != my_params
 
     params = my_params.params

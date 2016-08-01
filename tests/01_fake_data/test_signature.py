@@ -30,68 +30,8 @@ from genometools.expression import ExpMatrix
 from genometools.enrichment import RankBasedGSEResult
 from genometools.expression.visualize import ExpHeatmap
 
-from xlmhg import get_xlmhg_test_result
 from gopca import GOPCASignature
 
-
-@pytest.fixture
-def my_ranked_genes():
-    genes = ['a', 'c', 'd', 'f', 's']
-    return genes
-
-@pytest.fixture
-def my_gene_set(my_ranked_genes):
-    gene_set = GeneSet('TestID', 'TestName', my_ranked_genes)
-    return gene_set
-
-@pytest.fixture
-def my_samples():
-    samples = ['s1', 's2', 's3']
-    return samples
-
-@pytest.fixture
-def my_v():
-    v = np.uint8([1, 0, 1, 1, 0, 1] + [0] * 12 + [1, 0])
-    return v
-
-@pytest.fixture
-def my_mhg_result(my_v):
-    indices = np.uint16(np.nonzero(my_v)[0])
-    N = my_v.size
-    X = 1
-    L = N
-    mhg_result = get_xlmhg_test_result(N, indices, X, L)
-    return mhg_result
-
-@pytest.fixture
-def my_sig_genes(my_ranked_genes, my_mhg_result):
-    return my_ranked_genes[:my_mhg_result.k]
-
-@pytest.fixture
-def my_pc():
-    return 1
-
-@pytest.fixture
-def my_gse_result(my_gene_set, my_mhg_result, my_ranked_genes):
-    res = my_mhg_result
-    gse_result = RankBasedGSEResult(my_gene_set, res.N, res.indices,
-                                    my_ranked_genes,
-                                    res.X, res.L, res.stat, res.cutoff,
-                                    res.pval)
-    return gse_result
-
-@pytest.fixture
-def my_matrix(my_sig_genes, my_samples):
-    p = len(my_sig_genes)
-    n = len(my_samples)
-    X = np.arange(p*n).reshape(p, n)
-    matrix = ExpMatrix(genes=my_sig_genes, samples=my_samples, X=X)
-    return matrix
-
-@pytest.fixture
-def my_signature(my_pc, my_gse_result, my_matrix):
-    signature = GOPCASignature(my_pc, my_gse_result, my_matrix)
-    return signature
 
 def test_basic(my_signature):
     assert isinstance(my_signature, GOPCASignature)
@@ -113,8 +53,8 @@ def test_label(my_signature):
                                    include_coll=True)
     assert isinstance(label, text)
 
-def test_heatmap(my_gopca_signature):
-    heatmap = my_gopca_signature.get_heatmap(
+def test_heatmap(my_signature):
+    heatmap = my_signature.get_heatmap(
         sig_matrix_kw={'cluster_samples': False},
         colorbar_label=r'Median-centered expression (log<sub>2</sub>-RPKM)',
     )

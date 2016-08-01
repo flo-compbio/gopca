@@ -30,7 +30,6 @@ import hashlib
 import logging
 # from collections import Iterable
 
-from pkg_resources import parse_version
 import six
 import unicodecsv as csv
 
@@ -85,35 +84,6 @@ def get_logger(name='', log_stream=sys.stdout, log_file=None,
     return new_logger
 
 
-def get_pc_explained_variance_threshold(E, z, t, seed):
-    # RandomizedPCA does not work in Scikit-learn 0.14.1,
-    # but it works in Scikit-learn 0.16.1
-    if parse_version(sklearn.__version__) >= parse_version('0.16.1'):
-        from sklearn.decomposition import RandomizedPCA as PCA
-    else:
-        from sklearn.decomposition import PCA
-
-    # initialize random number generator
-    np.random.seed(seed)
-
-    # do permutations
-    p, n = E.shape
-    d_max_null = np.empty(t, dtype=np.float64)
-    E_perm = np.empty((p, n), dtype=np.float64)
-    M_null = PCA(n_components=1)
-    for j in range(t):
-        for i in range(p):
-            E_perm[i, :] = E[i, np.random.permutation(n)]
-
-        M_null.fit(E_perm.T)
-        d_max_null[j] = M_null.explained_variance_ratio_[0]
-
-    # calculate z-score threshold
-    mean_null = np.mean(d_max_null)
-    std_null = np.std(d_max_null, ddof=1)
-    thresh = mean_null + z*std_null
-
-    return thresh
 
 
 def simpleaxis(ax):

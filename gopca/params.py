@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""Module containing the GOPCAParams class.
+"""Module containing the `GOPCAParams` class.
 
 """
 
@@ -38,12 +38,14 @@ logger = logging.getLogger(__name__)
 
 
 class GOPCAParams(object):
-    """GO-PCA configuration data.
+    """A complete specification of GO-PCA parameters.
 
-    GO-PCA configuration data consists of the GO-PCA parameter values,
-    excluding the input and output files.
+    The `GOPCAConfig` class represents a complete set of inputs to the
+    GO-PCA algorithm, consisting of parameters settings (represented by this
+    class) and gene sets (optionally including ontology data; represented by
+    the `GOPCAGeneSets` class).
 
-    GO-PCA parameters can be specified upon class instantiation, or at a later
+    Parameter values can be specified upon class instantiation, or at a later
     time --- using the `set_param` and `set_params` functions. Parameters are
     exposed as virtual class attributes (using the `__getattr__` magic).
 
@@ -56,10 +58,7 @@ class GOPCAParams(object):
         Dictionary containing GO-PCA parameter values.
     """
     __param_defaults = OrderedDict([
-        ('sel_var_genes', 0),  # do not apply variance filter
-        ('n_components', -1),  # determine # PCs using permutation test
         ('pval_thresh', 1e-6),
-        ('sig_corr_thresh', 0.5),
         ('mHG_X_frac', 0.25),
         ('mHG_X_min', 5),
         ('mHG_L', -1),  # will be set to p / 8, where p is # genes
@@ -67,10 +66,7 @@ class GOPCAParams(object):
         ('escore_thresh', 2.0),
         ('no_local_filter', False),
         ('no_global_filter', False),
-        ('pc_seed', 0),
-        ('pc_permutations', 15), 
-        ('pc_zscore_thresh', 2.0),
-        ('pc_max', 0),  # no limit on number of PCs to test
+        ('sig_corr_thresh', 0.5),
         ('go_part_of_cc_only', False),
     ])
     """GO-PCA parameter default values."""
@@ -119,7 +115,7 @@ class GOPCAParams(object):
     def __setitem__(self, key, value):
         if key not in self.__param_defaults:
             raise AttributeError('There is no GO-PCA parameter named "%s"!'
-                                 % name)
+                                 % key)
         self.__params[key] = value
 
     def __repr__(self):
@@ -278,12 +274,6 @@ class GOPCAParams(object):
                 passed[0] = False
 
         # check types and ranges of GO-PCA parameters
-        check_type('n_components', int)
-        check_range('n_components', -1)
-
-        check_type('sel_var_genes', int)
-        check_range('sel_var_genes', 0)
-
         check_type('mHG_X_frac', (int, float))
         check_range('mHG_X_frac', 0, 1)
 
@@ -301,18 +291,6 @@ class GOPCAParams(object):
 
         check_type('escore_thresh', (int, float))
         check_range('escore_thresh', 0)
-
-        if self.n_components == -1:
-            check_type('pc_seed', int)
-            check_range('pc_seed', -1, np.iinfo(np.uint32).max)
-
-            check_type('pc_permutations', int)
-            check_range('pc_permutations', 0, left_open=True)
-
-            check_type('pc_zscore_thresh', (int, float))
-
-            check_type('pc_max', int)
-            check_range('pc_max', 0, np.iinfo(np.uint32).max)
 
         # check(isinstance(self.go_part_of_cc_only, bool))
         return passed[0]
