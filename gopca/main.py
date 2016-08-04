@@ -311,6 +311,7 @@ def main(args=None):
     
     # read gene set file
     gene_sets = GeneSetDB.read_tsv(args.gene_set_file)
+    print(args.gene_set_file, gene_sets)
     
     # read ontology file (if supplied)
     gene_ontology = None
@@ -322,8 +323,8 @@ def main(args=None):
                                  part_of_cc_only=config.go_part_of_cc_only)
         p_logger.setLevel(logging.NOTSET)
         
-    M = GOPCA(config, gene_sets, gene_ontology)
-    run = M.run(E)
+    M = GOPCA(config, E, gene_sets, gene_ontology)
+    run = M.run()
 
     if run is None:
         logger.error('GO-PCA run failed!')

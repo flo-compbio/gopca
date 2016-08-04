@@ -34,6 +34,12 @@ Version 1.2.0 (2016-07-26)
 
 - Updated changelog, fix version number in documentation
 
+1.2.4 (2016-07-26)
+~~~~~~~~~~~~~~~~~~
+
+- Fixed bug that made it impossible to run GO-PCA from the command line
+  (`go-pca.py`)
+
 Version 1.1.3 (2016-02-23)
 --------------------------
 
