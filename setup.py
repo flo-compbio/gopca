@@ -108,10 +108,11 @@ setup(
         'tests': [
             'pytest >= 2.9.1, < 3',
             'pytest-cov >= 2.2.1, < 3',
+            'requests>=2.10.0, <3',
         ],
     },
 
-    # tests_require=[],
+    # tests_require=[]
 
     # data
     # package_data={},
