@@ -54,14 +54,14 @@ if 'READTHEDOCS' not in os.environ:
         'scipy >= 0.14, < 1',
         'scikit-learn >= 0.14, < 1',
         'plotly >= 1.9.6, < 2',
-        'genometools >= 2.0rc6',
+        'genometools == 2.0rc6',
         'xlmhg >= 2.0.6, < 3',
     ])
 
 setup(
     name='gopca',
 
-    version='1.2.4',
+    version='1.2.5',
 
     description=description,
     long_description=long_description,

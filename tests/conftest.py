@@ -50,6 +50,10 @@ def my_data_pypath(tmpdir_factory):
     pypath = tmpdir_factory.mktemp('gopca_data', numbered=False)
     return pypath
 
+@pytest.fixture(scope='session')
+def my_output_pypath(tmpdir_factory):
+    pypath = tmpdir_factory.mktemp('gopca_output', numbered=False)
+    return pypath
 
 @pytest.fixture(scope='session')
 def my_expression_file(my_data_pypath):

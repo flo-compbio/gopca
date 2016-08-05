@@ -318,9 +318,9 @@ def main(args=None):
     if args.gene_ontology_file is not None:
         p_logger = logging.getLogger(genometools.__name__)
         p_logger.setLevel(logging.ERROR)
-        gene_ontology = GeneOntology()
-        gene_ontology.read_obo(args.gene_ontology_file,
-                                 part_of_cc_only=config.go_part_of_cc_only)
+        gene_ontology = GeneOntology.read_obo(
+            args.gene_ontology_file,
+            part_of_cc_only=config.go_part_of_cc_only)
         p_logger.setLevel(logging.NOTSET)
         
     M = GOPCA(config, E, gene_sets, gene_ontology)
