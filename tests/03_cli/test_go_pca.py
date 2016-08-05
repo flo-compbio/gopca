@@ -32,20 +32,18 @@ def my_output_file(my_output_pypath):
 def is_writable(path):
     try:
         with open(path, 'a'):
-            os.utime(path, None)
+            pass
     except:
         return False
     return True
-
-
-def test_output_writable(my_output_pypath):
-    assert is_writable(text(my_output_pypath.join('test.txt')))
 
 
 def test_script(my_expression_file,
                 my_fly_gene_set_file,
                 my_gene_ontology_file,
                 my_output_file):
+
+    assert is_writable(my_output_file)
 
     p = subproc.Popen(
         'go-pca.py -o %s -e %s -s %s -t %s -D 5'
