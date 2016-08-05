@@ -22,11 +22,25 @@ from builtins import str as text
 
 import pytest
 
+import os
 import subprocess as subproc
 
 @pytest.fixture(scope='session')
 def my_output_file(my_output_pypath):
     return text(my_output_pypath.join('command-line_output.pickle'))
+
+def is_writable(path):
+    try:
+        with open(path, 'a'):
+            os.utime(path, None)
+    except:
+        return False
+    return True
+
+
+def test_output_writable(my_output_pypath):
+    assert is_writable(text(my_output_pypath.join('test.txt')))
+
 
 def test_script(my_expression_file,
                 my_fly_gene_set_file,
@@ -38,5 +52,6 @@ def test_script(my_expression_file,
         % (my_output_file, my_expression_file, my_fly_gene_set_file,
            my_gene_ontology_file),
         shell=True, stdout=subproc.PIPE, stderr=subproc.PIPE)
+
     stdout, stderr = p.communicate()
     assert p.returncode == 0  # no errors
