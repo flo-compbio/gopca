@@ -54,4 +54,11 @@ def test_script(my_expression_file,
         shell=True, stdout=subproc.PIPE, stderr=subproc.PIPE)
 
     stdout, stderr = p.communicate()
+    #print('Stdout:')
+    #for l in stdout.decode('utf-8').split('\n'):
+    #    print(l)
+    #print()
+    print('Stderr:')
+    for l in stderr.decode('utf-8').split('\n'):
+        print(l)
     assert p.returncode == 0  # no errors
