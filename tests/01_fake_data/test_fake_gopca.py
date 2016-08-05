@@ -37,6 +37,7 @@ def test_basic(my_gopca):
 
     # test members
     assert isinstance(my_gopca.configs, list)
+    assert len(my_gopca.configs) > 0
     for config in my_gopca.configs:
         assert isinstance(config, GOPCAConfig)
     assert isinstance(my_gopca.matrix, ExpMatrix)
@@ -57,5 +58,5 @@ def test_basic(my_gopca):
 def test_simple_init(my_gopca):
     config = my_gopca.configs[0]
     other = GOPCA.simple_init(my_gopca.matrix,
-                              config.params, config.gene_sets,
+                              config.user_params, config.gene_sets,
                               config.gene_ontology)

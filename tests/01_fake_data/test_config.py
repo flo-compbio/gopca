@@ -41,10 +41,10 @@ def test_basic(my_config):
     assert isinstance(my_config.hash, text)
 
     # test members
-    assert isinstance(my_config.params, GOPCAParams)
+    assert isinstance(my_config.user_params, GOPCAParams)
     assert isinstance(my_config.gene_sets, GeneSetCollection)
     assert isinstance(my_config.gene_ontology, type(None))
-    assert isinstance(my_config.final_params, type(None))
+    assert isinstance(my_config.params, type(None))
 
     # test copying
     other = deepcopy(my_config)

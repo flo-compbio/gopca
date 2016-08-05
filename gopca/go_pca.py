@@ -508,11 +508,11 @@ class GOPCA(object):
         ### Phase 1: Make sure all configurations are valid
         all_configs_valid = True
         for config in self.configs:
-            if not config.params.check_params():
+            if not config.user_params.check_params():
                 # problems with the configuration
                 all_configs_valid = False
             config.finalize_params(self.matrix.p)
-            if not config.final_params.check_params():
+            if not config.params.check_params():
                 all_configs_valid = False
 
         if not all_configs_valid:

@@ -47,50 +47,50 @@ class GOPCAConfig(object):
     user. Some of those values can have special meaning, such as ``-1`` for the
     XL-mHG ``L`` parameter (``mHG_L``), which will be automatically converted
     to ``p/8`` (where ``p`` is the number of genes). The second version
-    (`final_params`) holds the values actually used by the algorithm. So in
-    the previous example, the ``mHG_L`` parameter stored in this version would
-    equal ``p/8``.
+    (simply called `params`) holds the values actually used by the algorithm.
+    So in the previous example, the ``mHG_L`` parameter stored in this version
+    would equal ``p/8`` (rounded down to the nearest integer).
 
     Parameters
     ----------
-    params: `GOPCAParams`
-        See :attr:`params` attribute.
+    user_params: `GOPCAParams`
+        See :attr:`user_params` attribute.
     gene_sets: `genometools.basic.GeneSetCollection`
         See :attr:`gene_set_coll` attribute.
     gene_ontology: `genometools.ontology.GeneOntology`, optional
         See :attr:`gene_ontology` attribute.
-    final_params: `GOPCAParams`, optional
-        See :attr:`final_params` attribute.
+    params: `GOPCAParams`, optional
+        See :attr:`params` attribute.
 
     Attributes
     ----------
-    params: `GOPCAParams`
+    user_params: `GOPCAParams`
         The GO-PCA parameter settings, as specified by the user.
     gene_sets: `genometools.basic.GeneSetCollection`
         The list of gene sets to be used by GO-PCA.
     gene_ontology: `genometools.ontology.GeneOntology` or None
         The Gene Ontology (only if gene sets are based on GO annotations.)
-    final_params: `GOPCAParams` or None
+    params: `GOPCAParams` or None
         The final GO-PCA parameter settings, after resolving parameter values
         with special meanings (see above).
     """
-    def __init__(self, params, gene_sets,
-                 gene_ontology=None, final_params=None):
+    def __init__(self, user_params, gene_sets,
+                 gene_ontology=None, params=None):
 
         # store configuration
-        assert isinstance(params, GOPCAParams)
+        assert isinstance(user_params, GOPCAParams)
         assert isinstance(gene_sets, GeneSetCollection)
 
         if gene_ontology is not None:
             assert isinstance(gene_ontology, GeneOntology)
 
-        if final_params is not None:
-            assert isinstance(final_params, GOPCAParams)
+        if params is not None:
+            assert isinstance(params, GOPCAParams)
 
+        self.user_params = user_params
         self.params = params
         self.gene_sets = gene_sets
         self.gene_ontology = gene_ontology
-        self.final_params = final_params
 
     def __repr__(self):
         return '<%s instance (hash="%s")>' % \
@@ -114,8 +114,8 @@ class GOPCAConfig(object):
     @property
     def hash(self):
         data_str = ';'.join(
-            repr(v) for v in [self.params, self.gene_sets,
-                              self.gene_ontology, self.final_params])
+            repr(v) for v in [self.user_params, self.params,
+                              self.gene_sets, self.gene_ontology])
         data = data_str.encode('UTF-8')
         return str(hashlib.md5(data).hexdigest())
 
@@ -127,7 +127,7 @@ class GOPCAConfig(object):
         num_genes: int
             The number of genes in the analysis.
         """
-        params = copy.deepcopy(self.params)
+        params = copy.deepcopy(self.user_params)
 
         # determine mHG_L, if -1 or 0
         if params.mHG_L == -1:
@@ -137,4 +137,4 @@ class GOPCAConfig(object):
             # 0 = "disable" effect of L => set it to the number of genes
             params.set_param('mHG_L', num_genes)
             
-        self.final_params = params
+        self.params = params

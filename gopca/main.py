@@ -40,7 +40,7 @@ import logging
 
 import genometools
 from genometools.expression import ExpMatrix
-from genometools.basic import GeneSetDB
+from genometools.basic import GeneSetCollection
 from genometools.ontology import GeneOntology
 from gopca import util
 from gopca.cli import arguments
@@ -292,25 +292,25 @@ def main(args=None):
     # generate configuration
     if args.config_file is not None:
         # read parameter values from config file
-        config = GOPCAParams.read_config(args.config_file)
+        params = GOPCAParams.read_ini(args.config_file)
     else:
         # start with default configuration
-        config = GOPCAParams()
+        params = GOPCAParams()
 
     # overwrite parameters specified on the command line
     for p in GOPCAParams.get_param_defaults():
         v = getattr(args, p)
         if v is not None:
             logger.debug('Parameter "%s" specified on command line!', p)
-            config.set_param(p, v)
+            params.set_param(p, v)
 
     # read expression file
-    E = ExpMatrix.read_tsv(args.expression_file)
+    matrix = ExpMatrix.read_tsv(args.expression_file)
     logger.info('Expression matrix size: ' +
-                '(p = %d genes) x (n = %d samples).', E.p, E.n)
+                '(p = %d genes) x (n = %d samples).', matrix.p, matrix.n)
     
     # read gene set file
-    gene_sets = GeneSetDB.read_tsv(args.gene_set_file)
+    gene_sets = GeneSetCollection.read_tsv(args.gene_set_file)
     print(args.gene_set_file, gene_sets)
     
     # read ontology file (if supplied)
@@ -320,10 +320,10 @@ def main(args=None):
         p_logger.setLevel(logging.ERROR)
         gene_ontology = GeneOntology.read_obo(
             args.gene_ontology_file,
-            part_of_cc_only=config.go_part_of_cc_only)
+            part_of_cc_only=params.go_part_of_cc_only)
         p_logger.setLevel(logging.NOTSET)
         
-    M = GOPCA(config, E, gene_sets, gene_ontology)
+    M = GOPCA.simple_init(matrix, params, gene_sets, gene_ontology)
     run = M.run()
 
     if run is None:

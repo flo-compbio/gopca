@@ -29,6 +29,7 @@ import subprocess as subproc
 def my_output_file(my_output_pypath):
     return text(my_output_pypath.join('command-line_output.pickle'))
 
+
 def is_writable(path):
     try:
         with open(path, 'a'):
@@ -52,10 +53,6 @@ def test_script(my_expression_file,
         shell=True, stdout=subproc.PIPE, stderr=subproc.PIPE)
 
     stdout, stderr = p.communicate()
-    #print('Stdout:')
-    #for l in stdout.decode('utf-8').split('\n'):
-    #    print(l)
-    #print()
     print('Stderr:')
     for l in stderr.decode('utf-8').split('\n'):
         print(l)
