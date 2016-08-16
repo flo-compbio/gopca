@@ -54,7 +54,7 @@ if 'READTHEDOCS' not in os.environ:
         'scipy>=0.14, <1',
         'scikit-learn>=0.14, <1',
         'plotly>=1.9.6, <2',
-        'genometools>= 2.0',
+        'genometools==2.0.0',
         'xlmhg>=2.0.6, <3',
     ])
 
