@@ -379,7 +379,7 @@ class GOPCASignature(object):
                                X=np.atleast_2d(mean))
         combined_matrix = pd.concat([header_row, matrix], axis=0)
 
-        heatmap = ExpHeatmap(combined_matrix)
+        heatmap = ExpHeatmap(combined_matrix, **kwargs)
 
         return heatmap
 

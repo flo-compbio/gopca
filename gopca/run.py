@@ -27,6 +27,7 @@ from copy import deepcopy
 from collections import Iterable
 
 import six
+import numpy as np
 
 from . import GOPCAParams, GOPCASignatureMatrix
 
@@ -58,70 +59,61 @@ class GOPCARun(object):
 
     Parameters
     ----------
-    version: str
+    sig_matrix: `GOPCASignatureMatrix`
+        The GO-PCA signature matrix generated.
+    gopca_version: str
         The GO-PCA version.
     timestamp: str
         The timestamp.
-    user_config: `GOPCAParams`
-        The parameter settings provided by the user.
-    final_config: `GOPCAConfig`
-        The final parameter settings used.
+    exec_time: float
+        The execution time (in seconds).
     expression_hash: str
         Hash value for the expression input data.
-    gene_sets_hash: str
-        Hash value for the gene set input data.
-    ontology_hash: str
-        Hash value for the gene ontology input data.
-    genes: list or tuple of str
+    config_hashes: list of str
+        Hash values for the configuration input data.
+    genes: Iterable of str
         The genes in the analysis.
-    samples: list or tuple of str
+    samples: Iterable of str
         The samples in the analysis.
-    W: `numpy.ndarray` of floats
+    W: `numpy.ndarray` (np.float64)
         The PCA loading matrix; shape = (len(genes) x # PCs).
         There must be a 1-to-1 correspondence between `genes` and the rows
         of `W`.
-    Y: `numpy.ndarray` of floats
+    Y: `numpy.ndarray` (np.float64)
         The PC score matrix; shape = (len(samples) x # PCs).
         There must be a 1-to-1 correspondence between `samples` and the
         rows of `Y`.
-    sig_matrix: `GOPCASignatureMatrix`
-        The signature matrix generated.
-    exec_time: float
-        The execution time (in seconds).
     """
-    def __init__(self, version, timestamp, user_config, final_config,
-                 expression_hash, gene_sets_hash, ontology_hash,
-                 genes, samples, W, Y, sig_matrix, exec_time):
+    def __init__(self, sig_matrix, gopca_version, timestamp, exec_time,
+                       expression_hash, config_hashes, genes, samples, W, Y):
 
         # type checks
-        assert isinstance(version, str)
-        assert isinstance(timestamp, str)
-        assert isinstance(user_config, GOPCAParams)
-        assert isinstance(final_config, GOPCAParams)
-        assert isinstance(expression_hash, str)
-        assert isinstance(gene_sets_hash, str)
-        if ontology_hash is not None:
-            assert isinstance(ontology_hash, str)
-        assert isinstance(genes, Iterable)
-        assert isinstance(samples, Iterable)
         assert isinstance(sig_matrix, GOPCASignatureMatrix)
+        assert isinstance(gopca_version, str)
+        assert isinstance(timestamp, str)
         assert isinstance(exec_time, float)
 
-        self.version = version
+        assert isinstance(expression_hash, str)
+        assert isinstance(config_hashes, Iterable)
+
+        assert isinstance(genes, Iterable)
+        assert isinstance(samples, Iterable)
+        assert isinstance(W, np.ndarray)
+        assert isinstance(Y, np.ndarray)
+
+        self.sig_matrix = sig_matrix
+
+        self.gopca_version = gopca_version
         self.timestamp = timestamp
-        self.user_config = deepcopy(user_config)
-        self.final_config = final_config
+        self.exec_time = exec_time
 
         self.expression_hash = expression_hash
-        self.gene_sets_hash = gene_sets_hash
-        self.ontology_hash = ontology_hash
+        self.config_hashes = list(config_hashes)
 
         self.genes = list(genes)
         self.samples = list(samples)
         self.W = W
         self.Y = Y
-        self.sig_matrix = sig_matrix
-        self.exec_time = exec_time
 
         # make sure shapes match up
         assert W.shape[0] == len(self.genes)
@@ -130,7 +122,7 @@ class GOPCARun(object):
 
     def __repr__(self):
         return '<GOPCARun instance (version="%s", timestamp="%s", hash="%s">' \
-                % (self.version, self.timestamp, self.hash)
+                % (self.gopca_version, self.timestamp, self.hash)
 
     def __str__(self):
         return '<GOPCARun instance with %d signatures>' % self.sig_matrix.q
@@ -149,11 +141,11 @@ class GOPCARun(object):
     @property
     def hash(self):
         data_str = ';'.join([
-            str(repr(var)) for var in
-            [self.version, self.timestamp,
-             self.user_config, self.final_config,
-             self.expression_hash, self.gene_sets_hash, self.ontology_hash,
-             self.genes, self.samples, self.sig_matrix, self.exec_time]
+            str(repr(var)) for var in [
+                self.sig_matrix,
+                self.gopca_version, self.timestamp, self.exec_time,
+                self.expression_hash, self.config_hashes,
+                self.genes, self.samples, self.W, self.Y]
         ])
         data_str += ';'
         data = data_str.encode('UTF-8') + \

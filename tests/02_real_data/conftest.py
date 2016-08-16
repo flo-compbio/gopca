@@ -20,7 +20,7 @@ from __future__ import (absolute_import, division,
 from builtins import open
 from builtins import str as text
 
-import os
+# import os
 import shutil
 
 import pytest
@@ -28,21 +28,33 @@ import requests
 import logging
 
 from genometools.expression import ExpMatrix
-from genometools.basic import GeneSetDB
+from genometools.expression.filter import filter_variance
+from genometools.basic import GeneSetCollection
 from genometools.ontology import GeneOntology
 
-from gopca import GOPCAParams, GOPCA
+from gopca import GOPCAParams, GOPCAConfig, GOPCA
 
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
 def download_file(url, path):
+    """Downloads a file."""
     r = requests.get(url, stream=True)
     if r.status_code == 200:
         with open(path, 'wb') as f:
             r.raw.decode_content = True
             shutil.copyfileobj(r.raw, f)
+
+
+@pytest.fixture(scope='session')
+def my_params():
+    params = GOPCAParams()
+    # params.set_param('sel_var_genes', 8000)
+    params.set_param('mHG_X_frac', 0.25)
+    params.set_param('mHG_X_min', 5)
+    params.set_param('mHG_L', 1000)
+    return params
 
 
 @pytest.fixture(scope='session')
@@ -82,25 +94,28 @@ def my_fly_gene_set_file(my_data_pypath):
     download_file(url, path)
     return path
 
+
 @pytest.fixture(scope='session')
-def my_config():
-    config = GOPCAParams()
-    config.set_param('sel_var_genes', 8000)
-    config.set_param('pc_seed', 123456789)
-    config.set_param('mHG_X_frac', 0.25)
-    config.set_param('mHG_X_min', 5)
-    config.set_param('mHG_L', 1000)
+def my_config(my_params, my_gene_ontology_file, my_fly_gene_set_file):
+    gene_ontology = GeneOntology.read_obo(my_gene_ontology_file)
+    gene_sets = GeneSetCollection.read_tsv(my_fly_gene_set_file)
+    config = GOPCAConfig(my_params, gene_sets, gene_ontology)
     return config
 
-@pytest.fixture(scope='session')
-def my_gopca(my_expression_file, my_gene_ontology_file,
-             my_fly_gene_set_file, my_config):
-    matrix = ExpMatrix.read_tsv(my_expression_file)
-    ontology = GeneOntology.read_obo(my_gene_ontology_file)
-    gene_sets = GeneSetDB.read_tsv(my_fly_gene_set_file)
 
-    my_gopca = GOPCA(my_config, matrix, gene_sets, ontology)
-    return my_gopca
+@pytest.fixture(scope='session')
+def my_matrix_filtered(my_expression_file):
+    matrix = ExpMatrix.read_tsv(my_expression_file)
+    matrix_filtered = filter_variance(matrix, 8000)
+    return matrix_filtered
+
+
+@pytest.fixture(scope='session')
+def my_gopca(my_config, my_matrix_filtered):
+    configs = [my_config]
+    gopca = GOPCA(my_matrix_filtered, configs, pc_seed=123456789)
+    return gopca
+
 
 @pytest.fixture(scope='session')
 def my_gopca_run(my_gopca):
@@ -110,13 +125,5 @@ def my_gopca_run(my_gopca):
     return gopca_run
 
 @pytest.fixture(scope='session')
-def my_gopca_sig_matrix(my_gopca_run):
-    """The signature matrix generated in the GO-PCA test run."""
-    gopca_sig_matrix = my_gopca_run.sig_matrix
-    return gopca_sig_matrix
-
-@pytest.fixture(scope='session')
-def my_gopca_signature(my_gopca_sig_matrix):
-    """A signature generated in the GO-PCA test run."""
-    sig = my_gopca_sig_matrix.get_signature('cell fate')
-    return sig
+def my_sig_matrix(my_gopca_run):
+    return my_gopca_run.sig_matrix

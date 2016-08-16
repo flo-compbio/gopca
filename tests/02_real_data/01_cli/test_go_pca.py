@@ -22,21 +22,38 @@ from builtins import str as text
 
 import pytest
 
+import os
 import subprocess as subproc
 
 @pytest.fixture(scope='session')
 def my_output_file(my_output_pypath):
     return text(my_output_pypath.join('command-line_output.pickle'))
 
+
+def is_writable(path):
+    try:
+        with open(path, 'a'):
+            pass
+    except:
+        return False
+    return True
+
+
 def test_script(my_expression_file,
                 my_fly_gene_set_file,
                 my_gene_ontology_file,
                 my_output_file):
+
+    assert is_writable(my_output_file)
 
     p = subproc.Popen(
         'go-pca.py -o %s -e %s -s %s -t %s -D 5'
         % (my_output_file, my_expression_file, my_fly_gene_set_file,
            my_gene_ontology_file),
         shell=True, stdout=subproc.PIPE, stderr=subproc.PIPE)
+
     stdout, stderr = p.communicate()
+    print('Stderr:')
+    for l in stderr.decode('utf-8').split('\n'):
+        print(l)
     assert p.returncode == 0  # no errors

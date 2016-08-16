@@ -32,36 +32,36 @@ with io.open(path.join(here, 'README.rst'), encoding='UTF-8') as fh:
     long_description = fh.read()
 
 install_requires = [
-    'future >= 0.15.2, < 1',
-    'six >= 1.10.0, < 2',
-    'unicodecsv >= 0.14.1, < 1',
-    'xlsxwriter >= 0.7.7, < 1',
+    'future>= 0.15.2, <1',
+    'six>= 1.10.0, <2',
+    'unicodecsv>= 0.14.1, <1',
+    'xlsxwriter>= 0.7.7, <1',
 ]
 
 if sys.version_info < (3, 0):
     # We're running Python 2.x
     # => install the Python 3 configparser backport
     install_requires.append(
-        'configparser >= 3.2, < 4',
+        'configparser>=3.2, <4',
     )
 
 # do not require installation if built by ReadTheDocs
 # (we mock these modules in docs/source/conf.py)
 if 'READTHEDOCS' not in os.environ:
     install_requires.extend([
-        'numpy >= 1.8, < 2',
-        'pandas >= 0.18, < 1',
-        'scipy >= 0.14, < 1',
-        'scikit-learn >= 0.14, < 1',
-        'plotly >= 1.9.6, < 2',
-        'genometools == 2.0rc6',
-        'xlmhg >= 2.0.6, < 3',
+        'numpy>=1.8, <2',
+        'pandas>=0.18, <1',
+        'scipy>=0.14, <1',
+        'scikit-learn>=0.14, <1',
+        'plotly>=1.9.6, <2',
+        'genometools==2.0.0',
+        'xlmhg>=2.0.6, <3',
     ])
 
 setup(
     name='gopca',
 
-    version='1.2.5',
+    version='2.0.0',
 
     description=description,
     long_description=long_description,
@@ -99,14 +99,20 @@ setup(
     install_requires=install_requires,
 
     extras_require={
-         'docs': ['sphinx', 'sphinx-bootstrap-theme', 'sphinx-argparse',
-                  'mock']
+        'docs': [
+            'sphinx',
+            'sphinx-bootstrap-theme',
+            'sphinx-argparse',
+            'mock'
+        ],
+        'tests': [
+            'pytest >= 2.9.1, < 3',
+            'pytest-cov >= 2.2.1, < 3',
+            'requests>=2.10.0, <3',
+        ],
     },
 
-    tests_require=[
-        'pytest >= 2.9.1, < 3',
-        'pytest-cov >= 2.2.1, < 3',
-    ],
+    # tests_require=[]
 
     # data
     # package_data={},
@@ -117,10 +123,6 @@ setup(
     # executable scripts
     entry_points={
         'console_scripts': [
-            # pre-processing scripts
-            'gopca_extract_go_gene_sets.py = '
-                'gopca.extract_go_gene_sets:main',
-
             # GO-PCA main script
             'go-pca.py = gopca.main:main',
 
@@ -142,21 +144,6 @@ setup(
                 'gopca.cli.combine_signatures:main',
             'gopca_print_info.py = '
                 'gopca.cli.print_info:main',
-
-            # plotting scripts
-            'gopca_plot_signature_matrix.py = '
-                'gopca.cli.plot_signature_matrix:main',
-
-            'gopca_plot_signature.py = '
-                'gopca.cli.plot_signature:main',
-
-            'gopca_plot_all_signatures.py = '
-                'gopca.cli.plot_all_signatures:main',
-
-            'gopca_plot_term_by_pc_matrix.py = '
-                'gopca.cli.plot_term_by_pc_matrix:main',
-
-            # 'gopca_plot_pc_scores.py = gopca.plotting.plot_pc_scores:main',
         ],
     },
 )
