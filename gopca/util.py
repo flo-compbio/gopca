@@ -222,20 +222,21 @@ def get_sig_figure(
         emin=None, emax=None,
         margin_left=70, margin_bottom=50, margin_top=50,
         show_sample_labels=False,
-        matrix_kw=None, sig_matrix_kw=None,
+        #matrix_kw=None,
+        sig_matrix_kw=None,
         **kwargs):
 
-    if matrix_kw is None:
-        matrix_kw = {}
+    #if matrix_kw is None:
+    #    matrix_kw = {}
 
     if sig_matrix_kw is None:
         sig_matrix_kw = {}
 
-    assert isinstance(matrix_kw, dict)
+    #assert isinstance(matrix_kw, dict)
     assert isinstance(sig_matrix_kw, dict)
 
     # generate heatmap
-    heatmap = sig.get_heatmap(sig_matrix=sig_matrix, matrix_kw=matrix_kw,
+    heatmap = sig.get_heatmap(sig_matrix=sig_matrix,
                               sig_matrix_kw=sig_matrix_kw)
 
     title = sig.get_label(include_pval=include_pval)
