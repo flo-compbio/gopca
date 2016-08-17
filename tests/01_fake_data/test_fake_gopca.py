@@ -18,6 +18,7 @@ from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
 # from builtins import *
 from builtins import str as text
+from builtins import int
 
 from copy import deepcopy
 
