@@ -56,4 +56,4 @@ def test_script(my_expression_file,
     print('Stderr:')
     for l in stderr.decode('utf-8').split('\n'):
         print(l)
-    assert p.returncode == 0  # no errors
+    assert p.returncode == 0, str(stderr)  # no errors
