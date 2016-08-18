@@ -22,9 +22,9 @@ from builtins import int
 
 from copy import deepcopy
 
-import pytest
+# import pytest
 
-from genometools.basic import GeneSetCollection
+# from genometools.basic import GeneSetCollection
 from genometools.expression import ExpMatrix
 from gopca import GOPCAConfig, GOPCA
 
@@ -45,7 +45,7 @@ def test_basic(my_gopca):
 
     assert isinstance(my_gopca.num_components, int)
     assert isinstance(my_gopca.pc_seed, int)
-    assert isinstance(my_gopca.pc_permutations, int)
+    assert isinstance(my_gopca.pc_num_permutations, int)
     assert isinstance(my_gopca.pc_zscore_thresh, float)
     assert isinstance(my_gopca.pc_max_components, int)
 
