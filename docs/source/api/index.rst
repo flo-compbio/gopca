@@ -8,6 +8,7 @@ parameter settings, perform the analysis, and represent the results:
 
 .. autosummary::
 
+    GOPCAConfig
     GOPCAParams
     GOPCA
     GOPCARun
@@ -18,6 +19,7 @@ parameter settings, perform the analysis, and represent the results:
     :hidden:
     :maxdepth: 2
 
+    config
     params
     gopca
     run
