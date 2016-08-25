@@ -67,6 +67,7 @@ class GOPCAParams(object):
         ('no_local_filter', False),
         ('no_global_filter', False),
         ('sig_corr_thresh', 0.5),
+        ('sig_min_genes', 5),
         ('go_part_of_cc_only', False),
     ])
     """GO-PCA parameter default values."""
@@ -291,6 +292,12 @@ class GOPCAParams(object):
 
         check_type('escore_thresh', (int, float))
         check_range('escore_thresh', 0)
+
+        check_type('sig_corr_thresh', (int, float))
+        check_range('sig_corr_thresh', 0, 1)
+
+        check_type('sig_min_genes', int)
+        check_range('sig_min_genes', 1, self.mHG_X_min)
 
         # check(isinstance(self.go_part_of_cc_only, bool))
         return passed[0]

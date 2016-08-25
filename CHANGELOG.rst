@@ -19,6 +19,38 @@
 Changelog
 =========
 
+Version 2.1.0 (2016-??-??)
+--------------------------
+
+- Improved algorithm for generating signatures based on significantly enriched
+  gene sets, and introduced a new parameter, ``sig_min_genes`` to specify the
+  minimum number of genes in each signature. Effectively, this makes gene set
+  enrichment analysis and signature generation more independent of each other,
+  and results in more coherent signatures (i.e., genes in a signature should
+  have more similar expression patterns with the new algorithm).
+
+- Improved the "Installing GO-PCA" section of the documentation. The section
+  now includes accurate instructions for Windows, and instructions for Mac OS
+  X.
+
+- Reduced the verbosity of GO-PCA output. The old verbosity can be restored
+  by passing ``verbose=True`` to GO-PCA, or by running
+
+Version 2.0.0 (2016-08-01)
+--------------------------
+
+- Generalized the API to support multiple "configurations" as input. Each
+  configuration (`GOPCAConfig`) consists of a set of GO-PCA parameters
+  (`GOPCAParams`), a list of gene sets
+  (`genometools.basic.GeneSetCollection`), and, optionally, a gene ontology
+  (`genometools.ontology.GeneOntology`). GO-PCA is performed independently
+  for each configuration, and the signatures generated are merged into a
+  single signature matrix. The old API is available as `GOPCA.init_simple()`.
+
+Version 2.0.1 (2016-08-16)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Some bugfixes
+
 Version 1.2.0 (2016-07-26)
 --------------------------
 

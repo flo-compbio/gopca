@@ -78,7 +78,7 @@ class GOPCASignature(object):
         (starting at 1), with the sign of the integer indicating the way in
         which genes were ranked based on their PC loadings. If the sign is
         positive, then the signature was derived based on an ascending order.
-        Conversely, if the sign is negative, then the signature was dervied
+        Conversely, if the sign is negative, then the signature was derived
         based on a descending ranking.
     gse_result: `RankBasedGSEResult`
         The result of the XL-mHG test that was conducted after ranking the

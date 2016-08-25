@@ -380,8 +380,7 @@ class GOPCA(object):
     @staticmethod
     def _generate_signature(matrix, params, pc, gse_result,
                             standardize=False, verbose=False):
-        """
-        Algorithm for generating a signature based on an enriched gene set.
+        """Generate a signature based on an enriched gene set.
         """
         assert isinstance(matrix, ExpMatrix)
         assert isinstance(params, GOPCAParams)
@@ -399,22 +398,25 @@ class GOPCA(object):
         if standardize:
             enr_matrix.standardize_genes(inplace=True)
 
-        enr_expr = enr_matrix.mean(axis=0).values
+        # use the average expression of all genes above the XL-mHG cutoff as
+        # a "seed"
+        seed_expr = enr_matrix.mean(axis=0).values
+
+        # rank all genes by their correlation with the seed, and select only
+        # those with correlation ">=" params.sig_corr_thresh, but no fewer
+        # than params.min_sig_genes
 
         # calculate seed based on the X genes most strongly correlated with
         # the average
-        corr = np.float64([pearsonr(enr_expr, x)[0] for x in enr_matrix.X])
+        corr = np.float64([pearsonr(seed_expr, x)[0] for x in enr_matrix.X])
         a = np.argsort(corr)
         a = a[::-1]
-        seed_expr = enr_matrix.iloc[a[:gse_result.X]].mean(axis=0).values
 
-        # select all other genes with correlation of at least sig_corr_thresh
-        additional_indices = np.int64(
-            [i for i in a[gse_result.X:]
-             if pearsonr(seed_expr, enr_matrix.iloc[i].values)[0] >=
-             params.sig_corr_thresh])
-        sel = np.r_[a[:gse_result.X], additional_indices]
-        sig_matrix = enr_matrix.iloc[sel].copy()
+        # determine the number of genes to include
+        num_genes = max(np.sum(corr >= params.sig_corr_thresh),
+                        params.sig_min_genes)
+
+        sig_matrix = enr_matrix.iloc[a[:num_genes]].copy()
 
         return GOPCASignature(pc, gse_result, sig_matrix)
 
