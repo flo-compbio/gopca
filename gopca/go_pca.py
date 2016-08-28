@@ -40,7 +40,7 @@ from sklearn.decomposition import PCA
 from scipy.stats import pearsonr
 
 from genometools.basic import GeneSetCollection
-from genometools.expression import ExpMatrix, ExpGene, ExpGenome
+from genometools.expression import ExpProfile, ExpMatrix, ExpGene, ExpGenome
 from genometools import enrichment
 from genometools.enrichment import RankBasedGSEResult, \
                                    GeneSetEnrichmentAnalysis
@@ -66,22 +66,58 @@ class GOPCA(object):
 
     Parameters
     ----------
-    matrix: `genometools.expression.ExpMatrix`
+    matrix : `genometools.expression.ExpMatrix`
         See :attr:`matrix` attribute.
-    configs: Iterable of `GOPCAConfig`
+    configs : Iterable of `GOPCAConfig`
         See :attr:`configs` attribute.
+    num_components : int, optional
+        See :attr:`num_components` attribute. [0]
+    pc_seed : int, optional
+        See :attr:`pc_seed` attribute. [0]
+    pc_num_permutations : int, optional
+        See :attr:`pc_num_permutations` attribute. [15]
+    pc_zscore_thresh : float, optional
+        See :attr:`pc_zscore_thresh` attribute. [2.0]
+    pc_max_components : int, optional
+        See :attr:`pc_max_components` attribute. [0]
+    verbose : bool, optional
+        See :attr:`verbose` attribute. [False]
 
     Attributes
     ----------
-    matrix: `genometools.expression.ExpMatrix`
+    matrix : `genometools.expression.ExpMatrix`
         The expression matrix.
-    configs: list of `GOPCAConfig`
+    configs : list of `GOPCAConfig`
         The list of GO-PCA configurations. Each configuration consists of
         gene sets (represented by a `GOPCAGeneSets` instance) along with a set
         of GO-PCA parameters (`GOPCAParams`) to use for testing those gene
         sets.
+    num_components : int
+        The number of principal components to test. If set 0, the number is
+         determined automatically using a permutation-based algorithm.
+    pc_seed : int
+        The random number generator seed, used to generate the permutations
+        for automatically determining the number of principal components to
+        test.
+    pc_num_permutations : int
+        The number of permutations to used for automatically determining the
+        number of principal components to test.
+    pc_zscore_thresh : float
+        The z-score threshold used for automatically determining the number of
+        principal components (PC) to test. First, the fraction of variance
+        explained by the first PC in each permuted dataset is calculated.
+        Then, the mean and standard deviation of those values are used to
+        calculate a z-score for the fraction of variance explained by each PC
+        in the real dataset. All PCs with a z-score above the specified
+        threshold are tested.
+    pc_max_components : int
+        The maximum number of principal components (PCs) to test (only relevant
+        when the algorithm for automatically determining the number of PCs
+        to test is used. For testing a fixed number of PCs, set the
+        :attr:`num_components` attribute to a non-zero value.
+    verbose : bool
+        If set to ``True``, generate more verbose output.
     """
-    # TODO: Finish docstring
     def __init__(self, matrix, configs, **kwargs):
 
         assert isinstance(matrix, ExpMatrix)
@@ -89,24 +125,28 @@ class GOPCA(object):
 
         num_components = kwargs.pop('num_components', 0)  # 0 = automatic
         pc_seed = kwargs.pop('pc_seed', 0)
-        pc_permutations = kwargs.pop('pc_permutations', 15)
+        pc_num_permutations = kwargs.pop('pc_num_permutations', 15)
         pc_zscore_thresh = kwargs.pop('pc_zscore_thresh', 2.0)
         pc_max_components = kwargs.pop('pc_max_components', 0)  # 0=no maximum
+        verbose = kwargs.pop('verbose', False)
 
         assert isinstance(num_components, (int, np.integer))
         assert isinstance(pc_seed, (int, np.integer))
-        assert isinstance(pc_permutations, (int, np.integer))
+        assert isinstance(pc_num_permutations, (int, np.integer))
         assert isinstance(pc_zscore_thresh, (float, np.float))
         assert isinstance(pc_max_components, (int, np.integer))
+        assert isinstance(verbose, bool)
 
         self.matrix = matrix
         self.configs = list(configs)
 
         self.num_components = int(num_components)
         self.pc_seed = int(pc_seed)
-        self.pc_permutations = int(pc_permutations)
+        self.pc_num_permutations = int(pc_num_permutations)
         self.pc_zscore_thresh = float(pc_zscore_thresh)
         self.pc_max_components = int(pc_max_components)
+
+        self.verbose = verbose
 
         # make sure configs have the right type
         for conf in self.configs:
@@ -214,7 +254,7 @@ class GOPCA(object):
         logger.info('Estimating the number of principal components '
                     '(seed = %d)...', self.pc_seed)
         logger.debug('(permutations = %d, z-score threshold = %.1f)...',
-                     self.pc_permutations, self.pc_zscore_thresh)
+                     self.pc_num_permutations, self.pc_zscore_thresh)
 
         # perform PCA
         p, n = self.matrix.shape
@@ -226,7 +266,7 @@ class GOPCA(object):
         logger.debug('Largest explained variance: %.2f', d[0])
 
         thresh = self.get_pc_explained_variance_threshold(
-            self.X, self.pc_zscore_thresh, self.pc_permutations,
+            self.X, self.pc_zscore_thresh, self.pc_num_permutations,
             self.pc_seed)
         logger.debug('Explained variance threshold: %.2f', thresh)
         d_est = np.sum(d >= thresh)
@@ -236,11 +276,23 @@ class GOPCA(object):
         return d_est
 
     @staticmethod
-    def _local_filter(params, gse_analysis, enriched, ranked_genes):
+    def _local_filter(params, gse_analysis, enriched, ranked_genes,
+                      verbose=False):
         """Apply GO-PCA's "local" filter.
         
         Returns the enriched gene sets that passed the filter.
         """
+
+        assert isinstance(params, GOPCAParams)
+        assert isinstance(gse_analysis, GeneSetEnrichmentAnalysis)
+        assert isinstance(enriched, Iterable)
+        assert isinstance(ranked_genes, Iterable)
+        assert isinstance(verbose, bool)
+
+        msg = logger.debug
+        if verbose:
+            msg = logger.info
+
         if len(enriched) <= 1:
             return enriched
 
@@ -323,19 +375,19 @@ class GOPCA(object):
         # stop suppressing log messages from the enrichment module
         enr_logger.setLevel(logging.NOTSET)
 
-        logger.info('Local filter: Kept %d / %d enriched gene sets.',
-                    len(kept), len(enriched))
         return kept
 
     @staticmethod
-    def _generate_signature(matrix, params, pc, gse_result, standardize=False):
-        """
-        Algorithm for generating a signature based on an enriched gene set.
+    def _generate_signature(matrix, params, pc, gse_result,
+                            standardize=False, verbose=False):
+        """Generate a signature based on an enriched gene set.
         """
         assert isinstance(matrix, ExpMatrix)
         assert isinstance(params, GOPCAParams)
         assert isinstance(pc, int)
         assert isinstance(gse_result, RankBasedGSEResult)
+        assert isinstance(standardize, bool)
+        assert isinstance(verbose, bool)
 
         # select genes above cutoff giving rise to XL-mHG test statistic
         enr_genes = gse_result.genes_above_cutoff
@@ -346,28 +398,31 @@ class GOPCA(object):
         if standardize:
             enr_matrix.standardize_genes(inplace=True)
 
-        enr_expr = enr_matrix.mean(axis=0).values
+        # use the average expression of all genes above the XL-mHG cutoff as
+        # a "seed"
+        seed = ExpProfile(enr_matrix.mean(axis=0))
+
+        # rank all genes by their correlation with the seed, and select only
+        # those with correlation ">=" params.sig_corr_thresh, but no fewer
+        # than params.min_sig_genes
 
         # calculate seed based on the X genes most strongly correlated with
         # the average
-        corr = np.float64([pearsonr(enr_expr, x)[0] for x in enr_matrix.X])
+        corr = np.float64([pearsonr(seed.values, x)[0] for x in enr_matrix.X])
         a = np.argsort(corr)
         a = a[::-1]
-        seed_expr = enr_matrix.iloc[a[:gse_result.X]].mean(axis=0).values
 
-        # select all other genes with correlation of at least sig_corr_thresh
-        additional_indices = np.int64(
-            [i for i in a[gse_result.X:]
-             if pearsonr(seed_expr, enr_matrix.iloc[i].values)[0] >=
-             params.sig_corr_thresh])
-        sel = np.r_[a[:gse_result.X], additional_indices]
-        sig_matrix = enr_matrix.iloc[sel].copy()
+        # determine the number of genes to include
+        num_genes = max(np.sum(corr >= params.sig_corr_thresh),
+                        params.sig_min_genes)
 
-        return GOPCASignature(pc, gse_result, sig_matrix)
+        sig_matrix = enr_matrix.iloc[a[:num_genes]].copy()
+
+        return GOPCASignature(pc, gse_result, seed, sig_matrix)
 
     @staticmethod
     def _generate_pc_signatures(matrix, params, gse_analysis, W, pc,
-                                standardize=False):
+                                standardize=False, verbose=False):
         """Generate signatures for a specific principal component and ordering.
 
         The absolute value  of ``pc`` determines the principal component (PC).
@@ -384,6 +439,11 @@ class GOPCA(object):
         assert isinstance(W, np.ndarray) and W.ndim == 2
         assert isinstance(pc, int) and pc != 0
         assert isinstance(standardize, bool)
+        assert isinstance(verbose, bool)
+
+        msg = logger.debug
+        if verbose:
+            msg = logger.info
 
         # rank genes by their PC loadings
         pc_index = abs(pc)-1
@@ -396,6 +456,11 @@ class GOPCA(object):
         # - find enriched gene sets using the XL-mHG test
         # - get_enriched_gene_sets() also calculates the enrichment score,
         #   but does not use it for filtering
+
+        # suppress logging messages from genometools.enrichment module
+        enr_logger = logging.getLogger(enrichment.__name__)
+        enr_logger.setLevel(logging.ERROR)
+
         logger.debug('config: %f %d %d',
                      params.mHG_X_frac, params.mHG_X_min, params.mHG_L)
         enriched = gse_analysis.get_rank_based_enrichment(
@@ -407,6 +472,9 @@ class GOPCA(object):
             # no gene sets were found to be enriched
             return []
 
+        # stop suppressing logging messages from genometools.enrichment module
+        enr_logger.setLevel(logging.NOTSET)
+
         # filter enriched GO terms by strength of enrichment
         # (if threshold is provided)
         if params.escore_thresh is not None:
@@ -414,23 +482,26 @@ class GOPCA(object):
             enriched = [enr for enr in enriched
                         if enr.escore >= params.escore_thresh]
             q = len(enriched)
-            logger.info('Kept %d / %d enriched gene sets with E-score >= %.1f',
-                        q, q_before, params.escore_thresh)
+            msg('Kept %d / %d enriched gene sets with E-score >= %.1f',
+                q, q_before, params.escore_thresh)
 
         # apply local filter (if enabled)
         if not params.no_local_filter:
+            q_before = len(enriched)
             enriched = GOPCA._local_filter(params, gse_analysis,
                                            enriched, ranked_genes)
+            q = len(enriched)
+            msg('Local filter: Kept %d / %d enriched gene sets.', q, q_before)
 
         # generate signatures
         signatures = []
         q = len(enriched)
         for j, enr in enumerate(enriched):
             signatures.append(
-                GOPCA._generate_signature(matrix, params, pc, enr,
-                                          standardize=standardize))
-        logger.info(
-            'Generated %d signatures based on the enriched gene sets.', q)
+                GOPCA._generate_signature(
+                    matrix, params, pc, enr,
+                    standardize=standardize, verbose=verbose))
+        msg('Generated %d signatures based on the enriched gene sets.', q)
 
         return signatures
 
@@ -490,7 +561,7 @@ class GOPCA(object):
         self.config.set_param(name, value)
 
     def run(self):
-        """Run GO-PCA.
+        """Perform GO-PCA.
 
         Parameters
         ----------
@@ -498,9 +569,8 @@ class GOPCA(object):
         Returns
         -------
         `GOPCARun` or None
-            The GO-PCA run, or "None" if the run failed.
+            The GO-PCA run, or ``None`` if the run failed.
         """
-
         t0 = time.time()  # remember the start time
         timestamp = str(datetime.datetime.utcnow())  # timestamp for the run
 
@@ -580,14 +650,15 @@ class GOPCA(object):
 
 
         ### Phase 4: Run GO-PCA for each configuration supplied
+        enr_logger = logging.getLogger(enrichment.__name__)
+
         genome = ExpGenome.from_gene_names(self.matrix.genes.tolist())
         W = pca.components_.T  # the loadings matrix
 
-        #logger.debug('-'*70)
-        #logger.debug('GO-PCA will be run with these parameters:')
-        #for d in config.param_strings:
-        #    logger.debug(d)
-        #logger.debug('-'*70)
+        msg = logger.debug
+        if self.verbose:
+            # enable more verbose "INFO" messages
+            msg = logger.info
 
         all_signatures = []
         for k, config in enumerate(self.configs):
@@ -596,26 +667,28 @@ class GOPCA(object):
                         '%d...', k+1)
 
             # create GeneSetEnrichmentAnalysis object
+            enr_logger.setLevel(logging.ERROR)
             gse_analysis = GeneSetEnrichmentAnalysis(genome, config.gene_sets)
+            enr_logger.setLevel(logging.NOTSET)
 
             # generate signatures
             final_signatures = []
             var_expl = 0.0
             for d in range(num_components):
                 var_expl += frac[d]
-                logger.info('')
-                logger.info('-'*70)
-                logger.info('PC %d explains %.1f%% of the variance.',
-                            d+1, 100*frac[d])
-                logger.info('The new cumulative fraction of variance explained '
-                            'is %.1f%%.', 100*var_expl)
+                msg('')
+                msg('-'*70)
+                msg('PC %d explains %.1f%% of the variance.',
+                    d+1, 100*frac[d])
+                msg('The new cumulative fraction of variance explained '
+                    'is %.1f%%.', 100*var_expl)
 
                 signatures_dsc = self._generate_pc_signatures(
                     self.matrix, config.params, gse_analysis, W, d+1)
                 signatures_asc = self._generate_pc_signatures(
                     self.matrix, config.params, gse_analysis, W, -(d+1))
                 signatures = signatures_dsc + signatures_asc
-                logger.info('# signatures: %d', len(signatures))
+                msg('# signatures: %d', len(signatures))
 
                 # apply global filter (if enabled)
                 if not config.params.no_global_filter:
@@ -623,13 +696,13 @@ class GOPCA(object):
                     signatures = self._global_filter(
                         config.params, signatures, final_signatures,
                         config.gene_ontology)
-                    logger.info('Global filter: kept %d / %d signatures.',
-                                len(signatures), before)
+                    msg('Global filter: kept %d / %d signatures.',
+                        len(signatures), before)
 
                 # self.print_signatures(signatures, debug=True)
                 final_signatures.extend(signatures)
-                logger.info('Total no. of signatures generated so far: %d',
-                            len(final_signatures))
+                msg('Total no. of signatures generated so far: %d',
+                    len(final_signatures))
 
             logger.info('')
             logger.info('='*70)
@@ -638,20 +711,17 @@ class GOPCA(object):
             logger.info('-'*70)
             self.print_signatures(final_signatures)
             logger.info('='*70)
-            logger.info('='*70)
             logger.info('')
             all_signatures.extend(final_signatures)
 
-        # sort signatures?
-        #self.print_signatures(final_signatures)
 
-        ### Phase 5: generate signature matrix and output some statistics
-        sig_matrix = GOPCASignatureMatrix(all_signatures, self.matrix.samples)
+        ### Phase 5: Generate signature matrix and return a `GOPCARun` instance
+        sig_matrix = GOPCASignatureMatrix.from_signatures(all_signatures)
         t1 = time.time()
         exec_time = t1 - t0
         logger.info('This GO-PCA run took %.2f s.', exec_time)
         gopca_run = GOPCARun(sig_matrix,
-                             gopca.version, timestamp, exec_time,
+                             gopca.__version__, timestamp, exec_time,
                              expression_hash, config_hashes,
                              self.matrix.genes, self.matrix.samples, W, Y)
 

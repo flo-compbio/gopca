@@ -271,8 +271,7 @@ def main(args=None):
     # test if we can write to log_file?
 
     # configure root logger
-    logger = util.get_logger(log_file=log_file, quiet=quiet,
-                             verbose=verbose)
+    logger = util.get_logger(log_file=log_file, quiet=quiet)
 
     # check if required parameters were specified
     passed = True
@@ -323,7 +322,9 @@ def main(args=None):
             part_of_cc_only=params.go_part_of_cc_only)
         p_logger.setLevel(logging.NOTSET)
         
-    M = GOPCA.simple_init(matrix, params, gene_sets, gene_ontology)
+    #M = GOPCA.simple_init(matrix, params, gene_sets, gene_ontology)
+    M = GOPCA.simple_init(matrix, params, gene_sets, gene_ontology,
+                          verbose=verbose)
     run = M.run()
 
     if run is None:

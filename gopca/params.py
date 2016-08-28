@@ -38,24 +38,29 @@ logger = logging.getLogger(__name__)
 
 
 class GOPCAParams(object):
-    """A complete specification of GO-PCA parameters.
+    """A set of GO-PCA parameters.
 
-    The `GOPCAConfig` class represents a complete set of inputs to the
-    GO-PCA algorithm, consisting of parameters settings (represented by this
-    class) and gene sets (optionally including ontology data; represented by
-    the `GOPCAGeneSets` class).
-
-    Parameter values can be specified upon class instantiation, or at a later
-    time --- using the `set_param` and `set_params` functions. Parameters are
-    exposed as virtual class attributes (using the `__getattr__` magic).
-
-    The class also supports reading and writing of INI-style configuration
-    files (see `read_ini` and `write_ini`).
+    These parameters are for use in combination with a specific collection of
+    gene sets. They exclude "global" GO-PCA parameters --- those that are
+    independent of the gene sets used, like the number of principal components
+    to test.
 
     Parameters
     ----------
     params: dict, optional
         Dictionary containing GO-PCA parameter values.
+
+    Notes
+    -----
+    Parameter values can be specified upon class instantiation, or at a later
+    time --- using the `set_param` and `set_params` functions. Parameters that
+    are left unspecified are assigned default values.
+
+    Parameters are exposed as virtual class attributes (using the
+    `__getattr__` magic).
+
+    The class also supports reading and writing of INI-style configuration
+    files (see :func:`read_ini` and :func:`write_ini`).
     """
     __param_defaults = OrderedDict([
         ('pval_thresh', 1e-6),
@@ -67,6 +72,7 @@ class GOPCAParams(object):
         ('no_local_filter', False),
         ('no_global_filter', False),
         ('sig_corr_thresh', 0.5),
+        ('sig_min_genes', 5),
         ('go_part_of_cc_only', False),
     ])
     """GO-PCA parameter default values."""
@@ -200,8 +206,8 @@ class GOPCAParams(object):
     def check_params(self):
         """Check if the current configuration is valid.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         None
 
         Returns
@@ -291,6 +297,12 @@ class GOPCAParams(object):
 
         check_type('escore_thresh', (int, float))
         check_range('escore_thresh', 0)
+
+        check_type('sig_corr_thresh', (int, float))
+        check_range('sig_corr_thresh', 0, 1)
+
+        check_type('sig_min_genes', int)
+        check_range('sig_min_genes', 1, self.mHG_X_min)
 
         # check(isinstance(self.go_part_of_cc_only, bool))
         return passed[0]

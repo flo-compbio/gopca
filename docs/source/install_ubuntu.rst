@@ -15,6 +15,8 @@ In a terminal window:
     Therefore, if you're running any of those Ubuntu versions, you should
     already be good to go.
 
+
+
 2. Install GO-PCA using `pip`__, the Python package manager
     
     .. code-block:: bash

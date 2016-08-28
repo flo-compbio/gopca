@@ -40,7 +40,7 @@ class GOPCAConfig(object):
     excluding the expression data. Specifically, the inputs consist of
     parameter settings, represented by the `GOPCAParams` class, as well as a
     list of gene sets (optionally including Gene Ontology data; represented by
-    the `GOPCAGeneSets` class).
+    the `genometools.ontology.GeneOntology` class).
 
     Furthermore, two versions of the parameter settings are stored: The
     first version (`user_params`) holds the values exactly as specified by the
