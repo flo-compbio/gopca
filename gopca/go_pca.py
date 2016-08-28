@@ -40,7 +40,7 @@ from sklearn.decomposition import PCA
 from scipy.stats import pearsonr
 
 from genometools.basic import GeneSetCollection
-from genometools.expression import ExpMatrix, ExpGene, ExpGenome
+from genometools.expression import ExpProfile, ExpMatrix, ExpGene, ExpGenome
 from genometools import enrichment
 from genometools.enrichment import RankBasedGSEResult, \
                                    GeneSetEnrichmentAnalysis
@@ -400,7 +400,7 @@ class GOPCA(object):
 
         # use the average expression of all genes above the XL-mHG cutoff as
         # a "seed"
-        seed_expr = enr_matrix.mean(axis=0).values
+        seed = ExpProfile(enr_matrix.mean(axis=0))
 
         # rank all genes by their correlation with the seed, and select only
         # those with correlation ">=" params.sig_corr_thresh, but no fewer
@@ -408,7 +408,7 @@ class GOPCA(object):
 
         # calculate seed based on the X genes most strongly correlated with
         # the average
-        corr = np.float64([pearsonr(seed_expr, x)[0] for x in enr_matrix.X])
+        corr = np.float64([pearsonr(seed.values, x)[0] for x in enr_matrix.X])
         a = np.argsort(corr)
         a = a[::-1]
 
@@ -418,7 +418,7 @@ class GOPCA(object):
 
         sig_matrix = enr_matrix.iloc[a[:num_genes]].copy()
 
-        return GOPCASignature(pc, gse_result, sig_matrix)
+        return GOPCASignature(pc, gse_result, seed, sig_matrix)
 
     @staticmethod
     def _generate_pc_signatures(matrix, params, gse_analysis, W, pc,
@@ -650,6 +650,8 @@ class GOPCA(object):
 
 
         ### Phase 4: Run GO-PCA for each configuration supplied
+        enr_logger = logging.getLogger(enrichment.__name__)
+
         genome = ExpGenome.from_gene_names(self.matrix.genes.tolist())
         W = pca.components_.T  # the loadings matrix
 
@@ -665,7 +667,9 @@ class GOPCA(object):
                         '%d...', k+1)
 
             # create GeneSetEnrichmentAnalysis object
+            enr_logger.setLevel(logging.ERROR)
             gse_analysis = GeneSetEnrichmentAnalysis(genome, config.gene_sets)
+            enr_logger.setLevel(logging.NOTSET)
 
             # generate signatures
             final_signatures = []
@@ -707,18 +711,17 @@ class GOPCA(object):
             logger.info('-'*70)
             self.print_signatures(final_signatures)
             logger.info('='*70)
-            logger.info('='*70)
             logger.info('')
             all_signatures.extend(final_signatures)
 
 
         ### Phase 5: Generate signature matrix and return a `GOPCARun` instance
-        sig_matrix = GOPCASignatureMatrix(all_signatures, self.matrix.samples)
+        sig_matrix = GOPCASignatureMatrix.from_signatures(all_signatures)
         t1 = time.time()
         exec_time = t1 - t0
         logger.info('This GO-PCA run took %.2f s.', exec_time)
         gopca_run = GOPCARun(sig_matrix,
-                             gopca.version, timestamp, exec_time,
+                             gopca.__version__, timestamp, exec_time,
                              expression_hash, config_hashes,
                              self.matrix.genes, self.matrix.samples, W, Y)
 

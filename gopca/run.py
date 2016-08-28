@@ -84,8 +84,9 @@ class GOPCARun(object):
         There must be a 1-to-1 correspondence between `samples` and the
         rows of `Y`.
     """
-    def __init__(self, sig_matrix, gopca_version, timestamp, exec_time,
-                       expression_hash, config_hashes, genes, samples, W, Y):
+    def __init__(self, sig_matrix,
+                 gopca_version, timestamp, exec_time,
+                 expression_hash, config_hashes, genes, samples, W, Y):
 
         # type checks
         assert isinstance(sig_matrix, GOPCASignatureMatrix)

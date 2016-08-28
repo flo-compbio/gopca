@@ -19,7 +19,7 @@
 Changelog
 =========
 
-Version 2.1.0 (2016-??-??)
+Version 2.1.0 (2016-08-28)
 --------------------------
 
 - Improved algorithm for generating signatures based on significantly enriched
@@ -30,11 +30,18 @@ Version 2.1.0 (2016-??-??)
   have more similar expression patterns with the new algorithm).
 
 - Improved the "Installing GO-PCA" section of the documentation. The section
-  now includes accurate instructions for Windows, and instructions for Mac OS
-  X.
+  now includes accurate instructions for Windows and Mac OS X.
 
 - Reduced the verbosity of GO-PCA output. The old verbosity can be restored
-  by passing ``verbose=True`` to GO-PCA, or by running
+  by passing ``verbose=True`` to GO-PCA, or by running the ``go-pca.py`` script
+  with the ``-v`` option.
+
+- Changed data structure used for representing signature matrices
+  (`GOPCASignatureMatrix` now inherits from `genometools.expression.ExpMatrix`).
+
+- Added simplified functions for plotting heatmaps of signature matrices
+  and signature genes to the Python API: `GOPCASignatureMatrix.get_figure()`
+  and `GOPCASignature.get_figure()`.
 
 Version 2.0.0 (2016-08-01)
 --------------------------

@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2016 Florian Wagner
+#  (c) 2015, 2016 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -29,8 +29,9 @@ from collections import Iterable
 import six
 import pandas as pd
 import numpy as np
+from scipy.stats import pearsonr
 
-from genometools.expression import ExpMatrix
+from genometools.expression import ExpProfile, ExpMatrix
 from genometools.expression import cluster
 from genometools.expression.visualize import ExpHeatmap, HeatmapGeneAnnotation
 
@@ -46,29 +47,76 @@ else:
 logger = logging.getLogger(__name__)
 
 
-class GOPCASignatureMatrix(object):
+class GOPCASignatureMatrix(ExpMatrix):
     """A GO-PCA signature matrix (the result of a GO-PCA run).
 
-    Parameters
-    ----------
-    signatures: Iterable of `GOPCASignature`
-        The signatures generated.
-    samples: Iterable of str
-        The samples in the analysis.
     """
-    def __init__(self, signatures, samples):
+    def __init__(self, *args, **kwargs):
+        return ExpMatrix.__init__(self, *args, **kwargs)
 
-        # type checks
+
+    @classmethod
+    def from_signatures(
+            cls,
+            signatures,
+            standardize=False,
+            center=True,
+            use_median=True,
+            cluster_signatures=True,
+            signature_cluster_metric='correlation',
+            cluster_samples=True,
+            sample_cluster_metric='euclidean',
+            cluster_method='average'
+        ):
+        """Generate a GO-PCA signature matrix from individual signatures.
+
+        The GO-PCA signature matrix contains the expression levels of all
+        signatures (rows) generated, across all samples (columns) in the
+        analysis. See the documentation of the `GOPCASignature` class for
+        details on how signature expression levels are calculated.
+
+        Parameters
+        ----------
+        signatures: Iterable of `GOPCASignature`
+        The signatures generated.
+        """
+        # TODO: finish docstring
         assert isinstance(signatures, Iterable)
-        assert isinstance(samples, Iterable)
+        assert isinstance(standardize, bool)
+        assert isinstance(center, bool)
+        assert isinstance(use_median, bool)
+        assert isinstance(cluster_signatures, bool)
+        assert isinstance(cluster_samples, bool)
 
-        self.signatures = list(signatures)
-        self.samples = list(samples)
+        ### generate the expression matrix
+        matrix = ExpMatrix(pd.concat(
+            [sig.get_expression(standardize=standardize, center=center,
+                                use_median=use_median)
+             for sig in signatures],
+            axis=1
+        ).T)
+        matrix.genes.name = 'Signatures'
+        matrix.samples.name = 'Samples'
 
-        for sig in self.signatures:
-            assert isinstance(sig, GOPCASignature)
-        for s in self.samples:
-            assert isinstance(s, str)
+        if matrix.p == 1:
+            cluster_signatures = False
+            cluster_samples = False
+
+        ### clustering
+        if cluster_signatures:
+            # cluster signatures
+            matrix = cluster.cluster_genes(
+                matrix, metric=signature_cluster_metric, method=cluster_method
+            )
+
+        order_samples = None
+        if cluster_samples:
+            # cluster samples
+            matrix = cluster.cluster_samples(
+                matrix, metric=sample_cluster_metric, method=cluster_method
+            )
+
+        return cls(matrix)
 
     # magic functions
     def __repr__(self):
@@ -91,6 +139,14 @@ class GOPCASignatureMatrix(object):
         return not self.__eq__(other)
 
     @property
+    def _constructor(self):
+        return GOPCASignatureMatrix
+
+    @property
+    def _constructor_sliced(self):
+        return ExpProfile
+
+    @property
     def hash(self):
         """An MD5 hash string for the signature."""
         data_str = ';'.join([
@@ -101,14 +157,19 @@ class GOPCASignatureMatrix(object):
         return str(hashlib.md5(data).hexdigest())
 
     @property
+    def q(self):
+        """The number of signatures in the matrix."""
+        return self.p
+
+    @property
     def n(self):
         """The number of samples in the matrix."""
         return len(self.samples)
 
     @property
-    def q(self):
-        """The number of signatures in the matrix."""
-        return len(self.signatures)
+    def signatures(self):
+        """This returns the list of signatures."""
+        return self.genes
 
     def get_signature(self, name, pc=None, i=None):
         """Look up a signature by name, PC, and index.
@@ -142,6 +203,62 @@ class GOPCASignatureMatrix(object):
 
         return found[i]
 
+    def filter_collection_signatures(self, corr_thresh=0.9, source=None):
+        """Filter signatures by collection."""
+
+        assert isinstance(corr_thresh, float)
+        if source is not None:
+            assert isinstance(source, str)
+
+        sig_matrix = copy.deepcopy(self)
+        signatures = sig_matrix.signatures
+
+        # sort signatures first by PC, then by E-score
+        sig_abs_pcs = np.absolute(np.int64([sig.pc for sig in signatures]))
+        sig_escore = np.float64([sig.escore for sig in signatures])
+        a = np.lexsort([-sig_escore, sig_abs_pcs])
+
+        # filtering
+        q = len(signatures)
+        sel = np.ones(q, dtype=np.bool_)
+        for pos, i in enumerate(a):
+            sig = signatures[i]
+
+            if not sel[i]:
+                # signature is already excluded => skip
+                continue
+
+            if source is not None and sig.gene_set.source != source:
+                # signature doesn't have the selected source => ignore
+                continue
+
+            src = sig.gene_set.source
+            coll = sig.gene_set.collection
+
+            for i2 in a[(pos+1):]:
+                other = signatures[i2]
+
+                if other.gene_set.source !=  src:
+                    # other signature does not have the same source => ignore
+                    continue
+                elif other.gene_set.collection != coll:
+                    # other signature does not have the same collection
+                    # => ignore
+                    continue
+
+                # otherwise, exclude the other signature if it's too highly
+                # correlated
+                r = pearsonr(sig.expression, other.expression)[0]
+                if r >= corr_thresh:
+                    # signature is too highly correlated => exclude
+                    logger.debug('Excluding signature "%s" due to correlation'
+                                 'with "%s".', sig.label, other.label)
+                    sel[i2] = False
+
+        sel = np.nonzero(sel)[0]
+        sig_matrix.signatures = [sig_matrix.signatures[i] for i in sel]
+        return sig_matrix
+
     @property
     def signature_labels(self):
         """The list of signature labels."""
@@ -153,99 +270,22 @@ class GOPCASignatureMatrix(object):
         """An `ExpMatrix` representation of the signature matrix."""
         return self.get_expression_matrix()
 
-    def get_signature_labels(self, max_name_length=50, include_id=False):
-        """Returns the list of GO-PCA signature labels.
-
-        Parameters
-        ----------
-        max_name_length: int, optional
-            The maximal number of characters for each label. Labels that are
-            too long are truncated (indicated by "..."). [50]
-        include_id: bool, optional
-            Whether to include the gene set ID in the label. [False]
+    def get_signature_labels(self, **kwargs):
+        """Generate a list of GO-PCA signature labels (convenience function).
 
         Returns
         -------
         list of str
-            The signature labels.
+            List of signature labels.
         """
-        sig_labels = [
-            sig.get_label(max_name_length=max_name_length,
-                          include_id=include_id)
-            for sig in self.signatures
-        ]
+        sig_labels = [sig.get_label(**kwargs) for sig in self.signatures]
         return sig_labels
-
-    def get_expression_matrix(
-            self,
-            standardize=False,
-            center=True,
-            use_median=True,
-            cluster_signatures=True,
-            signature_cluster_metric='correlation',
-            cluster_samples=True,
-            sample_cluster_metric='euclidean',
-            cluster_method='average'
-        ):
-        """Returns the GO-PCA signature matrix.
-
-        The GO-PCA signature matrix contains the expression levels of all
-        signatures (rows) generated, across all samples (columns) in the
-        analysis. See the documentation of the `GOPCASignature` class for
-        details on how signature expression levels are calculated.
-
-        Parameters
-        ----------
-        max_name_length: int, optional
-            The maximal number of characters for each label. Labels that are
-            too long are truncated (indicated by "..."). [50]
-        include_id: bool, optional
-            Whether to include the gene set ID in the label. [False]
-
-        Returns
-        -------
-        `genometools.expression.ExpMatrix`
-            The signature matrix.
-        """
-        # TODO: finish docstring
-        assert isinstance(standardize, bool)
-        assert isinstance(center, bool)
-        assert isinstance(use_median, bool)
-        assert isinstance(cluster_signatures, bool)
-        assert isinstance(cluster_samples, bool)
-
-        # generate the expression matrix
-        matrix = pd.concat(
-            [sig.get_expression(
-                standardize=standardize, center=center, use_median=use_median
-             ).to_frame()
-             for sig in self.signatures],
-            axis = 1
-        ).T
-
-        matrix.genes.name = 'Genes'
-        matrix.samples.name = 'Samples'
-
-        # clustering
-        if cluster_signatures:
-            # cluster signatures
-            matrix = cluster.cluster_genes(
-                matrix, metric=signature_cluster_metric, method=cluster_method
-            )
-
-        order_samples = None
-        if cluster_samples:
-            # cluster samples
-            matrix = cluster.cluster_samples(
-                matrix, metric=sample_cluster_metric, method=cluster_method
-            )
-
-        assert isinstance(matrix, ExpMatrix)
-        return matrix
 
     def get_heatmap(self, max_name_length=50, include_id=False,
                     highlight_sig=None, highlight_source=None,
-                    matrix_kw=None, colorbar_label=None):
+                    matrix_kw=None,
+                    colorbar_label=('Signature expression<br>'
+                                    '(log<sub>2</sub>-scale)')):
         """Generate an `ExpHeatMap` instance."""
 
         if matrix_kw is None:
@@ -264,15 +304,13 @@ class GOPCASignatureMatrix(object):
             assert isinstance(colorbar_label, str)
 
         # generate expresssion matrix
-        matrix = self.get_expression_matrix(**matrix_kw)
+        matrix = self.copy()
 
         # generate signature labels
-        signatures = matrix.index.values
-        sig_labels = [
-            sig.get_label(max_name_length=max_name_length,
-                          include_id=include_id)
-            for sig in signatures
-        ]
+        #signatures = matrix.index.values
+        sig_labels = self.get_signature_labels(
+            max_name_length=max_name_length,
+            include_id=include_id)
 
         # add signature annotations
         sig_annotations = []
@@ -282,7 +320,7 @@ class GOPCASignatureMatrix(object):
             try:
                 # pd.Index.get_loc() does not work with objects (bug?), so
                 # we have to do it the slow way using np.nonzero
-                i = np.nonzero(matrix.genes == sig)[0][0]
+                i = np.nonzero(self.signatures == sig)[0][0]
                 sig_annotations.append(
                     HeatmapGeneAnnotation(sig_labels[i], color,
                                           label=sig_labels[i])
@@ -303,12 +341,60 @@ class GOPCASignatureMatrix(object):
 
         # replace signatures with labels in expression matrix
         matrix.index = sig_labels
+        matrix.index.name = 'Signatures'
 
         # generate ExpHeatMap
         heatmap = ExpHeatmap(matrix, gene_annotations=sig_annotations,
                              colorbar_label=colorbar_label)
 
         return heatmap
+
+
+    def get_figure(self, heatmap_kw=None, **kwargs):
+        """Generate a plotly figure showing the signature matrix as a heatmap.
+
+        This is a shortcut for
+        ``SignatureMatrix.get_heatmap(...).get_figure(...)``.
+
+        See :func:`ExpHeatmap.get_figure` for keyword arguments.
+
+        Parameters
+        ----------
+        heatmap_kw: dict or None
+            If not None, dictionary containing keyword arguments to be passed
+            to the `ExpHeatmap` constructor.
+
+        Returns
+        -------
+        `plotly.graph_objs.Figure`
+            The plotly figure.
+        """
+        if heatmap_kw is not None:
+            assert isinstance(heatmap_kw, dict)
+
+        if heatmap_kw is None:
+            heatmap_kw = {}
+
+        width = kwargs.pop('width', 1350)
+        height = kwargs.pop('height', 800)
+
+        margin_left = kwargs.pop('margin_left', 350)
+        margin_bottom = kwargs.pop('margin_bottom', 100)
+
+        emin = kwargs.pop('emin', -3.0)
+        emax = kwargs.pop('emax', 3.0)
+
+        font_size = kwargs.pop('font_size', 10)
+        title_font_size = kwargs.pop('title_font_size', 16)
+
+        return self.\
+            get_heatmap(**heatmap_kw).\
+            get_figure(width=width, height=height,
+                       margin_left=margin_left, margin_bottom=margin_bottom,
+                       emin=emin, emax=emax,
+                       font_size=font_size, title_font_size=title_font_size,
+                       **kwargs)
+
 
     def filter_signatures(self, corr_thresh, inplace=False):
         """Remove "redundant" signatures."""
@@ -317,16 +403,16 @@ class GOPCASignatureMatrix(object):
         assert isinstance(corr_thresh, (float, int))
         assert 0 < corr_thresh <= 1.0
 
-        sig_matrix = self
+        matrix = self
         if not inplace:
-            sig_matrix = copy.deepcopy(self)
+            matrix = matrix.copy()
 
         if corr_thresh == 1.0:
             # no filtering
-            return sig_matrix
+            return matrix
 
-        signatures = sig_matrix.signatures
-        matrix = sig_matrix.expression_matrix
+        signatures = matrix.signatures
+        matrix = matrix.expression_matrix
 
         # sort signatures first by PC, then by E-score
         sig_abs_pcs = np.absolute(np.int64([sig.pc for sig in signatures]))
@@ -356,8 +442,8 @@ class GOPCASignatureMatrix(object):
                     sel[i2] = False
 
         sel = np.nonzero(sel)[0]
-        sig_matrix.signatures = [sig_matrix.signatures[i] for i in sel]
-        return sig_matrix
+        matrix.signatures = [matrix.signatures[i] for i in sel]
+        return matrix
 
     def write_pickle(self, path):
         """Save the current object to a pickle file.

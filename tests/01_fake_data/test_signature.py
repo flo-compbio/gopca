@@ -43,7 +43,7 @@ def test_basic(my_signature):
     other = deepcopy(my_signature)
     assert other is not my_signature
     assert other == my_signature
-    other._pc = abs(my_signature._pc) + 1
+    other.pc = abs(my_signature.pc) + 1
     assert other != my_signature
 
 def test_label(my_signature):
@@ -55,7 +55,7 @@ def test_label(my_signature):
 
 def test_heatmap(my_signature):
     heatmap = my_signature.get_heatmap(
-        sig_matrix_kw={'cluster_samples': False},
+        cluster_samples=False,
         colorbar_label=r'Median-centered expression (log<sub>2</sub>-RPKM)',
     )
     assert isinstance(heatmap, ExpHeatmap)

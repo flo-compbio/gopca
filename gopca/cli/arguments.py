@@ -64,7 +64,7 @@ def get_argument_parser(prog=None, desc=None, formatter_class=None):
     g.add_argument('-h', '--help', action='help',
                    help='Show this help message and exit.')
 
-    v = gopca.version
+    v = gopca.__version__
     g.add_argument('--version', action='version', version='GO-PCA ' + v,
                    help='Output the GO-PCA version and exit.')
 

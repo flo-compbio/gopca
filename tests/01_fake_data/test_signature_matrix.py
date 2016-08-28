@@ -39,7 +39,10 @@ def test_basic(my_sig_matrix):
     other = deepcopy(my_sig_matrix)
     assert other is not my_sig_matrix
     assert other == my_sig_matrix
-    other.signatures = other.signatures[:-1]
+    other = GOPCASignatureMatrix.from_signatures(
+        my_sig_matrix.signatures.tolist()[:-1],
+        cluster_signatures=False)
+    # signature matrix with only one signature
     assert other != my_sig_matrix
 
 
@@ -64,5 +67,3 @@ def test_heatmap(my_sig_matrix, my_signature):
         show_sample_labels=True,
     )
     assert isinstance(fig, go.graph_objs.Figure)
-    #print(type(fig))
-    #iplot(fig)

@@ -29,7 +29,7 @@ import logging
 import numpy as np
 
 from xlmhg import get_xlmhg_test_result
-from genometools.expression import ExpMatrix
+from genometools.expression import ExpMatrix, ExpProfile
 from genometools.basic import GeneSet, GeneSetCollection
 from genometools.enrichment import RankBasedGSEResult
 # from genometools.ontology import GeneOntology
@@ -111,19 +111,23 @@ def my_rank_based_result(my_matrix, my_v):
 @pytest.fixture(scope='session')
 def my_signature(my_matrix, my_rank_based_result):
     sig_genes = my_rank_based_result.genes_above_cutoff
-    sig = GOPCASignature(0, my_rank_based_result, my_matrix.loc[sig_genes])
+    seed = ExpProfile(my_matrix.loc[sig_genes].mean(axis=0))
+    sig = GOPCASignature(1, my_rank_based_result, seed,
+                         my_matrix.loc[sig_genes])
     return sig
 
 
 @pytest.fixture(scope='session')
 def my_other_signature(my_matrix, my_rank_based_result):
     sig_genes = my_rank_based_result.genes_above_cutoff[:-1]
-    sig = GOPCASignature(0, my_rank_based_result, my_matrix.loc[sig_genes])
+    seed = ExpProfile(my_matrix.loc[sig_genes].mean(axis=0))
+    sig = GOPCASignature(0, my_rank_based_result, seed,
+                         my_matrix.loc[sig_genes])
     return sig
 
 
 @pytest.fixture(scope='session')
-def my_sig_matrix(my_signature, my_other_signature, my_matrix):
+def my_sig_matrix(my_signature, my_other_signature):
     signatures = [my_signature, my_other_signature]
-    sig_matrix = GOPCASignatureMatrix(signatures, my_matrix.samples)
+    sig_matrix = GOPCASignatureMatrix.from_signatures(signatures)
     return sig_matrix

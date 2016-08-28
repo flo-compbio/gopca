@@ -11,7 +11,8 @@ Installation Instructions for Mac OS X
 
   This will install the ``go-pca.py`` script into the following directory::
 
-  /Library/Frameworks/Python.framework/Versions/3.5/bin/
+    /Library/Frameworks/Python.framework/Versions/3.5/bin/
+
 
 3. To test if the installation was successful, try running ``go-pca.py``:
 
@@ -23,8 +24,9 @@ Installation Instructions for Mac OS X
    you want to run GO-PCA, add the following two lines to your
    ``~/.bash_profile`` file::
 
-   PATH="/Library/Frameworks/Python.framework/Versions/3.5/bin:${PATH}"
-   export PATH
+     PATH="/Library/Frameworks/Python.framework/Versions/3.5/bin:${PATH}"
+     export PATH
+
 
 __ download_python_
 
