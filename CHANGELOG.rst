@@ -49,6 +49,11 @@ Version 2.1.0 (2016-08-28)
 - Travis deploy step now generates and uploads wheels.
 - Fixed bug in `GOPCASignatureMatrix.filter_collection_signatures()`.
 
+2.1.2 (2016-09-04)
+~~~~~~~~~~~~~~~~~~
+
+- Changed genometools dependency to version 2.0.2.
+
 Version 2.0.0 (2016-08-01)
 --------------------------
 
