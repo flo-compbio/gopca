@@ -35,6 +35,7 @@ notifications:
 deploy:
   provider: pypi
   user: flo-compbio
+  distributions: "sdist bdist_wheel"
   password:
     secure: PYkwn05UEcE0zWAT9/IyZwaZTETZTF5uNUhiz70g8KVTuZ9e2nRPnbW0EGCm+DmusWsOxEAJOFj8evKl8/Qd6wNWt0OZ/t1ynbxb06h7YWShat8KfXA/0OpRTo1+djn2nZw+DIFBBNO+zkiVBu/Zgl/2VG/BZ8uPRbxi+GqyTJnpSYja0kxNYD/hTQbaM/HPykn4kfzXGmikcEcV6m79J5jUtzabUUo7DDEForR2rXtgb2suZ7+qvxGWT1BtTQNPiuTdOWm65si9Y2QzxGRgcTxtd5mK234UoTz4f7ULPHH2/bW/7eI7D9L7JRayvn3npzbTsdW51yT1/KqTVo9VFl6KYUu0Fo5MUtfUMyi386hpk42YKnIn7YdZoSS50hhzN/TA0gKawjFqveE9XHB+jale4x6J1sR7EKYFMqFsKgX1QacRncw8z8aNBwANU5SFJordYeMW0elK6C+2ZDlaSb61Chrb/ghRsug4zWE7ZGyeUAZMJNg69xuPbtbYp6TpscKAYeyT+xgNi96eyonOiUGTu4FhAvYDf1N5X+w5U2RO+XOzeEayBqTJuf2nFuK3r2eVH6hn2Btw4eekIsQSqWFHLOm93bbJ2vDQNeMRNFky2mAYUPUcppePN1zrH3h/CpC24rer+iKTS2uYD24r56Y3EdRer6ki4bRrKuWe4h0=
   on:
