@@ -43,6 +43,12 @@ Version 2.1.0 (2016-08-28)
   and signature genes to the Python API: `GOPCASignatureMatrix.get_figure()`
   and `GOPCASignature.get_figure()`.
 
+2.1.1 (2016-09-04)
+~~~~~~~~~~~~~~~~~~
+
+- Travis deploy step now generates and uploads wheels.
+- Fixed bug in `GOPCASignatureMatrix.filter_collection_signatures()`.
+
 Version 2.0.0 (2016-08-01)
 --------------------------
 

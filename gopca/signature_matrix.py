@@ -252,11 +252,13 @@ class GOPCASignatureMatrix(ExpMatrix):
                 if r >= corr_thresh:
                     # signature is too highly correlated => exclude
                     logger.debug('Excluding signature "%s" due to correlation'
-                                 'with "%s".', sig.label, other.label)
+                                 'with "%s".', other.label, sig.label)
                     sel[i2] = False
 
         sel = np.nonzero(sel)[0]
-        sig_matrix.signatures = [sig_matrix.signatures[i] for i in sel]
+        sig_matrix = GOPCASignatureMatrix.from_signatures(
+            sig_matrix.signatures[i] for i in sel
+        )
         return sig_matrix
 
     @property
