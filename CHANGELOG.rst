@@ -54,6 +54,11 @@ Version 2.1.0 (2016-08-28)
 
 - Changed genometools dependency to version 2.0.2.
 
+2.1.3 (2016-09-04)
+~~~~~~~~~~~~~~~~~~
+
+- Renamed `GOPCA.simple_init()` to `simple_setup()`.
+
 Version 2.0.0 (2016-08-01)
 --------------------------
 
@@ -63,7 +68,8 @@ Version 2.0.0 (2016-08-01)
   (`genometools.basic.GeneSetCollection`), and, optionally, a gene ontology
   (`genometools.ontology.GeneOntology`). GO-PCA is performed independently
   for each configuration, and the signatures generated are merged into a
-  single signature matrix. The old API is available as `GOPCA.init_simple()`.
+  single signature matrix. The old way of configuring GO-PCA is available as
+  `GOPCA.simple_setup()`.
 
 Version 2.0.1 (2016-08-16)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

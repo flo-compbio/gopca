@@ -153,8 +153,8 @@ class GOPCA(object):
             assert isinstance(conf, GOPCAConfig)
 
     @classmethod
-    def simple_init(cls, matrix, params, gene_sets, gene_ontology=None,
-                    **kwargs):
+    def simple_setup(cls, matrix, params, gene_sets, gene_ontology=None,
+                     **kwargs):
         """Initialize GO-PCA instance with only one collection of gene sets.
 
         """

@@ -322,8 +322,7 @@ def main(args=None):
             part_of_cc_only=params.go_part_of_cc_only)
         p_logger.setLevel(logging.NOTSET)
         
-    #M = GOPCA.simple_init(matrix, params, gene_sets, gene_ontology)
-    M = GOPCA.simple_init(matrix, params, gene_sets, gene_ontology,
+    M = GOPCA.simple_setup(matrix, params, gene_sets, gene_ontology,
                           verbose=verbose)
     run = M.run()
 
