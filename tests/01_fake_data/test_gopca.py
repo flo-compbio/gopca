@@ -56,8 +56,8 @@ def test_basic(my_gopca):
     other.configs = 2*other.configs
     assert other != my_gopca
 
-def test_simple_init(my_gopca):
+def test_simple_setup(my_gopca):
     config = my_gopca.configs[0]
-    other = GOPCA.simple_init(my_gopca.matrix,
-                              config.user_params, config.gene_sets,
-                              config.gene_ontology)
+    other = GOPCA.simple_setup(my_gopca.matrix,
+                               config.user_params, config.gene_sets,
+                               config.gene_ontology)
