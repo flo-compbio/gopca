@@ -59,6 +59,11 @@ Version 2.1.0 (2016-08-28)
 
 - Renamed `GOPCA.simple_init()` to `simple_setup()`.
 
+2.1.4 (2016-10-06)
+------------------
+
+- Modified `GOPCASignature.get_figure()` call signature.
+
 Version 2.0.0 (2016-08-01)
 --------------------------
 

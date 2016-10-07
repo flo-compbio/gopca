@@ -36,8 +36,6 @@ from genometools.expression.visualize import ExpHeatmap
 from genometools.expression import cluster
 from genometools.enrichment import RankBasedGSEResult
 
-# from .signature_matrix import GOPCASignatureMatrix
-
 logger = logging.getLogger(__name__)
 
 
@@ -404,7 +402,7 @@ class GOPCASignature(object):
         return heatmap
 
 
-    def get_figure(self, heatmap_kw=None, **kwargs):
+    def get_figure(self, sig_matrix=None, heatmap_kw=None, **kwargs):
         """Generate a plotly figure showing the signature gene matrix as a heatmap.
 
         This is a shortcut for ``Signature.get_heatmap(...).get_figure(...)``.
@@ -413,7 +411,10 @@ class GOPCASignature(object):
 
         Parameters
         ----------
-        heatmap_kw: dict or None
+        sig_matrix: GOPCASignatureMatrix (optional)
+            The GO-PCA signature matrix. If specified, samples will be shown
+            in the same order as in the signature matrix.
+        heatmap_kw: dict (optional)
             If not None, dictionary containing keyword arguments to be passed
             to the `ExpHeatmap` constructor.
 
@@ -422,11 +423,19 @@ class GOPCASignature(object):
         `plotly.graph_objs.Figure`
             The plotly figure.
         """
+        from . import GOPCASignatureMatrix
+
+        if sig_matrix is not None:
+            assert isinstance(sig_matrix, GOPCASignatureMatrix)
+
         if heatmap_kw is not None:
             assert isinstance(heatmap_kw, dict)
 
         if heatmap_kw is None:
             heatmap_kw = {}
+
+        if sig_matrix is not None:
+            heatmap_kw['sig_matrix'] = sig_matrix
 
         width = kwargs.pop('width', 1000)
         height = kwargs.pop('height', min(self.k*50, 800))
