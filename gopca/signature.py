@@ -20,6 +20,7 @@
 
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
+_oldstr = str
 from builtins import *
 
 import re
@@ -336,9 +337,9 @@ class GOPCASignature(object):
 
         assert isinstance(cluster_genes, bool)
         assert isinstance(cluster_samples, bool)
-        assert isinstance(gene_cluster_metric, str)
-        assert isinstance(sample_cluster_metric, str)
-        assert isinstance(cluster_method, str)
+        assert isinstance(gene_cluster_metric, (str, _oldstr))
+        assert isinstance(sample_cluster_metric, (str, _oldstr))
+        assert isinstance(cluster_method, (str, _oldstr))
 
         from . import GOPCASignatureMatrix
         if sig_matrix is not None:
