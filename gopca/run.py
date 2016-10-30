@@ -19,6 +19,7 @@
 
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
+_oldstr = str
 from builtins import *
 
 import logging
@@ -90,11 +91,11 @@ class GOPCARun(object):
 
         # type checks
         assert isinstance(sig_matrix, GOPCASignatureMatrix)
-        assert isinstance(gopca_version, str)
-        assert isinstance(timestamp, str)
+        assert isinstance(gopca_version, (str, _oldstr))
+        assert isinstance(timestamp, (str, _oldstr))
         assert isinstance(exec_time, float)
 
-        assert isinstance(expression_hash, str)
+        assert isinstance(expression_hash, (str, _oldstr))
         assert isinstance(config_hashes, Iterable)
 
         assert isinstance(genes, Iterable)
