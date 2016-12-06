@@ -32,7 +32,7 @@ with io.open(path.join(here, 'README.rst'), encoding='UTF-8') as fh:
     long_description = fh.read()
 
 install_requires = [
-    'future>= 0.15.2, <1',
+    'future>= 0.16, <1',
     'six>= 1.10.0, <2',
     'unicodecsv>= 0.14.1, <1',
     'xlsxwriter>= 0.7.7, <1',
@@ -54,13 +54,13 @@ if 'READTHEDOCS' not in os.environ:
         'scipy>=0.14, <1',
         'scikit-learn>=0.14, <1',
         'plotly>=1.9.6, <2',
-        'genometools==2.0.3',
+        'genometools>=0.2, <0.3',
     ])
 
 setup(
     name='gopca',
 
-    version='2.1.4',
+    version='0.2.0',
 
     description=description,
     long_description=long_description,
