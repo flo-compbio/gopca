@@ -36,6 +36,7 @@ install_requires = [
     'six>= 1.10.0, <2',
     'unicodecsv>= 0.14.1, <1',
     'xlsxwriter>= 0.7.7, <1',
+    'genometools>=0.2, <0.3',
 ]
 
 if sys.version_info < (3, 0):
@@ -54,7 +55,6 @@ if 'READTHEDOCS' not in os.environ:
         'scipy>=0.14, <1',
         'scikit-learn>=0.14, <1',
         'plotly>=1.9.6, <2',
-        'genometools>=0.2, <0.3',
     ])
 
 setup(
