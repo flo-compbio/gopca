@@ -37,8 +37,10 @@ MOCK_MODULES = [
     'scipy.spatial', 'scipy.spatial.distance',
     'scipy.cluster', 'scipy.cluster.hierarchy',
     'sklearn.decomposition',
-    'genometools', 'genometools.basic',
-    'genometools.expression', 'genometools.expression.visualize',
+    #'genometools',
+    'genometools.basic',
+    #'genometools.expression',
+    'genometools.expression.visualize',
     'genometools.enrichment', 'genometools.ontology',
     'xlmhg']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
@@ -64,7 +66,7 @@ sys.path.insert(0, os.path.realpath(os.path.abspath('../../cli')))
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    #'sphinx.ext.intersphinx',
+    'sphinx.ext.intersphinx',
     'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
