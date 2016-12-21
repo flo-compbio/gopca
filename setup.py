@@ -33,10 +33,9 @@ with io.open(path.join(here, 'README.rst'), encoding='UTF-8') as fh:
 
 install_requires = [
     'future>= 0.16, <1',
-    'six>= 1.10.0, <2',
     'unicodecsv>= 0.14.1, <1',
     'xlsxwriter>= 0.7.7, <1',
-    'genometools>=0.2, <0.3',
+    'genometools>=0.2.2, <0.3',
 ]
 
 if sys.version_info < (3, 0):
@@ -48,14 +47,21 @@ if sys.version_info < (3, 0):
 
 # do not require installation if built by ReadTheDocs
 # (we mock these modules in docs/source/conf.py)
-if 'READTHEDOCS' not in os.environ:
+if 'READTHEDOCS' not in os.environ or \
+        os.environ['READTHEDOCS'] != 'True':
     install_requires.extend([
+        'six>= 1.10.0, <2',
         'numpy>=1.8, <2',
         'pandas>=0.18, <1',
         'scipy>=0.14, <1',
         'scikit-learn>=0.14, <1',
         'plotly>=1.9.6, <2',
     ])
+else:
+    install_requires.extend([
+        'six>=1.5.2, <2',
+    ])
+    
 
 setup(
     name='gopca',
