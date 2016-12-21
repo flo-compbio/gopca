@@ -32,6 +32,7 @@ with io.open(path.join(here, 'README.rst'), encoding='UTF-8') as fh:
     long_description = fh.read()
 
 install_requires = [
+    'six>=1.5.2, <2',
     'future>= 0.16, <1',
     'unicodecsv>= 0.14.1, <1',
     'xlsxwriter>= 0.7.7, <1',
@@ -50,7 +51,7 @@ if sys.version_info < (3, 0):
 if 'READTHEDOCS' not in os.environ or \
         os.environ['READTHEDOCS'] != 'True':
     install_requires.extend([
-        'six>= 1.10.0, <2',
+        #'six>= 1.10.0, <2',
         'numpy>=1.8, <2',
         'pandas>=0.18, <1',
         'scipy>=0.14, <1',
@@ -59,7 +60,7 @@ if 'READTHEDOCS' not in os.environ or \
     ])
 else:
     install_requires.extend([
-        'six>=1.5.2, <2',
+        #'six>=1.5.2, <2',
     ])
     
 
