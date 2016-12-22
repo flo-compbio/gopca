@@ -268,10 +268,6 @@ class GOPCASignatureMatrix(ExpMatrix):
         sig_labels = self.get_signature_labels()
         return sig_labels
 
-    @property
-    def expression_matrix(self):
-        """An `ExpMatrix` representation of the signature matrix."""
-        return self.get_expression_matrix()
 
     def get_signature_labels(self, **kwargs):
         """Generate a list of GO-PCA signature labels (convenience function).
