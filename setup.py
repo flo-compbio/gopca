@@ -37,6 +37,7 @@ install_requires = [
     'unicodecsv>= 0.14.1, <1',
     'xlsxwriter>= 0.7.7, <1',
     'genometools>=0.2.2, <0.3',
+    'setuptools>=27.2.0',
 ]
 
 if sys.version_info < (3, 0):
