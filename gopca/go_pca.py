@@ -358,7 +358,8 @@ class GOPCA(object):
                 params.mHG_X_frac, params.mHG_X_min, L,
                 adjust_pval_thresh=False,
                 escore_pval_thresh=params.escore_pval_thresh,
-                gene_set_ids=[gs_id], table=table)
+                gene_set_ids=[gs_id], table=table,
+                exact_pval='if_necessary')
             assert len(enr) in [0, 1]
             # enr will be an empty list if GO term does not meet the p-value
             # threshold
@@ -484,7 +485,8 @@ class GOPCA(object):
             ranked_genes, params.pval_thresh,
             params.mHG_X_frac, params.mHG_X_min, params.mHG_L,
             adjust_pval_thresh=False,
-            escore_pval_thresh=params.escore_pval_thresh)
+            escore_pval_thresh=params.escore_pval_thresh,
+            exact_pval='if_significant')
         if not enriched:
             # no gene sets were found to be enriched
             return []
