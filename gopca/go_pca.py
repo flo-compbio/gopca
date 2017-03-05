@@ -219,11 +219,24 @@ class GOPCA(object):
 
         # RandomizedPCA does not work in Scikit-learn 0.14.1,
         # but it works in Scikit-learn 0.16.1
-        if parse_version(sklearn.__version__) >= parse_version('0.16.1'):
-            from sklearn.decomposition import RandomizedPCA as PCA
-        else:
-            from sklearn.decomposition import PCA
+        use_old_randomized_pca = False
+        sklearn_pv = parse_version(sklearn.__version__)
 
+        use_old_pca = False 
+        if sklearn_pv < parse_version('0.18.0'):
+            use_old_pca = True
+            if sklearn_pv >= parse_version('0.16.1'):
+                # old randomized PCA implementation 
+                logger.debug('Using old scikit-learn randomized PCA implementation.')
+                from sklearn.decomposition import RandomizedPCA as PCA
+            else:
+                # no randomized PCA implementation available
+                logger.debug('No randomized PCA implementation available.')
+                from sklearn.decomposition import PCA
+        else:
+            # use new randomized PCA implementation
+            from sklearn.decomposition import PCA
+        
         # initialize random number generator
         np.random.seed(seed)
 
@@ -231,7 +244,11 @@ class GOPCA(object):
         p, n = X.shape
         d_max_null = np.empty(t, dtype=np.float64)
         X_perm = np.empty((p, n), dtype=np.float64)
-        M_null = PCA(n_components=1)
+        if use_old_pca:
+            M_null = PCA(n_components=1)
+        else:
+            M_null = PCA(n_components=1, svd_solver='randomized')
+        
         for j in range(t):
             for i in range(p):
                 X_perm[i, :] = X[i, np.random.permutation(n)]

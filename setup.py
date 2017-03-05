@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2016 Florian Wagner
+# Copyright (c) 2015-2017 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -57,7 +57,7 @@ if 'READTHEDOCS' not in os.environ or \
         'pandas>=0.18, <1',
         'scipy>=0.14, <1',
         'scikit-learn>=0.14, <1',
-        'plotly>=1.9.6, <2',
+        'plotly>=1.9.6, <3',
     ])
 else:
     install_requires.extend([
@@ -68,7 +68,7 @@ else:
 setup(
     name='gopca',
 
-    version='0.2.0',
+    version='0.2.1',
 
     description=description,
     long_description=long_description,
@@ -113,9 +113,9 @@ setup(
             'mock'
         ],
         'tests': [
-            'pytest >= 2.9.1, < 3',
-            'pytest-cov >= 2.2.1, < 3',
-            'requests>=2.10.0, <3',
+            'pytest >=2.9.1, < 3',
+            'pytest-cov >=2.2.1, < 3',
+            'requests >=2.10.0, <3',
         ],
     },
 
