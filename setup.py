@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2016 Florian Wagner
+# Copyright (c) 2015-2017 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -32,10 +32,12 @@ with io.open(path.join(here, 'README.rst'), encoding='UTF-8') as fh:
     long_description = fh.read()
 
 install_requires = [
+    'six>=1.5.2, <2',
     'future>= 0.16, <1',
-    'six>= 1.10.0, <2',
     'unicodecsv>= 0.14.1, <1',
     'xlsxwriter>= 0.7.7, <1',
+    'genometools>=0.2.2, <0.3',
+    'setuptools>=27.2.0',
 ]
 
 if sys.version_info < (3, 0):
@@ -47,20 +49,26 @@ if sys.version_info < (3, 0):
 
 # do not require installation if built by ReadTheDocs
 # (we mock these modules in docs/source/conf.py)
-if 'READTHEDOCS' not in os.environ:
+if 'READTHEDOCS' not in os.environ or \
+        os.environ['READTHEDOCS'] != 'True':
     install_requires.extend([
+        #'six>= 1.10.0, <2',
         'numpy>=1.8, <2',
         'pandas>=0.18, <1',
         'scipy>=0.14, <1',
         'scikit-learn>=0.14, <1',
-        'plotly>=1.9.6, <2',
-        'genometools>=0.2, <0.3',
+        'plotly>=1.9.6, <3',
     ])
+else:
+    install_requires.extend([
+        #'six>=1.5.2, <2',
+    ])
+    
 
 setup(
     name='gopca',
 
-    version='0.2.0',
+    version='0.2.1',
 
     description=description,
     long_description=long_description,
@@ -105,9 +113,9 @@ setup(
             'mock'
         ],
         'tests': [
-            'pytest >= 2.9.1, < 3',
-            'pytest-cov >= 2.2.1, < 3',
-            'requests>=2.10.0, <3',
+            'pytest >=2.9.1, < 3',
+            'pytest-cov >=2.2.1, < 3',
+            'requests >=2.10.0, <3',
         ],
     },
 

@@ -70,7 +70,7 @@ def my_output_pypath(tmpdir_factory):
 @pytest.fixture(scope='session')
 def my_expression_file(my_data_pypath):
     logger.info('Starting download of expression file...')
-    url = r'https://www.dropbox.com/s/bg3ff46evbkc090/fly_timecourse_expression.tsv?dl=1'
+    url = r'https://www.dropbox.com/s/6lqqdp9meeyasin/fly_timecourse_expression.tsv?dl=1'
     path = text(my_data_pypath.join('fly_timecourse_expression.tsv'))
     download_file(url, path)
     return path
@@ -79,7 +79,7 @@ def my_expression_file(my_data_pypath):
 @pytest.fixture(scope='session')
 def my_gene_ontology_file(my_data_pypath):
     logger.info('Starting download of gene ontology file...')
-    url = r'https://www.dropbox.com/s/gub7flrqzi8uzwb/go-basic_2016-01-18.obo?dl=1'
+    url = r'https://www.dropbox.com/s/rvox0wi96162it2/go-basic_2016-01-18.obo?dl=1'
     path = text(my_data_pypath.join('go-basic_2016-01-18.obo'))
     download_file(url, path)
     return path
@@ -89,7 +89,7 @@ def my_gene_ontology_file(my_data_pypath):
 def my_fly_gene_set_file(my_data_pypath):
     """Drosophila gene set file."""
     logger.info('Starting download of fly gene set file...')
-    url = r'https://www.dropbox.com/s/dvmw15o4djgigp8/GO_gene_sets_fly_ensembl83_goa54_ontology2016-01-18.tsv?dl=1'
+    url = r'https://www.dropbox.com/s/rcu4qqvilrg68ko/GO_gene_sets_fly_ensembl83_goa54_ontology2016-01-18.tsv?dl=1'
     path = text(my_data_pypath.join('GO_gene_sets_fly_ensembl83_goa54_ontology2016-01-18.tsv'))
     download_file(url, path)
     return path

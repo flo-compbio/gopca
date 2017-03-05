@@ -31,9 +31,9 @@ import six
 
 # from genometools import misc
 # from genometools.expression import ExpMatrix
-from gopca import util
-from gopca.cli import arguments
-from gopca import GOPCA, GOPCARun, GOPCASignatureMatrix
+from .. import util
+from .. import GOPCA, GOPCARun, GOPCASignatureMatrix
+from . import arguments
 
 if six.PY2:
     import cPickle as pickle
@@ -111,25 +111,31 @@ def main(args=None):
         print('- Timestamp: %s' % run.timestamp)
         print('- Exec. time: %.1f s' % run.exec_time)
 
-        if print_user_config:
-            print('- User-provided config data:')
-            for s in run.user_config.get_param_strings():
-                print('    %s' % s)
+        print('- Expression data MD5 hash: %s' % run.expression_hash)
+        print('- Number of configurations: %d' % len(run.config_hashes))
+        for i, ch in enumerate(run.config_hashes):
+            print('\tConfiguration %d MD5 hash: %s' % (i, ch))
+
+        #if print_user_config:
+        #    print('- User-provided config data:')
+        #    for s in run.user_config.get_param_strings():
+        #        print('    %s' % s)
         print()
 
-    print('GO-PCA Result')
-    print('-------------')
-    print('- Config MD5 hash: %s' % result.config.get_hash())
-    print('- Result MD5 hash: %s' % result.get_hash())
-    print('- Expression data: %d genes, %d samples' % (result.p, result.n))
-    print('- Number of PCs tested: %d' % result.D)
-    print('- Number of signatures generated: %d' % result.q)
-    print('- Config data:')
-    for s in result.config.get_param_strings():
-        print('    %s' % s)
+    print('GO-PCA Signature Matrix')
+    print('-----------------------')
+    print('- MD5 hash: %s' % result.hash)
+    #print('- Config MD5 hash: %s' % result.config.get_hash())
+    #print('- Result MD5 hash: %s' % result.get_hash())
+    #print('- Expression data: %d genes, %d samples' % (result.p, result.n))
+    #print('- Number of PCs tested: %d' % result.D)
+    print('- Number of signatures generated: %d' % len(result.index))
+    #print('- Config data:')
+    #for s in result.config.get_param_strings():
+    #    print('    %s' % s)
 
-    if print_signatures:
-        GOPCA.print_signatures(result.signatures)
+    #if print_signatures:
+    #    GOPCA.print_signatures(result.signatures)
 
     return 0
 

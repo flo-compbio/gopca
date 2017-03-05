@@ -1,6 +1,7 @@
 # project-specific
 xlmhg/*.c
 /.idea/
+/.vscode/
 
 # sphinx
 docs/build/

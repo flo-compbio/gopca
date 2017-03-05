@@ -239,7 +239,7 @@ class GOPCASignatureMatrix(ExpMatrix):
             for i2 in a[(pos+1):]:
                 other = signatures[i2]
 
-                if other.gene_set.source !=  src:
+                if other.gene_set.source != src:
                     # other signature does not have the same source => ignore
                     continue
                 elif other.gene_set.collection != coll:
@@ -268,10 +268,6 @@ class GOPCASignatureMatrix(ExpMatrix):
         sig_labels = self.get_signature_labels()
         return sig_labels
 
-    @property
-    def expression_matrix(self):
-        """An `ExpMatrix` representation of the signature matrix."""
-        return self.get_expression_matrix()
 
     def get_signature_labels(self, **kwargs):
         """Generate a list of GO-PCA signature labels (convenience function).
@@ -288,7 +284,8 @@ class GOPCASignatureMatrix(ExpMatrix):
                     highlight_sig=None, highlight_source=None,
                     matrix_kw=None,
                     colorbar_label=('Signature expression<br>'
-                                    '(log<sub>2</sub>-scale)')):
+                                    '(log<sub>2</sub>-scale)'),
+                    annotation_transparency=0.8):
         """Generate an `ExpHeatMap` instance."""
 
         if matrix_kw is None:
@@ -338,8 +335,9 @@ class GOPCASignatureMatrix(ExpMatrix):
             for sig, label in zip(matrix.index, sig_labels):
                 if sig.gene_set.source == src:
                     sig_annotations.append(
-                        HeatmapGeneAnnotation(label, color,
-                                              label=label)
+                        HeatmapGeneAnnotation(
+                            label, color, label=label,
+                            transparency=annotation_transparency)
                     )
 
         # replace signatures with labels in expression matrix

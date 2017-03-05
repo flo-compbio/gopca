@@ -17,6 +17,7 @@ import os
 import shlex
 
 from builtins import str as text
+#from builtins import str
 
 import pkg_resources
 
@@ -32,16 +33,25 @@ class Mock(MagicMock):
 
 #MOCK_MODULES = ['cython','numpy','pandas','scipy','genometools','goparser','xlmhg','sklearn','sklearn.decomposition']
 MOCK_MODULES = [
-    'cython', 'numpy', 'pandas', 'scipy', 'sklearn', 'matplotlib', 'plotly',
-    'scipy.stats', 'scipy.io',
+    'cython', 
+    'scipy', 'scipy.stats', 'scipy.io',
     'scipy.spatial', 'scipy.spatial.distance',
     'scipy.cluster', 'scipy.cluster.hierarchy',
-    'sklearn.decomposition',
-    'genometools', 'genometools.basic',
-    'genometools.expression', 'genometools.expression.visualize',
-    'genometools.enrichment', 'genometools.ontology',
-    'xlmhg']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+    'sklearn', 'sklearn.decomposition',
+    'plotly', 'plotly.graph_objs',
+    #'numpy',
+    #'pandas',
+    #'genometools',
+    #'genometools.basic',
+    #'genometools.expression',
+    #'genometools.expression.visualize',
+    #'genometools.enrichment', 'genometools.ontology',
+    #'xlmhg'
+    ]
+sys.modules.update((text(mod_name), Mock()) for mod_name in MOCK_MODULES)
+
+#print('Path:', sys.path)
+#print([os.path.isdir(d) for d in sys.path])
 
 import gopca
 
@@ -64,7 +74,7 @@ sys.path.insert(0, os.path.realpath(os.path.abspath('../../cli')))
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    #'sphinx.ext.intersphinx',
+    'sphinx.ext.intersphinx',
     'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
