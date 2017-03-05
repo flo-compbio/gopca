@@ -80,4 +80,4 @@ matching Gene Ontology file (.obo), in order to be able to apply all filters
 specify both gene sets and Gene Ontology when running GO-PCA from the command-
 line, see :doc:`running`.
 
-.. _gene_sets: https://www.dropbox.com/sh/m0r7uqnfdr5x0xu/AADqqJ-8VzPchBRhDm50QxWaa?dl=0
+.. _gene_sets: https://www.dropbox.com/sh/ovekr0h7l60onoa/AACNMWUQOJnxdatLge205IFUa?dl=0
