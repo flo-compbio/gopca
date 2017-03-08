@@ -153,6 +153,11 @@ class GOPCASignature(object):
         return self.matrix.p
 
     @property
+    def K(self):
+        """The total number of genes annotated with the GO term."""
+        return self.gse_result.K
+
+    @property
     def n(self):
         """ The number of samples. """
         return self.matrix.n
@@ -166,6 +171,10 @@ class GOPCASignature(object):
     def samples(self):
         """The sample labels."""
         return self.matrix.samples
+
+    @property
+    def gene_str(self):
+        return ','.join(sorted(self.matrix.genes.values))
 
     @property
     def X(self):
@@ -275,8 +284,10 @@ class GOPCASignature(object):
             ['escore', ['E-score (psi=%.1e)' % self.escore_pval_thresh,
                         r'%.1f']],
             ['median_correlation', ['Median correlation', r'%.2f']],
-            ['genes', ['Genes', r'%s']]
+            ['gene_str', ['Genes', r'%s']]
         ])
+        #for k, v in elements.items():
+        #    print(v[1], getattr(self, k))
         od = OrderedDict([v[0], v[1] % getattr(self, k)]
                          for k, v in elements.items())
         return od

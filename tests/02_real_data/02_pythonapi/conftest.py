@@ -14,30 +14,34 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""Tests for the `gopca_print_info.py` script."""
-
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
 # from builtins import *
 from builtins import open
 from builtins import str as text
 
+import logging
+
 import pytest
 
-import os
-import subprocess as subproc
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
-def test_no_error(my_gopca_file):
-    """Run the script and make sure that the return code is zero."""
-    p = subproc.Popen(
-        'gopca_print_info.py -g %s'
-        % (my_gopca_file),
-        shell=True, stdout=subproc.PIPE, stderr=subproc.PIPE)
+@pytest.fixture(scope='session')
+def my_gopca_run(my_gopca)
+    logger.info('Starting GO-PCA test run...')
+    gopca_run = my_gopca.run()
+    return gopca_run
 
-    stdout, stderr = p.communicate()
-    if p.returncode != 0:
-        print('Stderr:')
-        for l in stderr.decode('utf-8').split('\n'):
-            print(l)
-    assert p.returncode == 0, str(stderr)  # no errors
+
+#@pytest.fixture(scope='session')
+#def my_gopca_file(my_gopca_run, my_output_pypath):
+#    gopca_file = text(my_output_pypath.join('gopca_run.pickle'))
+#    my_gopca_run.write_pickle(gopca_file)
+#    return gopca_file
+
+@pytest.fixture(scope='session')
+def my_sig_matrix(my_gopca_run):
+    return my_gopca_run.sig_matrix

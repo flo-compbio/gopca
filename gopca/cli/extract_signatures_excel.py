@@ -54,6 +54,7 @@ def get_argument_parser():
     desc = 'Extract GO-PCA signatures as an Excel spreadsheet.'
     parser = arguments.get_argument_parser(desc=desc)
     arguments.add_io_args(parser)
+    arguments.add_reporting_args(parser)
     return parser
 
 
@@ -71,9 +72,14 @@ def main(args=None):
     gopca_file = args.gopca_file
     output_file = args.output_file
 
-    assert os.path.isfile(gopca_file)
+    # configure root logger
+    log_file = args.log_file
+    quiet = args.quiet
+    verbose = args.verbose
+    logger = misc.get_logger(log_file=log_file, quiet=quiet,
+                             verbose=verbose)
 
-    logger = misc.configure_logger(__name__)
+    assert os.path.isfile(gopca_file)
 
     workbook = xlsxwriter.Workbook(
         output_file, {'strings_to_numbers': True, 'in_memory': True})
@@ -90,7 +96,7 @@ def main(args=None):
     signatures = sorted(
         signatures, key=lambda s: [abs(s.pc), -sign(s.pc), -s.escore])
 
-    labels = signatures[0].get_ordered_dict().keys()
+    labels = list(signatures[0].get_ordered_dict().keys())
     ws.write_row(0, 0, labels, cell_format=bold)
 
     max_width = np.float64([len(labels[j]) for j in range(len(labels))])

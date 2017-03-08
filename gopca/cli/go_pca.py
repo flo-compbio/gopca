@@ -42,9 +42,9 @@ import genometools
 from genometools.expression import ExpMatrix
 from genometools.basic import GeneSetCollection
 from genometools.ontology import GeneOntology
-from gopca import util
-from gopca.cli import arguments
-from gopca import GOPCAParams, GOPCA
+from .. import GOPCAParams, GOPCA
+from .. import util
+from . import arguments
 
 
 def get_argument_parser():
@@ -84,7 +84,7 @@ def get_argument_parser():
     )
 
     g.add_argument(
-        '-t', '--gene-ontology-file', type=str, metavar=file_mv,
+        '-t', '--gene-ontology-file', type=str, metavar=file_mv, default=None,
         help='OBO file containing the Gene Ontology.'
     )
 
@@ -92,6 +92,9 @@ def get_argument_parser():
         '-o', '--output-file', type=str, required=True, metavar=file_mv,
         help='Output pickle file (extension ".pickle" is recommended).'
     )
+
+    # reporting options
+    arguments.add_reporting_args(parser)
 
     # input file hash values
     """
@@ -113,14 +116,14 @@ def get_argument_parser():
     g = parser.add_argument_group('GO-PCA parameters ([] = default value)')
 
     g.add_argument(
-        '-D', '--n-components', type=int, metavar=int_mv,
+        '-D', '--n-components', type=int, metavar=int_mv, default=-1,
         help=textwrap.dedent("""\
             Number of principal components to test
             (-1 = determine automatically using a permutation test). [%s]
             """ % '%(default)d'))
 
     g.add_argument(
-        '-G', '--sel-var-genes', type=int, metavar=int_mv,
+        '-G', '--sel-var-genes', type=int, metavar=int_mv, default=0,
         help=textwrap.dedent("""\
             Variance filter: Keep G most variable genes (0 = off). [%s]
             """ % '%(default)d'))
@@ -197,7 +200,7 @@ def get_argument_parser():
             """ % '%(default)d'))
 
     g.add_argument(
-        '-pp', '--pc-permutations', type=int, metavar=int_mv,
+        '-pp', '--pc-num-permutations', type=int, metavar=int_mv,
         help='Number of permutations. [%s]' % '%(default)d')
 
     g.add_argument(
@@ -205,7 +208,7 @@ def get_argument_parser():
         help='Z-score threshold. [%s]' % '%(default).2f')
 
     g.add_argument(
-        '-pm', '--pc-max', type=int, metavar=int_mv,
+        '-pm', '--pc-max-components', type=int, metavar=int_mv,
         help=textwrap.dedent("""\
             Maximum number of PCs to test (0 = no maximum). [%s]
             """ % '%(default)d'))
@@ -216,10 +219,8 @@ def get_argument_parser():
 
     # set the argument default values to the parameter defaults stored in
     # the GOPCAParams class
+    parser.set_defaults(**GOPCA.get_param_defaults())
     parser.set_defaults(**GOPCAParams.get_param_defaults())
-
-    # reporting options
-    arguments.add_reporting_args(parser)
 
     return parser
 
@@ -303,10 +304,21 @@ def main(args=None):
             logger.debug('Parameter "%s" specified on command line!', p)
             params.set_param(p, v)
 
+    global_params = GOPCA.get_param_defaults()
+    for k in list(global_params.keys()):
+        v = getattr(args, k)
+        if v is not None:
+            logger.debug('Parameter "%s" specified on command line!', p)
+            global_params[k] = v
+
     # read expression file
     matrix = ExpMatrix.read_tsv(args.expression_file)
     logger.info('Expression matrix size: ' +
                 '(p = %d genes) x (n = %d samples).', matrix.p, matrix.n)
+
+    if args.sel_var_genes > 0:
+        # filter genes by variance
+        matrix = matrix.filter_variance(args.sel_var_genes)
     
     # read gene set file
     gene_sets = GeneSetCollection.read_tsv(args.gene_set_file)
@@ -323,7 +335,7 @@ def main(args=None):
         p_logger.setLevel(logging.NOTSET)
         
     M = GOPCA.simple_setup(matrix, params, gene_sets, gene_ontology,
-                          verbose=verbose)
+                          verbose=verbose, **global_params)
     run = M.run()
 
     if run is None:

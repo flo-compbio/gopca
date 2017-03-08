@@ -114,7 +114,7 @@ def main(args=None):
         print('- Expression data MD5 hash: %s' % run.expression_hash)
         print('- Number of configurations: %d' % len(run.config_hashes))
         for i, ch in enumerate(run.config_hashes):
-            print('\tConfiguration %d MD5 hash: %s' % (i, ch))
+            print('\tConfiguration %d MD5 hash: %s' % (i+1, ch))
 
         #if print_user_config:
         #    print('- User-provided config data:')

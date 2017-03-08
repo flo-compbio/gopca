@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""Tests for the `gopca_print_info.py` script."""
+"""Tests for the `gopca_extract_signatures_excel.py` script."""
 
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
@@ -22,17 +22,22 @@ from __future__ import (absolute_import, division,
 from builtins import open
 from builtins import str as text
 
-import pytest
-
-import os
 import subprocess as subproc
 
+import pytest
 
-def test_no_error(my_gopca_file):
+
+@pytest.fixture(scope='module')
+def my_output_file(my_output_pypath):
+    """The output file."""
+    return text(my_output_pypath.join('gopca_signatures.xlsx'))
+
+
+def test_script(my_gopca_file, my_output_file):
     """Run the script and make sure that the return code is zero."""
     p = subproc.Popen(
-        'gopca_print_info.py -g %s'
-        % (my_gopca_file),
+        'gopca_extract_signatures_excel.py -g %s -o %s'
+        % (my_gopca_file, my_output_file),
         shell=True, stdout=subproc.PIPE, stderr=subproc.PIPE)
 
     stdout, stderr = p.communicate()

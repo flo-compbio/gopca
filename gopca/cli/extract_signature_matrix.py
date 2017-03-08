@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2015, 2016 Florian Wagner
+# Copyright (c) 2015-2017 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
 # GO-PCA is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License, Version 3,
+# it under the terms of the GNU Affero General Public License, Version 3,
 # as published by the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Affero General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 """Script to extract the GO-PCA signature matrix as a tab-delimited text file.
@@ -36,8 +36,8 @@ from genometools import misc
 from genometools.expression import ExpMatrix
 from genometools.expression import cluster
 
-from gopca import util
-from gopca.cli import arguments
+from .. import util
+from . import arguments
 
 
 def get_argument_parser():
@@ -46,8 +46,8 @@ def get_argument_parser():
     parser = arguments.get_argument_parser(desc=desc)
 
     arguments.add_io_args(parser)
-    arguments.add_signature_args(parser)
-    arguments.add_sample_args(parser)
+    #arguments.add_signature_args(parser)
+    #arguments.add_sample_args(parser)
     arguments.add_reporting_args(parser)
 
     return parser
@@ -67,43 +67,46 @@ def main(args=None):
     gopca_file = args.gopca_file
     output_file = args.output_file
 
-    sig_max_len = args.sig_max_len
-    sig_reverse_order = args.sig_reverse_order
+    #sig_max_len = args.sig_max_len
+    #sig_reverse_order = args.sig_reverse_order
 
-    sample_cluster_metric = args.sample_cluster_metric
-    sample_no_clustering = args.sample_no_clustering
+    #sample_cluster_metric = args.sample_cluster_metric
+    #no_sample_clustering = args.no_sample_clustering
 
     # configure root logger
     log_file = args.log_file
     quiet = args.quiet
     verbose = args.verbose
-
     logger = misc.get_logger(log_file=log_file, quiet=quiet,
                              verbose=verbose)
 
     result = util.read_gopca_result(gopca_file)
     
-    signatures = result.signatures
-    sig_labels = [sig.get_label(max_name_length=sig_max_len, include_id=False)
-                  for sig in signatures]
-    samples = list(result.samples)
+    sig_matrix = util.read_gopca_result(gopca_file)
+
+    sig_labels = [sig.get_label(include_id=False)
+                  for sig in sig_matrix.signatures]
+
+    matrix = ExpMatrix(genes=sig_labels, samples=sig_matrix.samples,
+                       X=sig_matrix.X)
+    matrix.index.name = 'Signatures'
+    #signatures = result.signatures
+    #sig_labels = [sig.get_label(max_name_length=sig_max_len, include_id=False)
+    #              for sig in signatures]
+    #samples = list(result.samples)
 
     # generate expression matrix
-    E = ExpMatrix(genes=sig_labels, samples=samples, X=result.S)
+    #E = ExpMatrix(genes=sig_labels, samples=samples, X=sig_matrix.X)
 
     # clustering of signatures (rows)
-    E, _ = cluster.cluster_genes(E, reverse=sig_reverse_order)
-
-    if not sample_no_clustering:
-        # clustering of samples (columns)
-        E, _ = cluster.cluster_samples(E, metric=sample_cluster_metric)
+    #E, _ = cluster.cluster_genes(E, reverse=sig_reverse_order)
 
     exp_logger = logging.getLogger(expression.__name__)
     exp_logger.setLevel(logging.WARNING)
-    E.write_tsv(output_file)
+    matrix.write_tsv(output_file)
     exp_logger.setLevel(logging.NOTSET)
     logger.info('Wrote %d x %d signature matrix to "%s".',
-                E.p, E.n, output_file)
+                matrix.p, matrix.n, output_file)
 
     return 0
 

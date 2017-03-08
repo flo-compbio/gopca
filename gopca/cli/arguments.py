@@ -196,7 +196,7 @@ def add_sample_args(parser):
     g = parser.add_argument_group('Sample options')
 
     g.add_argument(
-        '--sample-no-clustering', action='store_true',
+        '--no-sample-clustering', action='store_true',
         help='Disable clustering of the samples.')
 
     g.add_argument(
@@ -206,7 +206,7 @@ def add_sample_args(parser):
     return g
 
 
-def add_fig_args(parser):
+def add_figure_args(parser):
     """Add shared figure parameters.
 
     Parameters
@@ -221,33 +221,44 @@ def add_fig_args(parser):
     g = parser.add_argument_group('Figure options')
 
     g.add_argument(
-        '-s', '--fig-size', type=float, nargs=2, default=[18, 18],
-        metavar=(float_mv, float_mv),
-        help='Figure width and height (in inches).')
+        '--width', type=int, default=1350,
+        metavar=int_mv,
+        help='Figure width (in px).')
 
     g.add_argument(
-        '-r', '--fig-resolution', type=float, default=150,
+        '--height', type=int, default=800,
+        metavar=int_mv,
+        help='Figure height (in px).')
+
+    g.add_argument(
+        '--font-size', type=float, default=14,
         metavar=float_mv,
-        help='Figure resolution (in dpi).')
+        help='Figure font size (in pt).')    
 
     g.add_argument(
-        '-f', '--fig-font-size', type=int, default=24,
-        metavar=float_mv,
-        help='Figure font size (in pt).')
-
-    g.add_argument(
-        '-m', '--fig-font-family', default='serif',
+        '--font', default='serif',
         metavar=name_mv,
         help='Figure font family.')
 
     g.add_argument(
-        '-t', '--fig-use-tex', action='store_true',
-        help='Use LaTeX for typesetting figure text.')
+        '--margin-left', type=int, default=400,
+        metavar=int_mv,
+        help='Left margin (in px).'
+    )
 
-    g.add_argument(
-        '-b', '--fig-mpl-backend', default=None,
-        metavar=name_mv,
-        help='Matplotlib backend.')
+    g.add_argument('--margin-bottom', type=int, default=100,
+        metavar=int_mv,
+        help='Bottom margin (in px).'
+    )
+
+    #g.add_argument(
+    #    '-t', '--fig-use-tex', action='store_true',
+    #    help='Use LaTeX for typesetting figure text.')
+
+    #g.add_argument(
+    #    '-b', '--fig-mpl-backend', default=None,
+    #    metavar=name_mv,
+    #    help='Matplotlib backend.')
 
     return g
 
@@ -267,53 +278,27 @@ def add_heatmap_args(parser):
     g = parser.add_argument_group('Heat map color and colorbar options')
 
     g.add_argument(
-        '-cm', '--colormap', default='RdBu_r',
+        '--colormap', default='RdBu_r',
         metavar=name_mv,
         help='The colormap used.')
 
     g.add_argument(
-        '-vc', '--val-coolest', type=float, default=-3.0,
+        '--min-val', type=float, default=-3.0,
         metavar=float_mv,
-        help='The value corresponding to the "coolest" color.')
+        help='The expression value corresponding to the "coolest" color.')
 
     g.add_argument(
-        '-vh', '--val-hottest', type=float, default=3.0,
+        '--max-val', type=float, default=3.0,
         metavar=float_mv,
-        help='The value corresponding to the "hottest" color.')
+        help='The expression value corresponding to the "hottest" color.')
 
     g.add_argument(
-        '-co', '--cbar-orient',  default='horizontal',
+        '--colorbar-label',  default='Relative expression<br>(log<sub>2</sub>-scale)',
         metavar=name_mv,
-        help='The orientation of the colorbar.')
-
-    g.add_argument(
-        '-ca', '--cbar-anchor', type=float, nargs=2,
-        default=(0.96, 1.0),
-        metavar=(float_mv, float_mv),
-        help='The colorbar anchoring position (x and y).')
-
-    g.add_argument(
-        '-cs', '--cbar-scale', type=float, default=0.3,
-        metavar=float_mv,
-        help='Scaling factor to adjust the size of the colorbar.')
-
-    g.add_argument(
-        '-cp', '--cbar-pad', type=float, default=0.015,
-        metavar=float_mv,
-        help='The colorbar padding.')
-
-    g.add_argument(
-        '-ct', '--cbar-ticks', nargs='*', default=None,
-        metavar='<float>',
-        help='The colorbar ticks.')
+        help='The colorbar label.')
 
     g.add_argument(
         '--show-sample-labels', action='store_true',
         help='Show sample labels.')
-
-    g.add_argument(
-        '--sample-label-font-size', type=float, default=None,
-        metavar=float_mv,
-        help='Sample label font size (in points).')
 
     return g

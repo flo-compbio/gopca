@@ -9,7 +9,7 @@ from .config import GOPCAConfig
 from .signature import GOPCASignature
 from .signature_matrix import GOPCASignatureMatrix
 from .run import GOPCARun
-from .go_pca import GOPCA
+from .gopca import GOPCA
 
 __version__ = text(pkg_resources.require('gopca')[0].version)
 
