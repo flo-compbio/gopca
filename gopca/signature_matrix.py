@@ -169,8 +169,8 @@ class GOPCASignatureMatrix(ExpMatrix):
 
     @property
     def signatures(self):
-        """This returns the list of signatures."""
-        return self.genes.tolist()
+        """This returns the list of signatures (as a `pandas.Index` object)."""
+        return self.genes
 
     def get_signature(self, name, pc=None, i=None):
         """Look up a signature by name, PC, and index.

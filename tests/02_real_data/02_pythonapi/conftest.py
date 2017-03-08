@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope='session')
-def my_gopca_run(my_gopca)
+def my_gopca_run(my_gopca):
     logger.info('Starting GO-PCA test run...')
     gopca_run = my_gopca.run()
     return gopca_run
