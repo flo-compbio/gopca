@@ -23,6 +23,7 @@ Version 0.2.3 (2017-03-08)
 --------------------------
 
 - Made the following command-line scripts work again (and added tests):
+  
   - gopca_print_info.py
   - gopca_extract_signatures.py
   - gopca_extract_signatures_excel.py
@@ -33,5 +34,6 @@ Version 0.2.3 (2017-03-08)
   it to the table of contents.
 
 - Internals:
+  
   - Changed naming scheme of some source files (main.py => cli/go_pca.py,
     go_pca.py => gopca.py)
