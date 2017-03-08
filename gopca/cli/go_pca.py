@@ -119,14 +119,12 @@ def get_argument_parser():
         '-D', '--n-components', type=int, metavar=int_mv, default=-1,
         help=textwrap.dedent("""\
             Number of principal components to test
-            (-1 = determine automatically using a permutation test). [%s]
-            """ % '%(default)d'))
+            (-1 = determine automatically using a permutation test). [-1]"""))
 
     g.add_argument(
         '-G', '--sel-var-genes', type=int, metavar=int_mv, default=0,
         help=textwrap.dedent("""\
-            Variance filter: Keep G most variable genes (0 = off). [%s]
-            """ % '%(default)d'))
+            Variance filter: Keep G most variable genes (0 = off). [0]"""))
 
     g.add_argument(
         '-P', '--pval-thresh', type=float, metavar=float_mv,
@@ -219,8 +217,9 @@ def get_argument_parser():
 
     # set the argument default values to the parameter defaults stored in
     # the GOPCAParams class
-    parser.set_defaults(**GOPCA.get_param_defaults())
-    parser.set_defaults(**GOPCAParams.get_param_defaults())
+    defaults = GOPCA.get_param_defaults()
+    defaults.update(GOPCAParams.get_param_defaults())
+    parser.set_defaults(**defaults)
 
     return parser
 
@@ -260,7 +259,9 @@ def main(args=None):
         # now remove the defaults and parse again
         # (removing the defaults is important so that we know which values
         # were specified by the user)
-        no_defaults = dict([p, None] for p in GOPCAParams.get_param_defaults())
+        no_defaults = dict([p, None] for p in GOPCA.get_param_defaults())
+        no_defaults2 = dict([p, None] for p in GOPCAParams.get_param_defaults())
+        no_defaults.update(no_defaults2)
         parser.set_defaults(**no_defaults)
         args = parser.parse_args()
 
