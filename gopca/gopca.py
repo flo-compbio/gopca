@@ -31,7 +31,7 @@ import time
 import hashlib
 import copy
 import datetime
-from collections import Iterable
+from collections import Iterable, OrderedDict
 from pkg_resources import parse_version
 
 import numpy as np
@@ -118,16 +118,40 @@ class GOPCA(object):
     verbose : bool
         If set to ``True``, generate more verbose output.
     """
+    __param_defaults = OrderedDict([
+        ('num_components', 0),  # 0 = automatic
+        ('pc_seed', 0),
+        ('pc_num_permutations', 15),
+        ('pc_zscore_thresh', 2.0),
+        ('pc_max_components', 0),  # 0 = no maximum
+    ])
+    """Global GO-PCA parameter default values."""
+
+    @staticmethod
+    def get_param_defaults():
+        return GOPCA.__param_defaults.copy()
+
     def __init__(self, matrix, configs, **kwargs):
 
         assert isinstance(matrix, ExpMatrix)
         assert isinstance(configs, Iterable)
 
-        num_components = kwargs.pop('num_components', 0)  # 0 = automatic
-        pc_seed = kwargs.pop('pc_seed', 0)
-        pc_num_permutations = kwargs.pop('pc_num_permutations', 15)
-        pc_zscore_thresh = kwargs.pop('pc_zscore_thresh', 2.0)
-        pc_max_components = kwargs.pop('pc_max_components', 0)  # 0=no maximum
+        num_components = kwargs.pop(
+            'num_components', self.__param_defaults['num_components'])
+
+        pc_seed = kwargs.pop(
+            'pc_seed', self.__param_defaults['num_components'])
+
+        pc_num_permutations = kwargs.pop(
+            'pc_num_permutations',
+            self.__param_defaults['pc_num_permutations'])
+
+        pc_zscore_thresh = kwargs.pop(
+            'pc_zscore_thresh', self.__param_defaults['pc_zscore_thresh'])
+
+        pc_max_components = kwargs.pop(
+            'pc_max_components', self.__param_defaults['pc_max_components'])
+
         verbose = kwargs.pop('verbose', False)
 
         assert isinstance(num_components, (int, np.integer))

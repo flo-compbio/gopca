@@ -68,7 +68,7 @@ else:
 setup(
     name='gopca',
 
-    version='0.2.2',
+    version='0.2.3',
 
     description=description,
     long_description=long_description,
@@ -113,7 +113,7 @@ setup(
             'mock'
         ],
         'tests': [
-            'pytest >=2.9.1, < 3',
+            'pytest >=2.9.1, < 4',
             'pytest-cov >=2.2.1, < 3',
             'requests >=2.10.0, <3',
         ],
@@ -131,26 +131,29 @@ setup(
     entry_points={
         'console_scripts': [
             # GO-PCA main script
-            'go-pca.py = gopca.main:main',
+            'go-pca.py = gopca.cli.go_pca:main',
 
             # processing scripts
+            'gopca_print_info.py = '
+                'gopca.cli.print_info:main',
             'gopca_extract_signatures.py = '
                 'gopca.cli.extract_signatures:main',
-
             'gopca_extract_signatures_excel.py = '
                 'gopca.cli.extract_signatures_excel:main',
-
             'gopca_extract_signature_matrix.py = '
                 'gopca.cli.extract_signature_matrix:main',
 
-            'gopca_convert_to_matlab.py = '
-                'gopca.cli.convert_to_matlab:main',
-            'gopca_filter_signatures.py = '
-                'gopca.cli.filter_signatures:main',
-            'gopca_combine_signatures.py = '
-                'gopca.cli.combine_signatures:main',
-            'gopca_print_info.py = '
-                'gopca.cli.print_info:main',
+            #'gopca_convert_to_matlab.py = '
+            #    'gopca.cli.convert_to_matlab:main',
+            #'gopca_filter_signatures.py = '
+            #    'gopca.cli.filter_signatures:main',
+            #'gopca_combine_signatures.py = '
+            #    'gopca.cli.combine_signatures:main',
+
+            # plotting scripts
+            'gopca_plot_signature_matrix.py = '
+                'gopca.cli.plot_signature_matrix:main',
+
         ],
     },
 )

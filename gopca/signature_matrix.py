@@ -169,7 +169,7 @@ class GOPCASignatureMatrix(ExpMatrix):
 
     @property
     def signatures(self):
-        """This returns the list of signatures."""
+        """This returns the list of signatures (as a `pandas.Index` object)."""
         return self.genes
 
     def get_signature(self, name, pc=None, i=None):
@@ -280,7 +280,7 @@ class GOPCASignatureMatrix(ExpMatrix):
         sig_labels = [sig.get_label(**kwargs) for sig in self.signatures]
         return sig_labels
 
-    def get_heatmap(self, max_name_length=50, include_id=False,
+    def get_heatmap(self, max_name_length=40, include_id=False,
                     highlight_sig=None, highlight_source=None,
                     matrix_kw=None,
                     colorbar_label=('Signature expression<br>'
@@ -386,7 +386,7 @@ class GOPCASignatureMatrix(ExpMatrix):
         emax = kwargs.pop('emax', 3.0)
 
         font_size = kwargs.pop('font_size', 10)
-        title_font_size = kwargs.pop('title_font_size', 16)
+        title_font_size = kwargs.pop('title_font_size', font_size)
 
         return self.\
             get_heatmap(**heatmap_kw).\

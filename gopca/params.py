@@ -75,7 +75,7 @@ class GOPCAParams(object):
         ('sig_min_genes', 5),
         ('go_part_of_cc_only', False),
     ])
-    """GO-PCA parameter default values."""
+    """Configuration-specific GO-PCA parameter default values."""
 
     @staticmethod
     def get_param_defaults():

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2015, 2016 Florian Wagner
+# Copyright (c) 2017 Florian Wagner
 #
 # This file is part of GO-PCA.
 #
@@ -16,43 +16,52 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""This script extracts GO-PCA signatures as a tab-delimited text file.
+"""This script generates an interactive plot of the GO-PCA signature matrix.
+
+The output format is HTML! A png file can be downloaded manually by opening
+the HTML file in a browser and clicking on the cameral symbol in the top right
+corner of the figure.
 
 Example
 -------
 
 ::
 
-    $ gopca_extract_signatures.py -g [gopca_output_file] -o [output_file]
+    $ gopca_plot_signature_matrix.py -g gopca_result.pickle \
+            -o gopca_sig_matrix.html
 
 """
 
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
+_oldstr = str
 from builtins import *
 
 import sys
-import os
-# import argparse
-import math
 
-import unicodecsv as csv
-# import numpy as np
+from plotly.offline import plot
 
 from genometools import misc
 from gopca import util
 from gopca.cli import arguments
 
 
-def sign(x):
-    return int(math.copysign(1.0, x))
 
 
 def get_argument_parser():
-    desc = 'Extract GO-PCA signatures as a tab-delimited text file.'
+    desc = 'Generate an interactive plot of the GO-PCA signature matrix.'
     parser = arguments.get_argument_parser(desc=desc)
     arguments.add_io_args(parser)
     arguments.add_reporting_args(parser)
+    # arguments.add_sample_args(parser)
+    arguments.add_figure_args(parser)
+    arguments.add_heatmap_args(parser)
+
+    g = parser.add_argument_group('Plotting options')
+    g.add_argument(
+        '--no-plotly-js', action='store_true',
+        help='Do not include plotly javascript code in figure.')
+    
     return parser
 
 
@@ -70,6 +79,22 @@ def main(args=None):
     gopca_file = args.gopca_file
     output_file = args.output_file
 
+    emin = args.min_val
+    emax = args.max_val
+
+    width = args.width
+    height = args.height
+
+    margin_left = args.margin_left
+    margin_bottom = args.margin_bottom
+
+    font_size = args.font_size
+    font = args.font
+
+    include_plotlyjs = True
+    if args.no_plotly_js:
+        include_plotlyjs = False
+
     # configure root logger
     log_file = args.log_file
     quiet = args.quiet
@@ -77,29 +102,20 @@ def main(args=None):
     logger = misc.get_logger(log_file=log_file, quiet=quiet,
                              verbose=verbose)
 
-    assert os.path.isfile(gopca_file)
+    colorbar_label = args.colorbar_label
 
-    result = util.read_gopca_result(gopca_file)
-    signatures = result.signatures
+    sig_matrix = util.read_gopca_result(gopca_file)
+    fig = sig_matrix.get_figure(
+        width=width, height=height,
+        font_size=font_size, font=font,
+        emin=emin, emax=emax,
+        margin_left=margin_left, margin_bottom=margin_bottom,
+        heatmap_kw=dict(colorbar_label=colorbar_label))
+    plot(fig, filename=output_file, image_filename='gopca_signature_matrix', 
+         auto_open=False, include_plotlyjs=include_plotlyjs)
 
-    # sort signatures first by PC, then by fold enrichment
-    signatures = sorted(
-        signatures, key=lambda s: [abs(s.pc), -sign(s.pc), -s.escore])
-
-    labels = signatures[0].get_ordered_dict().keys()
-
-    with open(output_file, 'wb') as ofh:
-        writer = csv.writer(ofh, dialect='excel-tab', lineterminator='\n',
-                            quoting=csv.QUOTE_NONE)
-
-        writer.writerow(labels)
-
-        for i, sig in enumerate(signatures):
-            vals = sig.get_ordered_dict().values()
-            writer.writerow(vals)
-
-    logger.info('Wrote %d signatures to "%s".',
-                len(signatures), output_file)
+    logger.info('Plotted  %d x %d signature matrix.',
+                sig_matrix.p, sig_matrix.n)
 
     return 0
 

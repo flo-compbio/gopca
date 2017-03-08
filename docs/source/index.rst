@@ -30,6 +30,7 @@ Contents
     Obtaining Gene Sets <gene_sets>
     running
     The GO-PCA Python API <api/index>
+    The GO-PCA Command-line interface <cli>
     Citing GO-PCA <citing>
     License <license>
 

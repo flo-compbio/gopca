@@ -35,8 +35,8 @@ from genometools.ontology import GeneOntology
 from gopca import GOPCAParams, GOPCAConfig, GOPCA
 
 logging.basicConfig(level=logging.INFO)
-
 logger = logging.getLogger(__name__)
+
 
 def download_file(url, path):
     """Downloads a file."""
@@ -62,10 +62,12 @@ def my_data_pypath(tmpdir_factory):
     pypath = tmpdir_factory.mktemp('gopca_data', numbered=False)
     return pypath
 
+
 @pytest.fixture(scope='session')
 def my_output_pypath(tmpdir_factory):
     pypath = tmpdir_factory.mktemp('gopca_output', numbered=False)
     return pypath
+
 
 @pytest.fixture(scope='session')
 def my_expression_file(my_data_pypath):
@@ -115,15 +117,3 @@ def my_gopca(my_config, my_matrix_filtered):
     configs = [my_config]
     gopca = GOPCA(my_matrix_filtered, configs, pc_seed=123456789)
     return gopca
-
-
-@pytest.fixture(scope='session')
-def my_gopca_run(my_gopca):
-    """A GO-PCA test run."""
-    logger.info('Starting GO-PCA test run...')
-    gopca_run = my_gopca.run()
-    return gopca_run
-
-@pytest.fixture(scope='session')
-def my_sig_matrix(my_gopca_run):
-    return my_gopca_run.sig_matrix
