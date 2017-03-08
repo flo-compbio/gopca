@@ -33,7 +33,7 @@ def my_output_file(my_output_pypath):
     return text(my_output_pypath.join('gopca_signatures.xlsx'))
 
 
-def test_script(my_gopca_file, my_output_file):
+def test_no_error(my_gopca_file, my_output_file):
     """Run the script and make sure that the return code is zero."""
     p = subproc.Popen(
         'gopca_extract_signatures_excel.py -g %s -o %s'
