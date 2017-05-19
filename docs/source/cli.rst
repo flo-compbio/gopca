@@ -17,7 +17,7 @@ Generate custom GO-derived gene sets: ``gopca_extract_go_gene_sets.py``
 
 Generating custom GO-derived gene sets for use with GO-PCA is a two-step
 process: First, the script ``ensembl_extract_protein_coding_genes.py`` from
-the `genometools` package has to be used to create a tab-delimited text file
+the :mod:`genometools` package has to be used to create a tab-delimited text file
 with a list of protein-coding genes. The input for this script is an Ensembl
 GTF file (see the "Gene sets" column on Ensembl's `FTP Download`__ page):
 
