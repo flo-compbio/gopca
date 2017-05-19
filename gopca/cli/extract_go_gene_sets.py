@@ -81,6 +81,11 @@ Examples
 
 """
 
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+_oldstr = str
+from builtins import *
+
 import sys
 import os
 import textwrap
@@ -124,7 +129,7 @@ def get_argument_parser():
         '-g', '--gene-file', type=str, required=True, metavar=file_mv,
         help=textwrap.dedent("""\
             File containing list of protein-coding genes (generated using
-            the script `ensembl_extract_protein_coding_genes.py`)."""))
+            the script ``ensembl_extract_protein_coding_genes.py``)."""))
 
     g.add_argument(
         '-t', '--gene-ontology-file', type=str, required=True, metavar=file_mv,

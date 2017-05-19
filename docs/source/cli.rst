@@ -23,9 +23,11 @@ GTF file (see the "Gene sets" column on Ensembl's `FTP Download`__ page):
 
 __ ensembl_download_
 
+
 .. code-block:: bash
     
-    ensembl_extract_protein_coding_genes.py -a [gtf_file] -o [output_file]
+   ensembl_extract_protein_coding_genes.py -a [gtf_file] -o [output_file]
+
 
 The output file can then be used as the "gene file" (``-g``) for the script
 ``gopca_extract_go_gene_sets.py``.
@@ -33,6 +35,7 @@ The output file can then be used as the "gene file" (``-g``) for the script
 .. argparse::
    :ref: gopca.cli.extract_go_gene_sets.get_argument_parser
    :prog: gopca_extract_go_gene_sets.py
+
 
 .. _ensembl_download: http://www.ensembl.org/info/data/ftp/index.html
 
