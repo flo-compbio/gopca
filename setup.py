@@ -36,7 +36,7 @@ install_requires = [
     'future>= 0.16, <1',
     'unicodecsv>= 0.14.1, <1',
     'xlsxwriter>= 0.7.7, <1',
-    'genometools>=0.2.6, <0.3',
+    'genometools>=0.2.7, <0.3',
     'setuptools>=27.2.0',
 ]
 
@@ -68,7 +68,7 @@ else:
 setup(
     name='gopca',
 
-    version='0.2.3',
+    version='0.2.4',
 
     description=description,
     long_description=long_description,
@@ -130,6 +130,10 @@ setup(
     # executable scripts
     entry_points={
         'console_scripts': [
+            # script for extracting GO-derived gene sets
+            'gopca_extract_go_gene_sets.py = '
+                'gopca.cli.extract_go_gene_sets:main',
+
             # GO-PCA main script
             'go-pca.py = gopca.cli.go_pca:main',
 

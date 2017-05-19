@@ -360,7 +360,7 @@ class GOPCASignature(object):
             colorbar_label = 'Centered expression'
 
 
-        matrix = self.matrix  # this creates a copy
+        matrix = self.matrix.copy()
         if standardize:
             matrix.standardize_genes(inplace=True)
             cb_default_label = ('Standardized expression<br>'
