@@ -9,6 +9,34 @@ can be used to process and visualize the results of a GO-PCA run.
     :local:
     :backlinks: none
 
+
+.. _extract_go_gene_sets:
+
+Generate custom GO-derived gene sets: ``gopca_extract_go_gene_sets.py``
+-----------------------------------------------------------------------
+
+Generating custom GO-derived gene sets for use with GO-PCA is a two-step
+process: First, the script ``ensembl_extract_protein_coding_genes.py`` from
+the `genometools` package has to be used to create a tab-delimited text file
+with a list of protein-coding genes. The input for this script is an Ensembl
+GTF file (see the "Gene sets" column on Ensembl's `FTP Download`__ page):
+
+__ ensembl_download_
+
+.. code-block:: bash
+    
+    ensembl_extract_protein_coding_genes.py -a [gtf_file] -o [output_file]
+
+The output file can then be used as the "gene file" (``-g``) for the script
+``gopca_extract_go_gene_sets.py``.
+
+.. argparse::
+   :ref: gopca.cli.extract_go_gene_sets.get_argument_parser
+   :prog: gopca_extract_go_gene_sets.py
+
+.. _ensembl_download: http://www.ensembl.org/info/data/ftp/index.html
+
+
 .. _go_pca:
 
 Running GO-PCA: ``go-pca.py``
