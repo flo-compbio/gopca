@@ -36,7 +36,7 @@ install_requires = [
     'future>= 0.16, <1',
     'unicodecsv>= 0.14.1, <1',
     'xlsxwriter>= 0.7.7, <1',
-    'genometools>=0.2.7, <0.3',
+    'genometools>=0.3, <0.4',
     'setuptools>=27.2.0',
 ]
 
